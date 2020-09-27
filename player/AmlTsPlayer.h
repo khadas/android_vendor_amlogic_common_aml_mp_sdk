@@ -20,10 +20,13 @@
 #ifndef _AML_TS_PLAYER_H_
 #define _AML_TS_PLAYER_H_
 
-#include <AmlPlayerBase.h>
+#include "AmlPlayerBase.h"
 #include <AmTsPlayer.h>
 
-class AmlTsPlayer : public aml_mp::AmlPlayerBase {
+namespace aml_mp {
+
+class AmlTsPlayer : public aml_mp::AmlPlayerBase
+{
 public:
     AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId);
     ~AmlTsPlayer();
@@ -75,5 +78,7 @@ private:
     AmlTsPlayer(const AmlTsPlayer&) = delete;
     AmlTsPlayer& operator= (const AmlTsPlayer&) = delete;
 };
+
+}
 
 #endif

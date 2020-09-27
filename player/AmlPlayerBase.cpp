@@ -111,6 +111,8 @@ int AmlPlayerBase::setSubtitleParams(const Aml_MP_SubtitleParams* params)
 
 int AmlPlayerBase::switchSubtitleTrack(const Aml_MP_SubtitleParams* params)
 {
+    AML_MP_UNUSED(params);
+
     return 0;
 }
 

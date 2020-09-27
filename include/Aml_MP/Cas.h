@@ -20,25 +20,127 @@
 #ifndef _AML_MP_CAS_H_
 #define _AML_MP_CAS_H_
 
-#include <Aml_MP/Common.h>
+#include "Common.h"
 
-typedef void (*Aml_MP_CAS_EventCallback)(int event, void* privateData, void* userData);
+#define MAX_CHAN_COUNT (8)
+#define MAX_DATA_LEN (8)
+#define AML_MP_MAX_PATH_SIZE    512
+
+/**\brief Service Mode of the program*/
+typedef enum {
+	AML_MP_CAS_SERVICE_DVB, /**< DTV live playing.*/
+	AML_MP_CAS_SERVICE_IPTV /**< IPTV.*/
+} Aml_MP_CASServiceMode;
+
+/**\brief Service type of the program*/
+typedef enum {
+	AML_MP_CAS_SERVICE_LIVE_PLAY,     /**< Live playing.*/
+	AML_MP_CAS_SERVICE_PVR_RECORDING, /**< PVR recording.*/
+	AML_MP_CAS_SERVICE_PVR_PLAY,      /**< PVR playback.*/
+	AML_MP_CAS_SERVICE_TYPE_INVALID,   /**< Invalid type.*/
+} Aml_MP_CASServiceType;
+
+typedef struct {
+	uint16_t service_id;  /**< The service's index.*/
+	uint8_t dmx_dev;      /**< The demux device's index.*/
+	uint8_t dsc_dev;      /**< The descrmabler device's index.*/
+	uint8_t dvr_dev;      /**< The DVR device's index.*/
+	Aml_MP_CASServiceMode serviceMode; /**< Service mode.*/
+	Aml_MP_CASServiceType serviceType; /**< Service type.*/
+	uint16_t ecm_pid;     /**< ECM's PID.*/
+	uint16_t stream_pids[MAX_CHAN_COUNT];  /**< Elementry streams' index.*/
+	uint32_t stream_num;  /**< Elementary streams' number.*/
+	uint8_t ca_private_data[MAX_DATA_LEN]; /**< Private data.*/
+	uint8_t ca_private_data_len;           /**< Private data's length.*/
+} Aml_MP_CASServiceInfo;
+
+typedef enum {
+    AML_MP_CAS_SECTION_PMT,
+    AML_MP_CAS_SECTION_CAT,
+    AML_MP_CAS_SECTION_NIT,
+}Aml_MP_CASSectionType;
+
+typedef struct {
+   Aml_MP_DemuxId           dmxDev;
+    uint16_t                serviceId;
+    Aml_MP_CASSectionType   sectionType;
+} Aml_MP_CASSectionReportAttr;
+
+typedef int (*Aml_MP_CAS_EventCallback)(AML_MP_HANDLE casSession, const char *json);
+
+typedef enum {
+    AML_MP_CAS_ENCRYPT, /**< Encrypt.*/
+    AML_MP_CAS_DECRYPT  /**< Decrypt.*/
+} Aml_MP_CASCryptoType;
+
+typedef struct {
+  Aml_MP_CASCryptoType  type;                        /**< Work type.*/
+  char                  filepath[AML_MP_MAX_PATH_SIZE];                   /**< Location of the record file.*/
+  int                   segmentId;                      /**< Current segment's index.*/
+  int64_t               offset;                          /**< Current offset in the segment file.*/
+  Aml_MP_Buffer         inputBuffer;                    /**< Input data buffer.*/
+  Aml_MP_Buffer         outputBuffer;                   /**< Output data buffer.*/
+  size_t                outputSize;                     /**< Output data size in bytes.*/
+} Aml_MP_CASCryptoParams;
+
+struct Aml_MP_CASPreParam {
+      Aml_MP_DemuxId dmxDev;      /**< The demux device's index.*/
+};
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
-int Aml_MP_CAS_CreatePlugin(Aml_MP_CASType casType, AML_MP_HANDLE* handle);
+// global CAS function begin
+int Aml_MP_CAS_Initialize();
 
-int Aml_MP_CAS_DestroyPlugin(AML_MP_HANDLE handle);
+int Aml_MP_CAS_Terminate();
 
-int Aml_MP_CAS_OpenSession(AML_MP_HANDLE handle);
+int Aml_MP_CAS_IsNeedWholeSection();
 
-int Aml_MP_CAS_CloseSession(AML_MP_HANDLE handle);
+int Aml_MP_CAS_IsSystemIdSupported(int caSystemId);
 
-int Aml_MP_CAS_SetPrivateData(AML_MP_HANDLE handle, const uint8_t* data, size_t size);
+int Aml_MP_CAS_ReportSection(Aml_MP_CASSectionReportAttr* pAttr, uint8_t* data, size_t len);
 
-int Aml_MP_CAS_ProcessEcm(AML_MP_HANDLE handle, const uint8_t* data, size_t size);
+int Aml_MP_CAS_SetEmmPid(int dmx_dev, uint16_t emmPid);
 
-int Aml_MP_CAS_ProcessEmm(AML_MP_HANDLE handle, const uint8_t* data, size_t size);
+int Aml_MP_CAS_DVREncrypt(AML_MP_HANDLE casSession, Aml_MP_CASCryptoParams *cryptoPara);
 
-int Aml_MP_CAS_RegisterEventCallback(AML_MP_HANDLE handle, Aml_MP_CAS_EventCallback cb, void* userData);
+int Aml_MP_CAS_DVRDecrypt(AML_MP_HANDLE casSession, Aml_MP_CASCryptoParams *cryptoPara);
+// global CAS function end
 
+int Aml_MP_CAS_OpenSession(AML_MP_HANDLE* casSession);
+
+int Aml_MP_CAS_CloseSession(AML_MP_HANDLE casSession);
+
+int Aml_MP_CAS_RegisterEventCallback(AML_MP_HANDLE casSession, Aml_MP_CAS_EventCallback cb, void* userData);
+
+//for live
+int Aml_MP_CAS_StartDescrambling(AML_MP_HANDLE casSession, Aml_MP_CASServiceInfo* serviceInfo);
+
+int Aml_MP_CAS_StopDescrambling(AML_MP_HANDLE casSession);
+
+int Aml_MP_CAS_UpdateDescramblingPid(AML_MP_HANDLE casSession, int oldStreamPid, int newStreamPid);
+
+//for dvr record
+int Aml_MP_CAS_StartDVRRecord(AML_MP_HANDLE casSession, Aml_MP_CASServiceInfo *serviceInfo);
+
+int Aml_MP_CAS_StopDVRRecord(AML_MP_HANDLE casSession);
+
+//for dvr replay
+int Aml_MP_CAS_SetDVRReplayPreParam(AML_MP_HANDLE casSession, struct Aml_MP_CASPreParam *params); //TODO: remove it
+
+int Aml_MP_CAS_StartDVRReplay(AML_MP_HANDLE casSession, Aml_MP_CASCryptoParams *cryptoParams);
+
+int Aml_MP_CAS_StopDVRReplay(AML_MP_HANDLE casSession);
+
+//don't need be called by player or dvr would be better
+AML_MP_HANDLE Aml_MP_CAS_CreateSecmem(AML_MP_HANDLE casSession, Aml_MP_CASServiceType type, void **pSecbuf, uint32_t *size);
+
+int Aml_MP_CAS_DestroySecmem(AML_MP_HANDLE casSession, AML_MP_HANDLE secMem);
+
+#ifdef __cplusplus
+}
+#endif
 #endif

@@ -34,7 +34,7 @@
 #define MLOGE(fmt, ...) ALOG(LOG_ERROR, mName, fmt, ##__VA_ARGS__)
 
 #ifndef MLOG
-#define MLOG(fmt, ...) MLOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #endif
 
 #ifndef KEEP_ALOGX

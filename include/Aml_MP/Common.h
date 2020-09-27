@@ -54,10 +54,17 @@ typedef enum {
     AML_MP_INPUT_BUFFER_TYPE_TVP,
 } Aml_MP_InputBufferType;
 
+typedef struct {
+    Aml_MP_InputBufferType type;
+    uint8_t* address;
+    size_t size;
+} Aml_MP_Buffer;
+
 ////////////////////////////////////////
 typedef enum {
-    AML_MP_VIDEO_CODEC_UNKNOWN = -1,
-    AML_MP_VIDEO_CODEC_MPEG12 = 0,
+    AML_MP_CODEC_UNKNOWN = -1,
+    AML_MP_VIDEO_CODEC_BASE = 0,
+    AML_MP_VIDEO_CODEC_MPEG12,
     AML_MP_VIDEO_CODEC_MPEG4,
     AML_MP_VIDEO_CODEC_H264,
     AML_MP_VIDEO_CODEC_VC1,
@@ -65,25 +72,27 @@ typedef enum {
     AML_MP_VIDEO_CODEC_HEVC,
     AML_MP_VIDEO_CODEC_VP9,
     AML_MP_VIDEO_CODEC_AVS2,
-    AML_MP_VIDEO_CODEC_MAX,
-    AML_MP_VIDEO_CODEC_UNSUPPORT = AML_MP_VIDEO_CODEC_MAX
-} Aml_MP_VideoCodec;
 
-typedef enum {
-    AML_MP_AUDIO_CODEC_UNKNOWN = -1,
-    AML_MP_AUDIO_CODEC_MP2 = 1,                // MPEG audio
-    AML_MP_AUDIO_CODEC_MP3 = 2,                // MP3
-    AML_MP_AUDIO_CODEC_AC3 = 3,                // AC3
-    AML_MP_AUDIO_CODEC_EAC3 = 4,               // DD PLUS
-    AML_MP_AUDIO_CODEC_DTS = 5,                // DD PLUS
-    AML_MP_AUDIO_CODEC_AAC = 6,                // AAC
-    AML_MP_AUDIO_CODEC_LATM = 7,               // AAC LATM
-    AML_MP_AUDIO_CODEC_PCM = 8,                // PCM
-} Aml_MP_AudioCodec;
+    AML_MP_AUDIO_CODEC_BASE = 1000,
+    AML_MP_AUDIO_CODEC_MP2,                // MPEG audio
+    AML_MP_AUDIO_CODEC_MP3,                // MP3
+    AML_MP_AUDIO_CODEC_AC3,                // AC3
+    AML_MP_AUDIO_CODEC_EAC3,               // DD PLUS
+    AML_MP_AUDIO_CODEC_DTS,                // DD PLUS
+    AML_MP_AUDIO_CODEC_AAC,                // AAC
+    AML_MP_AUDIO_CODEC_LATM,               // AAC LATM
+    AML_MP_AUDIO_CODEC_PCM,                // PCM
+
+    AML_MP_SUBTITLE_CODEC_BASE = 2000,
+    AML_MP_SUBTITLE_CODEC_CC,
+    AML_MP_SUBTITLE_CODEC_SCTE27,
+    AML_MP_SUBTITLE_CODEC_DVB,
+    AML_MP_SUBTITLE_CODEC_TELETEXT,
+} Aml_MP_CodecID;
 
 typedef struct {
     uint16_t        		pid;
-    Aml_MP_VideoCodec       videoCodec;
+    Aml_MP_CodecID          videoCodec;
     uint32_t        		width;
     uint32_t        		height;
     uint32_t        		frameRate;
@@ -93,7 +102,7 @@ typedef struct {
 
 typedef struct {
     uint16_t                pid;
-    Aml_MP_AudioCodec       audioCodec;
+    Aml_MP_CodecID          audioCodec;
     uint32_t                nChannels;
     uint32_t                nSampleRate;
     uint32_t                nExtraSize;
@@ -101,40 +110,10 @@ typedef struct {
 } Aml_MP_AudioParams;
 
 ////////////////////////////////////////
-typedef enum {
-    AML_MP_SUBTITLE_CODEC_UNKNOWN    = 0,
-    AML_MP_SUBTITLE_CODEC_CC         = 2,
-    AML_MP_SUBTITLE_CODEC_SCTE27     = 3,
-    AML_MP_SUBTITLE_CODEC_DVB        = 4,
-    AML_MP_SUBTITLE_CODEC_TELETEXT   = 5,
-} Aml_MP_SubtitleCodec;
-
 typedef struct {
-    int ChannelID;
-    Aml_MP_VideoCodec videoCodec;
-} Aml_MP_CCParam;
-
-typedef struct {
+    Aml_MP_CodecID subtitleCodec;
     int pid;
-} Aml_MP_SCTE27Param;
-
-typedef struct  {
-    int pid;
-    int CompositionPage;
-    int AncillaryPage;
-}Aml_MP_DvbSubtitleParam;
-
-typedef struct {
-    int pid;
-    int MagzineNo;
-    int PageNo;
-    int SubPageNo;
-} Aml_MP_TeletextParam;
-
-typedef struct {
-    Aml_MP_SubtitleCodec subtitleCodec;
-    int pid;
-    Aml_MP_VideoCodec videoFormat;     //cc
+    Aml_MP_CodecID videoFormat;        //cc
     int channelId;                     //cc
     int ancillaryPageId;               //dvb
     int compositionPageId;             //dvb
@@ -143,15 +122,12 @@ typedef struct {
 ////////////////////////////////////////
 typedef enum {
     AML_MP_CAS_UNKNOWN,
-    AML_MP_CAS_VERIMATRIX_DVB,
     AML_MP_CAS_VERIMATRIX_IPTV,
-    AML_MP_CAS_VERIMATRIX_WEB,
-    AML_MP_CAS_IRDETO,
 } Aml_MP_CASType;
 
 typedef struct {
-    Aml_MP_VideoCodec videoCodec;
-    Aml_MP_AudioCodec audioCodec;
+    Aml_MP_CodecID videoCodec;
+    Aml_MP_CodecID audioCodec;
     int videoPid;
     int audioPid;
     int ecmPid;
@@ -162,31 +138,10 @@ typedef struct {
     char keyPath[100];
 } Aml_MP_IptvCasParam;
 
-typedef enum {
-    AML_MP_CAS_LIVE_PLAY,
-    AML_MP_CAS_PVR_RECORDING,
-    AML_MP_CAS_PVR_PLAY,
-    AML_MP_CAS_INVALID_SERVICE,
-} Aml_MP_CAsServiceType;
-
-typedef struct {
-    int serviceId;
-    Aml_MP_DemuxId demuxId;
-    int descrambleDeviceId;
-    int ecmPid;
-    int emmPid;
-    Aml_MP_CAsServiceType serviceType;
-    int streamPids[10];
-    int streamNum;
-    uint8_t privateData[100];
-    int privateDataSize;
-} Aml_MP_DvbCasParam;
-
 typedef struct {
     Aml_MP_CASType type;
     union {
         Aml_MP_IptvCasParam iptvCasParam;
-        Aml_MP_DvbCasParam dvbCasParam;
         struct {
             uint8_t data[1024];
             size_t size;
@@ -196,11 +151,15 @@ typedef struct {
 
 ////////////////////////////////////////
 typedef enum {
-    AML_MP_STREAM_TYPE_UNKNOWN,
+    AML_MP_STREAM_TYPE_UNKNOWN = 0,
     AML_MP_STREAM_TYPE_VIDEO,
     AML_MP_STREAM_TYPE_AUDIO,
     AML_MP_STREAM_TYPE_AD,
     AML_MP_STREAM_TYPE_SUBTITLE,
+    AML_MP_STREAM_TYPE_TELETEXT,
+    AML_MP_STREAM_TYPE_ECM,
+    AML_MP_STREAM_TYPE_EMM,
+    AML_MP_STREAM_TYPE_SECTION,
 } Aml_MP_StreamType;
 
 ////////////////////////////////////////
@@ -228,6 +187,7 @@ typedef enum {
     AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_DEVICE,            //setAudioOutputDevice(Aml_MP_AudioOutputDevice)
     AML_MP_PLAYER_PARAMETER_AUDIO_PTS_OFFSET,               //setAudioPtsOffset(int ms)
     AML_MP_PLAYER_PARAMETER_AUDIO_BALANCE,                  //setAudioBalance(Aml_MP_AudioBalance)
+    AML_MP_PLAYER_PARAMETER_AUDIO_MUTE,                     //setAudioMute(bool)
 
     AML_MP_PLAYER_PARAMETER_NETWORK_JITTER,                 //setNetworkJitter(int ms)
 
@@ -371,15 +331,18 @@ typedef struct {
 ////////////////////////////////////////
 //AML_MP_PLAYER_PARAMETER_SUBTITLE_INFO
 typedef struct {
-
+    uint32_t width;
+    uint32_t height;
+    uint32_t iso639Code;
 } Aml_MP_SubtitleInfo;
 
 ////////////////////////////////////////
 //AML_MP_PLAYER_PARAMETER_SUBTITLE_DECODE_STAT
 typedef struct {
-
+    uint32_t frameCount;
+    uint32_t errorFrameCount;
+    uint32_t dropFrameCount;
 } Aml_MP_SubDecStat;
-
 
 ///////////////////////////////////////////////////////////////////////////////
 typedef enum {
@@ -395,7 +358,51 @@ enum {
 
 };
 
+///////////////////////////////////////////////////////////////////////////////
+#define AML_MP_DVR_STREAMS_COUNT 16
 
+typedef struct {
+    Aml_MP_StreamType   type;
+    int                 pid;
+    Aml_MP_CodecID      codecId;
+} Aml_MP_DVRStream;
+
+typedef struct {
+    int nbStreams;
+    Aml_MP_DVRStream streams[AML_MP_DVR_STREAMS_COUNT];
+#define AML_MP_DVR_VIDEO_INDEX      0
+#define AML_MP_DVR_AUDIO_INDEX      1
+#define AML_MP_DVR_AD_INDEX         2
+#define AML_MP_DVR_SUBTITLE_INDEX   3
+#define AML_MP_DVR_PCR_INDEX        4
+#define AML_MP_DVR_STREAM_NB        5
+} Aml_MP_DVRStreamArray;
+
+typedef struct {
+  time_t              time;       /**< time duration, unit on ms*/
+  loff_t              size;       /**< size*/
+  uint32_t            pkts;       /**< number of ts packets*/
+} Aml_MP_DVRSourceInfo;
+
+///////////////////////////////////////////////////////////////////////////////
+typedef enum {
+    AML_MP_DEMUX_SOURCE_TS0,  /**< Hardware TS input port 0.*/
+    AML_MP_DEMUX_SOURCE_TS1,  /**< Hardware TS input port 1.*/
+    AML_MP_DEMUX_SOURCE_TS2,  /**< Hardware TS input port 2.*/
+    AML_MP_DEMUX_SOURCE_TS3,  /**< Hardware TS input port 3.*/
+    AML_MP_DEMUX_SOURCE_TS4,  /**< Hardware TS input port 4.*/
+    AML_MP_DEMUX_SOURCE_TS5,  /**< Hardware TS input port 5.*/
+    AML_MP_DEMUX_SOURCE_TS6,  /**< Hardware TS input port 6.*/
+    AML_MP_DEMUX_SOURCE_TS7,  /**< Hardware TS input port 7.*/
+    AML_MP_DEMUX_SOURCE_DMA0,  /**< DMA input port 0.*/
+    AML_MP_DEMUX_SOURCE_DMA1,  /**< DMA input port 1.*/
+    AML_MP_DEMUX_SOURCE_DMA2,  /**< DMA input port 2.*/
+    AML_MP_DEMUX_SOURCE_DMA3,  /**< DMA input port 3.*/
+    AML_MP_DEMUX_SOURCE_DMA4,  /**< DMA input port 4.*/
+    AML_MP_DEMUX_SOURCE_DMA5,  /**< DMA input port 5.*/
+    AML_MP_DEMUX_SOURCE_DMA6,  /**< DMA input port 6.*/
+    AML_MP_DEMUX_SOURCE_DMA7  /**< DMA input port 7.*/
+} Aml_MP_DemuxSource;
 
 
 #endif

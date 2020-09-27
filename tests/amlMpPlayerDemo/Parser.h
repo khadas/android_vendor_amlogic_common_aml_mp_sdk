@@ -60,9 +60,9 @@ struct ProgramInfo : public RefBase
 #define ECM_INDEX_AUDIO 0
 #define ECM_INDEX_VIDEO 1
 #define ECM_INDEX_SUB   2
-    Aml_MP_AudioCodec audioCodec    = AML_MP_AUDIO_CODEC_UNKNOWN;
-    Aml_MP_VideoCodec videoCodec    = AML_MP_VIDEO_CODEC_UNKNOWN;
-    Aml_MP_SubtitleCodec subtitleCodec = AML_MP_SUBTITLE_CODEC_UNKNOWN;
+    Aml_MP_CodecID audioCodec    = AML_MP_CODEC_UNKNOWN;
+    Aml_MP_CodecID videoCodec    = AML_MP_CODEC_UNKNOWN;
+    Aml_MP_CodecID subtitleCodec = AML_MP_CODEC_UNKNOWN;
     int audioPid                    = AML_MP_INVALID_PID;
     int videoPid                    = AML_MP_INVALID_PID;
     int subtitlePid                 = AML_MP_INVALID_PID;

@@ -2,12 +2,13 @@
 #include <utils/Log.h>
 #include "AmlTsPlayer.h"
 #include <AmTsPlayer.h>
-#include <dvb_utils.h>
 #include <utils/AmlMpUtils.h>
 
 #define VOLUME_MULTIPLE 100.0;
 
-am_tsplayer_video_codec videoCodecConvert(Aml_MP_VideoCodec aml_MP_VideoCodec) {
+namespace aml_mp {
+
+am_tsplayer_video_codec videoCodecConvert(Aml_MP_CodecID aml_MP_VideoCodec) {
     switch (aml_MP_VideoCodec) {
         case AML_MP_VIDEO_CODEC_MPEG12:
             return AV_VIDEO_CODEC_MPEG2;
@@ -26,7 +27,7 @@ am_tsplayer_video_codec videoCodecConvert(Aml_MP_VideoCodec aml_MP_VideoCodec) {
     }
 }
 
-am_tsplayer_audio_codec audioCodecConvert(Aml_MP_AudioCodec aml_MP_AudioCodec) {
+am_tsplayer_audio_codec audioCodecConvert(Aml_MP_CodecID aml_MP_AudioCodec) {
     switch (aml_MP_AudioCodec) {
         case AML_MP_AUDIO_CODEC_MP2:
             return AV_AUDIO_CODEC_MP2;
@@ -49,19 +50,6 @@ am_tsplayer_audio_codec audioCodecConvert(Aml_MP_AudioCodec aml_MP_AudioCodec) {
     }
 }
 
-am_tsplayer_audio_out_mode audioOutModeConvert(Aml_MP_AudioOutputMode audioOutputMode) {
-    switch (audioOutputMode) {
-        case AML_MP_AUDIO_OUTPUT_PCM:
-            return AV_AUDIO_OUT_PCM;
-        case AML_MP_AUDIO_OUTPUT_PASSTHROUGH:
-            return AV_AUDIO_OUT_PASSTHROUGH;
-        default:
-            return AV_AUDIO_OUT_AUTO;
-    }
-
-    return (am_tsplayer_audio_out_mode)-1;
-}
-
 am_tsplayer_stream_type streamTypeConvert(Aml_MP_StreamType streamType) {
     switch (streamType) {
         case AML_MP_STREAM_TYPE_VIDEO:
@@ -72,6 +60,8 @@ am_tsplayer_stream_type streamTypeConvert(Aml_MP_StreamType streamType) {
             return TS_STREAM_AD;
         case AML_MP_STREAM_TYPE_SUBTITLE:
             return TS_STREAM_SUB;
+        default:
+            break;
     }
 
     return (am_tsplayer_stream_type)-1;
@@ -114,12 +104,24 @@ am_tsplayer_input_buffer_type inputStreamTypeConvert(Aml_MP_InputStreamType stre
     return TS_INPUT_BUFFER_TYPE_NORMAL;
 }
 
-void videoInfoConvertUp(am_tsplayer_video_info* tsVideoInfo, Aml_MP_VideoInfo* amlVideoInfo) {
-    amlVideoInfo->width = (int)(tsVideoInfo->width);
-    amlVideoInfo->height = (int)(tsVideoInfo->height);
-    amlVideoInfo->frameRate = (int)(tsVideoInfo->framerate);
-    amlVideoInfo->bitrate = (int)(tsVideoInfo->bitrate);
-    amlVideoInfo->ratio64 = (int)(tsVideoInfo->ratio64);
+am_tsplayer_audio_stereo_mode audioBalanceConvert(Aml_MP_AudioBalance balance)
+{
+    switch (balance) {
+    case AML_MP_AUDIO_BALANCE_STEREO:
+        return AV_AUDIO_STEREO;
+
+    case AML_MP_AUDIO_BALANCE_LEFT:
+        return AV_AUDIO_LEFT;
+
+    case AML_MP_AUDIO_BALANCE_RIGHT:
+        return AV_AUDIO_RIGHT;
+
+    case AML_MP_AUDIO_BALANCE_SWAP:
+        return AV_AUDIO_SWAP;
+
+    case AML_MP_AUDIO_BALANCE_LRMIX:
+        return AV_AUDIO_LRMIX;
+    }
 }
 
 am_tsplayer_avsync_mode AVSyncSourceTypeConvert(Aml_MP_AVSyncSource avSyncSource) {
@@ -141,28 +143,28 @@ AmlTsPlayer::AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId
     }
 
     if (createParams->sourceType == AML_MP_INPUT_SOURCE_TS_MEMORY) {
-        ALOGI("set demux source DVB_DEMUX_SOURCE_DMA0");
-        dvb_set_demux_source(createParams->demuxId, DVB_DEMUX_SOURCE_DMA0);
+        ALOGI("set demux source AML_MP_DEMUX_SOURCE_DMA0");
+        Aml_MP_SetDemuxSource(createParams->demuxId, AML_MP_DEMUX_SOURCE_DMA0);
     } else {
-        DVB_DemuxSource_t demuxSource = DVB_DEMUX_SOURCE_TS0;
+        Aml_MP_DemuxSource demuxSource = AML_MP_DEMUX_SOURCE_TS0;
         switch (createParams->demuxId) {
         case AML_MP_HW_DEMUX_ID_0:
-            demuxSource = DVB_DEMUX_SOURCE_TS0;
+            demuxSource = AML_MP_DEMUX_SOURCE_TS0;
             break;
 
         case AML_MP_HW_DEMUX_ID_1:
-            demuxSource = DVB_DEMUX_SOURCE_TS1;
+            demuxSource = AML_MP_DEMUX_SOURCE_TS1;
             break;
 
         case AML_MP_HW_DEMUX_ID_2:
-            demuxSource = DVB_DEMUX_SOURCE_TS2;
+            demuxSource = AML_MP_DEMUX_SOURCE_TS2;
             break;
 
         default:
             break;
         }
 
-        dvb_set_demux_source(createParams->demuxId, demuxSource);
+        Aml_MP_SetDemuxSource(createParams->demuxId, demuxSource);
     }
 
     init_param.source = sourceTypeConvert(createParams->sourceType);
@@ -304,7 +306,15 @@ int AmlTsPlayer::writeData(const uint8_t* buffer, size_t size) {
     return 0;
 }
 
-int AmlTsPlayer::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size_t size, int64_t pts){return -1;}
+int AmlTsPlayer::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size_t size, int64_t pts)
+{
+    AML_MP_UNUSED(type);
+    AML_MP_UNUSED(buffer);
+    AML_MP_UNUSED(size);
+    AML_MP_UNUSED(pts);
+
+    return -1;
+}
 
 int AmlTsPlayer::getCurrentPts(Aml_MP_StreamType type, int64_t* pts) {
     am_tsplayer_result ret;
@@ -410,10 +420,28 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_BLACK_OUT, value is %d", *(bool_t*)parameter);
             ret = AmTsPlayer_setVideoBlackOut(mPlayer, *(bool_t*)parameter);
             break;
+
+        case AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE:
+            break;
+
+        case AML_MP_PLAYER_PARAMETER_VIDEO_PTS_OFFSET:
+            break;
+
         case AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE:
             //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE, value is %d", *(Aml_MP_AudioOutputMode*)parameter);
-            ret = AmTsPlayer_setAudioOutMode(mPlayer, audioOutModeConvert(*(Aml_MP_AudioOutputMode*)parameter));
+            ret = AmTsPlayer_setAudioOutMode(mPlayer, convertToTsPlayerAudioOutMode(*(Aml_MP_AudioOutputMode*)parameter));
             break;
+
+        case AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_DEVICE:
+            break;
+
+        case AML_MP_PLAYER_PARAMETER_AUDIO_PTS_OFFSET:
+            break;
+
+        case AML_MP_PLAYER_PARAMETER_AUDIO_BALANCE:
+            ret = AmTsPlayer_setAudioStereoMode(mPlayer, audioBalanceConvert(*(Aml_MP_AudioBalance*)parameter));
+            break;
+
         case AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL:
             ADVolume = (Aml_MP_ADVolume*)parameter;
             //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL, AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE, value is master %d, slave %d", ADVolume->masterVolume, ADVolume->slaveVolume);
@@ -440,7 +468,7 @@ int AmlTsPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
         case AML_MP_PLAYER_PARAMETER_VIDEO_INFO:
             am_tsplayer_video_info videoInfo;
             ret = AmTsPlayer_getVideoInfo(mPlayer, &videoInfo);
-            videoInfoConvertUp(&videoInfo, (Aml_MP_VideoInfo*)parameter);
+            convertToMpVideoInfo((Aml_MP_VideoInfo*)parameter, &videoInfo);
             //ALOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_VIDEO_INFO, width: %d, height: %d, framerate: %d, bitrate: %d, ratio64: %llu", videoInfo.width, videoInfo.height, videoInfo.framerate, videoInfo.bitrate, videoInfo.ratio64);
             break;
         case AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_STAT:
@@ -699,5 +727,7 @@ void AmlTsPlayer::eventCallback(am_tsplayer_event* event)
     if (notify) {
         notifyListener(&mpEvent);
     }
+}
+
 }
 

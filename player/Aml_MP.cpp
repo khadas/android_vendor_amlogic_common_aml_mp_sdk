@@ -19,8 +19,10 @@
 
 #define LOG_NDEBUG 0
 #define LOG_TAG "AmlMp"
+#define KEEP_ALOGX
+#include <utils/AmlMpLog.h>
 #include <Aml_MP/Aml_MP.h>
-#include <am_cas.h>
+#include <utils/AmlMpUtils.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 #define AML_MP_VERSION_MAJOR   1
@@ -38,11 +40,7 @@
 
 int Aml_MP_Initialize()
 {
-    CasHandle casHandle;
-
-#if !defined (__ANDROID_VNDK__)
-    AM_CA_Init(&casHandle);
-#endif
+    MLOG();
 
     return 0;
 }
@@ -56,12 +54,24 @@ int Aml_MP_GetVersion(const char** versionString)
     return AML_MP_VERSION_INT;
 }
 
-int Aml_MP_IsCASystemIdSupported(int caSystemId)
+int Aml_MP_SetDemuxSource(Aml_MP_DemuxId demuxId, Aml_MP_DemuxSource source)
 {
-#if !defined (__ANDROID_VNDK__)
-    return AM_CA_IsSystemIdSupported(caSystemId);
-#else
-    return false;
-#endif
+    MLOG("demuxId:%d, source:%d", demuxId, source);
+
+    return dvb_set_demux_source(demuxId, aml_mp::convertToDVBDemuxSource(source));
 }
+
+int Aml_MP_GetDemuxSource(Aml_MP_DemuxId demuxId, Aml_MP_DemuxSource* source)
+{
+    MLOG("demuxId:%d", demuxId);
+
+    DVB_DemuxSource_t demuxSource;
+    int ret = dvb_get_demux_source(demuxId, &demuxSource);
+    *source = aml_mp::convertToMpDemuxSource(demuxSource);
+    return ret;
+}
+
+
+
+
 

@@ -4,43 +4,38 @@
 #include "Parser.h"
 #include <media/stagefright/foundation/ADebug.h>
 #include <vector>
+#include <utils/AmlMpUtils.h>
 
 namespace aml_mp {
-#define ENUM_TO_STR(e) case e: return #e; break
-
 ///////////////////////////////////////////////////////////////////////////////
 struct StreamType {
     int esStreamType;
     Aml_MP_StreamType mpStreamType;
-    union {
-        Aml_MP_AudioCodec audioCodec;
-        Aml_MP_VideoCodec videoCodec;
-        Aml_MP_SubtitleCodec subtitleCodec;
-    };
+    Aml_MP_CodecID codecId;
 };
 
 static const StreamType g_streamTypes[] = {
-    {0x01, AML_MP_STREAM_TYPE_VIDEO, {.videoCodec = AML_MP_VIDEO_CODEC_MPEG12}},
-    {0x02, AML_MP_STREAM_TYPE_VIDEO, {.videoCodec = AML_MP_VIDEO_CODEC_MPEG12}},
-    {0x03, AML_MP_STREAM_TYPE_AUDIO, {.audioCodec = AML_MP_AUDIO_CODEC_MP3}},
-    {0x04, AML_MP_STREAM_TYPE_AUDIO, {.audioCodec = AML_MP_AUDIO_CODEC_MP3}},
-    {0x0f, AML_MP_STREAM_TYPE_AUDIO, {.audioCodec = AML_MP_AUDIO_CODEC_AAC}},
-    {0x10, AML_MP_STREAM_TYPE_VIDEO, {.videoCodec = AML_MP_VIDEO_CODEC_MPEG4}},
-    {0x11, AML_MP_STREAM_TYPE_AUDIO, {.audioCodec = AML_MP_AUDIO_CODEC_LATM}},
-    {0x1b, AML_MP_STREAM_TYPE_VIDEO, {.videoCodec = AML_MP_VIDEO_CODEC_H264}},
-    {0x24, AML_MP_STREAM_TYPE_VIDEO, {.videoCodec = AML_MP_VIDEO_CODEC_HEVC}},
-    {0x81, AML_MP_STREAM_TYPE_AUDIO, {.audioCodec = AML_MP_AUDIO_CODEC_AC3} },
-    {0x82, AML_MP_STREAM_TYPE_SUBTITLE, {.subtitleCodec = AML_MP_SUBTITLE_CODEC_SCTE27} },
-    {0},
+    {0x01, AML_MP_STREAM_TYPE_VIDEO, AML_MP_VIDEO_CODEC_MPEG12},
+    {0x02, AML_MP_STREAM_TYPE_VIDEO, AML_MP_VIDEO_CODEC_MPEG12},
+    {0x03, AML_MP_STREAM_TYPE_AUDIO, AML_MP_AUDIO_CODEC_MP3},
+    {0x04, AML_MP_STREAM_TYPE_AUDIO, AML_MP_AUDIO_CODEC_MP3},
+    {0x0f, AML_MP_STREAM_TYPE_AUDIO, AML_MP_AUDIO_CODEC_AAC},
+    {0x10, AML_MP_STREAM_TYPE_VIDEO, AML_MP_VIDEO_CODEC_MPEG4},
+    {0x11, AML_MP_STREAM_TYPE_AUDIO, AML_MP_AUDIO_CODEC_LATM},
+    {0x1b, AML_MP_STREAM_TYPE_VIDEO, AML_MP_VIDEO_CODEC_H264},
+    {0x24, AML_MP_STREAM_TYPE_VIDEO, AML_MP_VIDEO_CODEC_HEVC},
+    {0x81, AML_MP_STREAM_TYPE_AUDIO, AML_MP_AUDIO_CODEC_AC3},
+    {0x82, AML_MP_STREAM_TYPE_SUBTITLE, AML_MP_SUBTITLE_CODEC_SCTE27},
+    {0, AML_MP_STREAM_TYPE_UNKNOWN, AML_MP_CODEC_UNKNOWN},
 };
 
 static const StreamType g_descTypes[] = {
-    { 0x6a, AML_MP_STREAM_TYPE_AUDIO,    {.audioCodec = AML_MP_AUDIO_CODEC_AC3}          }, /* AC-3 descriptor */
-    { 0x7a, AML_MP_STREAM_TYPE_AUDIO,    {.audioCodec = AML_MP_AUDIO_CODEC_EAC3}         }, /* E-AC-3 descriptor */
-    { 0x7b, AML_MP_STREAM_TYPE_AUDIO,    {.audioCodec = AML_MP_AUDIO_CODEC_DTS}          },
-    { 0x56, AML_MP_STREAM_TYPE_SUBTITLE, {.subtitleCodec = AML_MP_SUBTITLE_CODEC_TELETEXT} },
-    { 0x59, AML_MP_STREAM_TYPE_SUBTITLE, {.subtitleCodec = AML_MP_SUBTITLE_CODEC_DVB} }, /* subtitling descriptor */
-    { 0 },
+    { 0x6a, AML_MP_STREAM_TYPE_AUDIO,    AML_MP_AUDIO_CODEC_AC3          }, /* AC-3 descriptor */
+    { 0x7a, AML_MP_STREAM_TYPE_AUDIO,    AML_MP_AUDIO_CODEC_EAC3         }, /* E-AC-3 descriptor */
+    { 0x7b, AML_MP_STREAM_TYPE_AUDIO,    AML_MP_AUDIO_CODEC_DTS          },
+    { 0x56, AML_MP_STREAM_TYPE_SUBTITLE, AML_MP_SUBTITLE_CODEC_TELETEXT },
+    { 0x59, AML_MP_STREAM_TYPE_SUBTITLE, AML_MP_SUBTITLE_CODEC_DVB }, /* subtitling descriptor */
+    { 0, AML_MP_STREAM_TYPE_UNKNOWN, AML_MP_CODEC_UNKNOWN},
 };
 
 static const struct StreamType* getStreamTypeInfo(int esStreamType, const StreamType* table = g_streamTypes)
@@ -56,49 +51,6 @@ static const struct StreamType* getStreamTypeInfo(int esStreamType, const Stream
     }
 
     return result;
-}
-
-static const char* mpAudioCodecType2Str(Aml_MP_AudioCodec codec)
-{
-    switch (codec) {
-        ENUM_TO_STR(AML_MP_AUDIO_CODEC_UNKNOWN);
-        ENUM_TO_STR(AML_MP_AUDIO_CODEC_MP2);
-        ENUM_TO_STR(AML_MP_AUDIO_CODEC_MP3);
-        ENUM_TO_STR(AML_MP_AUDIO_CODEC_AC3);
-        ENUM_TO_STR(AML_MP_AUDIO_CODEC_EAC3);
-        ENUM_TO_STR(AML_MP_AUDIO_CODEC_DTS);
-        ENUM_TO_STR(AML_MP_AUDIO_CODEC_AAC);
-        ENUM_TO_STR(AML_MP_AUDIO_CODEC_LATM);
-        ENUM_TO_STR(AML_MP_AUDIO_CODEC_PCM);
-        default: return "unknown audio codec";
-    }
-}
-
-static const char* mpVideoCodecType2Str(Aml_MP_VideoCodec codec)
-{
-    switch (codec) {
-        ENUM_TO_STR(AML_MP_VIDEO_CODEC_UNKNOWN);
-        ENUM_TO_STR(AML_MP_VIDEO_CODEC_MPEG12);
-        ENUM_TO_STR(AML_MP_VIDEO_CODEC_MPEG4);
-        ENUM_TO_STR(AML_MP_VIDEO_CODEC_H264);
-        ENUM_TO_STR(AML_MP_VIDEO_CODEC_VC1);
-        ENUM_TO_STR(AML_MP_VIDEO_CODEC_AVS);
-        ENUM_TO_STR(AML_MP_VIDEO_CODEC_HEVC);
-        ENUM_TO_STR(AML_MP_VIDEO_CODEC_VP9);
-        ENUM_TO_STR(AML_MP_VIDEO_CODEC_AVS2);
-        default: return "unknown video codec";
-    }
-}
-
-static const char* mpSubtitleCodecType2Str(Aml_MP_SubtitleCodec codec)
-{
-    switch (codec) {
-        ENUM_TO_STR(AML_MP_SUBTITLE_CODEC_CC);
-        ENUM_TO_STR(AML_MP_SUBTITLE_CODEC_SCTE27);
-        ENUM_TO_STR(AML_MP_SUBTITLE_CODEC_DVB);
-        ENUM_TO_STR(AML_MP_SUBTITLE_CODEC_TELETEXT);
-        default: return "unknown subtitle codec";
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -210,7 +162,7 @@ int Parser::patCb(size_t size, const uint8_t* data, void* userData)
     ALOGI("pat cb, size:%d", size);
     Section section(data, size);
     const uint8_t* p = section.data();
-    int table_id = p[0];
+    //int table_id = p[0];
     int section_syntax_indicator = (p[1]&0x80) >> 7;
     CHECK(section_syntax_indicator == 1);
     int section_length = (p[1] & 0x0F) << 4 | p[2];
@@ -218,7 +170,7 @@ int Parser::patCb(size_t size, const uint8_t* data, void* userData)
     ALOGI("section_length = %d, size:%d", section_length, size);
 
     p = section.advance(3);
-    int transport_stream_id = p[0]<<8 | p[1];
+    //int transport_stream_id = p[0]<<8 | p[1];
     p = section.advance(5);
     int numPrograms = (section.dataSize() - 4)/4;
 
@@ -231,7 +183,7 @@ int Parser::patCb(size_t size, const uint8_t* data, void* userData)
 			ALOGI("programNumber:%d, program_map_PID = %d\n", program_number, program_map_PID);
             results.push_back({program_number, program_map_PID});
         } else {
-            int network_PID = (p[2]&0x1F) << 8 | p[3];
+            //int network_PID = (p[2]&0x1F) << 8 | p[3];
         }
 
         p = section.advance(4);
@@ -251,7 +203,7 @@ int Parser::pmtCb(size_t size, const uint8_t* data, void* userData)
     ALOGI("pmt cb, size:%d", size);
     Section section(data, size);
     const uint8_t* p = section.data();
-    int table_id = p[0];
+    //int table_id = p[0];
     int section_syntax_indicator = (p[1]&0x80) >> 7;
     CHECK(section_syntax_indicator == 1);
     int section_length = (p[1] & 0x0F) << 4 | p[2];
@@ -420,7 +372,7 @@ int Parser::catCb(size_t size, const uint8_t* data, void* userData)
     Section section(data, size);
     const uint8_t* p = section.data();
 
-    int table_id = p[0];
+    //int table_id = p[0];
     int section_syntax_indicator = (p[1]&0x80) >> 7;
     CHECK(section_syntax_indicator == 1);
     int section_length = (p[1] & 0x0F) << 4 | p[2];
@@ -520,7 +472,6 @@ void Parser::onPmtParsed(const PMTSection& results)
     programInfo->ecmPid[ECM_INDEX_SUB] = results.ecmPid;
 
 
-    const PMTStream* stream;
     const struct StreamType* typeInfo;
     for (int i = 0; i < results.streamCount; ++i) {
         const PMTStream *stream = results.streams + i;
@@ -543,33 +494,33 @@ void Parser::onPmtParsed(const PMTSection& results)
         case AML_MP_STREAM_TYPE_AUDIO:
             if (programInfo->audioPid == AML_MP_INVALID_PID) {
                 programInfo->audioPid = stream->streamPid;
-                programInfo->audioCodec = typeInfo->audioCodec;
+                programInfo->audioCodec = typeInfo->codecId;
                 if (stream->ecmPid != AML_MP_INVALID_PID) {
                     programInfo->ecmPid[ECM_INDEX_AUDIO] = stream->ecmPid;
                 }
-                ALOGI("audio pid:%d(%#x), codec:%s", programInfo->audioPid, programInfo->audioPid, mpAudioCodecType2Str(programInfo->audioCodec));
+                ALOGI("audio pid:%d(%#x), codec:%s", programInfo->audioPid, programInfo->audioPid, mpCodecId2Str(programInfo->audioCodec));
             }
             break;
 
         case AML_MP_STREAM_TYPE_VIDEO:
             if (programInfo->videoPid == AML_MP_INVALID_PID) {
                 programInfo->videoPid = stream->streamPid;
-                programInfo->videoCodec = typeInfo->videoCodec;
+                programInfo->videoCodec = typeInfo->codecId;
                 if (stream->ecmPid != AML_MP_INVALID_PID) {
                     programInfo->ecmPid[ECM_INDEX_VIDEO] = stream->ecmPid;
                 }
-                ALOGI("video pid:%d(%#x), codec:%s", programInfo->videoPid, programInfo->videoPid, mpVideoCodecType2Str(programInfo->videoCodec));
+                ALOGI("video pid:%d(%#x), codec:%s", programInfo->videoPid, programInfo->videoPid, mpCodecId2Str(programInfo->videoCodec));
             }
             break;
 
         case AML_MP_STREAM_TYPE_SUBTITLE:
             if (programInfo->subtitlePid == AML_MP_INVALID_PID) {
                 programInfo->subtitlePid = stream->streamPid;
-                programInfo->subtitleCodec = typeInfo->subtitleCodec;
+                programInfo->subtitleCodec = typeInfo->codecId;
                 if (stream->ecmPid != AML_MP_INVALID_PID) {
                     programInfo->ecmPid[ECM_INDEX_SUB] = stream->ecmPid;
                 }
-                ALOGI("subtitle pid:%d(%#x), codec:%s", programInfo->subtitlePid, programInfo->subtitlePid, mpSubtitleCodecType2Str(programInfo->subtitleCodec));
+                ALOGI("subtitle pid:%d(%#x), codec:%s", programInfo->subtitlePid, programInfo->subtitlePid, mpCodecId2Str(programInfo->subtitleCodec));
                 if (programInfo->subtitleCodec == AML_MP_SUBTITLE_CODEC_DVB) {
                     programInfo->compositionPageId = stream->compositionPageId;
                     programInfo->ancillaryPageId = stream->ancillaryPageId;

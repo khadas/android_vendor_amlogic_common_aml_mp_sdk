@@ -56,11 +56,12 @@ private:
 AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
 : mInstanceId(AmlMpPlayerRoster::instance().registerPlayer(this))
 , mCreateParams(*createParams)
-, mConfig(new AmlMpConfig(mInstanceId))
 {
     snprintf(mName, sizeof(mName), "%s_%d", LOG_TAG, mInstanceId);
 
     MLOG();
+
+    AmlMpConfig::instance().init();
 }
 
 AmlMpPlayerImpl::~AmlMpPlayerImpl()
@@ -154,7 +155,7 @@ int AmlMpPlayerImpl::start()
         mPlayer->setAudioParams(&mAudioParams);
     }
 
-    if (mSubtitleParams.subtitleCodec != AML_MP_SUBTITLE_CODEC_UNKNOWN) {
+    if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
         mPlayer->setSubtitleParams(&mSubtitleParams);
     }
 
@@ -348,7 +349,8 @@ int AmlMpPlayerImpl::hideSubtitle()
 int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter)
 {
     AML_MP_TRACE(10);
-    //RETURN_IF(-1, mPlayer == nullptr);
+    int ret = 0;
+
     switch (key) {
     case AML_MP_PLAYER_PARAMETER_AUDIO_BALANCE:
     {
@@ -361,9 +363,11 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
         break;
     }
 
-    RETURN_IF(-1, mPlayer == nullptr);
+    if (mPlayer != nullptr) {
+        ret = mPlayer->setParameter(key, parameter);
+    }
 
-    return mPlayer->setParameter(key, parameter);
+    return ret;
 }
 
 int AmlMpPlayerImpl::getParameter(Aml_MP_PlayerParameterKey key, void* parameter)
@@ -482,14 +486,14 @@ int AmlMpPlayerImpl::stopSubtitleDecoding()
     return mPlayer->stopSubtitleDecoding();
 }
 
-int AmlMpPlayerImpl::setSubtitleWindow(int x, int y, int width, int height) {
+int AmlMpPlayerImpl::setSubtitleWindow(int x, int y, int width, int height)
+{
     AML_MP_TRACE(10);
     mSubtitleWindow = {x, y, width, height};
     RETURN_IF(-1, mPlayer == nullptr);
 
     return mPlayer->setSubtitleWindow(x, y, width, height);
 }
-
 
 int AmlMpPlayerImpl::startDescrambling()
 {
@@ -538,6 +542,7 @@ int AmlMpPlayerImpl::setADParams(Aml_MP_AudioParams* params)
 
     return 0;
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 AmlMpPlayerRoster* AmlMpPlayerRoster::sAmlPlayerRoster = nullptr;
 

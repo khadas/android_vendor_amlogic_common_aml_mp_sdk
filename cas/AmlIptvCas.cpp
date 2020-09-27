@@ -62,6 +62,8 @@ AmlIptvCas::AmlIptvCas(Aml_MP_CASType casType, const Aml_MP_IptvCasParam* param)
 , mIptvCasParam(*param)
 {
     ALOGI("ctor AmlIptvCas, casType:%d", casType);
+    AML_MP_UNUSED(mCasType);
+    AML_MP_UNUSED(mIptvCasParam);
 
     std::call_once(sLoadCasLibFlag, [] {
         sCasLibWrapper = new CasLibWrapper();
@@ -129,6 +131,9 @@ int AmlIptvCas::setPrivateData(const uint8_t* data, size_t size)
 {
     RETURN_IF(-1, mCasHandle == nullptr);
 
+    AML_MP_UNUSED(data);
+    AML_MP_UNUSED(size);
+
     return 0;
 }
 
@@ -181,14 +186,13 @@ dvb_ca_t* CasLibWrapper::create(aml_dvb_init_para_t* init_para, int* err)
 {
     RETURN_IF(nullptr, ca_create == nullptr);
 
-    dvb_ca_t* ca = nullptr;
-
     return ca_create(init_para, err);
 }
 
 int CasLibWrapper::start(dvb_ca_t* ca)
 {
     RETURN_IF(-1, ca_start == nullptr);
+    AML_MP_UNUSED(ca);
 
     return ca_start(ca);
 }

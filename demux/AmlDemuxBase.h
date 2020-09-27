@@ -50,6 +50,7 @@ public:
     virtual int attachFilter(AML_MP_HANDLE filter, AML_MP_HANDLE channel) = 0;
     virtual int detachFilter(AML_MP_HANDLE filter, AML_MP_HANDLE channel) = 0;
     virtual int feedTs(const uint8_t* buffer, size_t size) {
+        (void)buffer;
         return size;
     }
 

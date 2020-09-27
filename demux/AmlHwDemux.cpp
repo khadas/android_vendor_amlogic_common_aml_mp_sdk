@@ -20,7 +20,7 @@
 #define LOG_NDEBUG 0
 #define LOG_TAG "AmlHwDemux"
 #include <utils/Log.h>
-#include <dvb_utils.h>
+#include <Aml_MP/Aml_MP.h>
 #include <sstream>
 #include <set>
 #include <utils/Looper.h>
@@ -145,19 +145,19 @@ int AmlHwDemux::open(bool isHardwareSource, Aml_MP_DemuxId demuxId)
 {
     mDemuxId = demuxId;
 
-    DVB_DemuxSource_t demuxSource = DVB_DEMUX_SOURCE_DMA0;
+    Aml_MP_DemuxSource demuxSource = AML_MP_DEMUX_SOURCE_DMA0;
     if (isHardwareSource) {
         switch (mDemuxId) {
         case AML_MP_HW_DEMUX_ID_0:
-            demuxSource = DVB_DEMUX_SOURCE_TS0;
+            demuxSource = AML_MP_DEMUX_SOURCE_TS0;
             break;
 
         case AML_MP_HW_DEMUX_ID_1:
-            demuxSource = DVB_DEMUX_SOURCE_TS1;
+            demuxSource = AML_MP_DEMUX_SOURCE_TS1;
             break;
 
         case AML_MP_HW_DEMUX_ID_2:
-            demuxSource = DVB_DEMUX_SOURCE_TS2;
+            demuxSource = AML_MP_DEMUX_SOURCE_TS2;
             break;
 
         default:
@@ -166,7 +166,7 @@ int AmlHwDemux::open(bool isHardwareSource, Aml_MP_DemuxId demuxId)
     }
 
     ALOGI("demuxSource:%d", demuxSource);
-    dvb_set_demux_source(mDemuxId, demuxSource);
+    Aml_MP_SetDemuxSource(mDemuxId, demuxSource);
 
     std::stringstream s;
     s << "/dev/dvb0.demux" << mDemuxId;

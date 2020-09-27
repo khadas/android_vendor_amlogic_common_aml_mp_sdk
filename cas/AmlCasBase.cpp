@@ -22,6 +22,7 @@
 #include "AmlCasBase.h"
 #include "AmlIptvCas.h"
 #include "AmlDvbCasHal.h"
+#include <utils/AmlMpUtils.h>
 
 namespace aml_mp {
 sp<AmlCasBase> AmlCasBase::create(Aml_MP_InputSourceType inputType, const Aml_MP_CASParams* casParams)
@@ -33,15 +34,6 @@ sp<AmlCasBase> AmlCasBase::create(Aml_MP_InputSourceType inputType, const Aml_MP
     {
         const Aml_MP_IptvCasParam *iptvCasParam = &casParams->iptvCasParam;
         cas = new AmlIptvCas(casParams->type, iptvCasParam);
-    }
-    break;
-
-    case AML_MP_INPUT_SOURCE_TS_DEMOD:
-    {
-#ifndef __ANDROID_VNDK__
-        const Aml_MP_DvbCasParam* dvbCasParam = &casParams->dvbCasParam;
-        cas = new AmlDvbCasHal(casParams->type, dvbCasParam);
-#endif
     }
     break;
 
@@ -65,6 +57,9 @@ AmlCasBase::~AmlCasBase()
 
 int AmlCasBase::registerEventCallback(Aml_MP_CAS_EventCallback cb, void* userData)
 {
+    AML_MP_UNUSED(cb);
+    AML_MP_UNUSED(userData);
+
     return 0;
 }
 

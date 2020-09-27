@@ -39,7 +39,7 @@ int Aml_MP_Player_Create(Aml_MP_PlayerCreateParams* createParams, AML_MP_HANDLE*
 
 int Aml_MP_Player_Destroy(AML_MP_HANDLE handle)
 {
-    sp<AmlMpHandle> amlMpHandle = static_cast<AmlMpHandle*>(handle);
+    sp<AmlMpHandle> amlMpHandle = aml_handle_cast<AmlMpHandle>(handle);
     RETURN_IF(-1, amlMpHandle == nullptr);
     amlMpHandle->decStrong(handle);
 
@@ -346,21 +346,21 @@ int Aml_MP_Player_StopSubtitleDecoding(AML_MP_HANDLE handle)
     return player->stopSubtitleDecoding();
 }
 
-int Aml_MP_Player_StartDescrambling(AML_MP_HANDLE handle)
-{
-    sp<AmlMpPlayerImpl> player = aml_handle_cast<AmlMpPlayerImpl>(handle);
-    RETURN_IF(-1, player == nullptr);
+//int Aml_MP_Player_StartDescrambling(AML_MP_HANDLE handle)
+//{
+    //sp<AmlMpPlayerImpl> player = aml_handle_cast<AmlMpPlayerImpl>(handle);
+    //RETURN_IF(-1, player == nullptr);
 
-    return player->startDescrambling();
-}
+    //return player->startDescrambling();
+//}
 
-int Aml_MP_Player_StopDescrambling(AML_MP_HANDLE handle)
-{
-    sp<AmlMpPlayerImpl> player = aml_handle_cast<AmlMpPlayerImpl>(handle);
-    RETURN_IF(-1, player == nullptr);
+//int Aml_MP_Player_StopDescrambling(AML_MP_HANDLE handle)
+//{
+    //sp<AmlMpPlayerImpl> player = aml_handle_cast<AmlMpPlayerImpl>(handle);
+    //RETURN_IF(-1, player == nullptr);
 
-    return player->stopDescrambling();
-}
+    //return player->stopDescrambling();
+//}
 
 int Aml_MP_Player_SetADParams(AML_MP_HANDLE handle, Aml_MP_AudioParams* params)
 {

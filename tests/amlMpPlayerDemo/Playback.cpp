@@ -85,6 +85,7 @@ int Playback::start()
         case 0x1724:
         {
             ALOGI("VMX DVB");
+#if 0
             casParams.type = AML_MP_CAS_VERIMATRIX_DVB;
             casParams.dvbCasParam.demuxId = mDemuxId;
             casParams.dvbCasParam.emmPid = mProgramInfo->emmPid;
@@ -92,6 +93,7 @@ int Playback::start()
             casParams.dvbCasParam.ecmPid = mProgramInfo->ecmPid[0];
             casParams.dvbCasParam.streamPids[0] = mProgramInfo->videoPid;
             casParams.dvbCasParam.streamPids[1] = mProgramInfo->audioPid;
+#endif
         }
         break;
 
@@ -138,7 +140,7 @@ int Playback::start()
         break;
     }
 
-    if (subtitleParams.subtitleCodec != AML_MP_SUBTITLE_CODEC_UNKNOWN) {
+    if (subtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
         Aml_MP_Player_SetSubtitleParams(mPlayer, &subtitleParams);
     }
 
@@ -178,9 +180,8 @@ int Playback::writeData(const uint8_t* buffer, size_t size)
     return wlen;
 }
 
-void Playback::eventCallback(Aml_MP_PlayerEvent* event)
+void Playback::eventCallback(Aml_MP_PlayerEvent* event __unused)
 {
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -196,7 +197,7 @@ static void printCommands(const Command* pCommands, bool printHeader);
 static struct Command g_commandTable[] = {
     {
         "help", 0, "help",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_HANDLE player __unused, const std::vector<std::string>& args __unused) -> int {
             printCommands(g_commandTable, true);
             return 0;
         }

@@ -17,34 +17,41 @@
  *
  */
 
-#ifndef _AML_MP_DVB_CAS_HAL_H_
-#define _AML_MP_DVB_CAS_HAL_H_
+#ifndef _AML_MP_CONFIG_H_
+#define _AML_MP_CONFIG_H_
 
-#include "AmlCasBase.h"
-#include "am_cas.h"
+#include <utils/RefBase.h>
 
 namespace aml_mp {
-class AmlDvbCasHal : public AmlCasBase
+using android::RefBase;
+
+
+class AmlMpConfig final : public RefBase
 {
 public:
-    AmlDvbCasHal(Aml_MP_CASType casType, const Aml_MP_DvbCasParam* param);
-    ~AmlDvbCasHal();
-    virtual int openSession() override;
-    virtual int closeSession() override;
-    virtual int setPrivateData(const uint8_t* data, size_t size) override;
-    virtual int processEcm(const uint8_t* data, size_t size) override;
-    virtual int processEmm(const uint8_t* data, size_t size) override;
+    static AmlMpConfig& instance() {
+        static AmlMpConfig c;
+        return c;
+    }
+
+    ~AmlMpConfig() = default;
+    void init();
+
+public:
+    int mLogDebug;
 
 private:
-    AmlDvbCasHal(const AmlDvbCasHal&) = delete;
-    AmlDvbCasHal& operator= (const AmlDvbCasHal&) = delete;
-    CasSession mCas_session;
-    SecMemHandle mSecmem_session;
-    int mEmmPid;
-    int mDemuxPid;
-    AM_CA_ServiceInfo_t cas_para;
-};
+    void reset();
 
+    template <typename T>
+    void initProperty(const char* propertyName, T& value);
+
+private:
+    AmlMpConfig();
+    AmlMpConfig(const AmlMpConfig&) = delete;
+    AmlMpConfig& operator= (const AmlMpConfig&) = delete;
+};
 }
+
 
 #endif

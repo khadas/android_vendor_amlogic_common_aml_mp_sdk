@@ -25,9 +25,22 @@
 #include <amports/vformat.h>
 #include <amports/aformat.h>
 #include <Aml_MP/Common.h>
+#include "AmlMpConfig.h"
+
+#ifndef _LINUX_LIST_H
+#define _LINUX_LIST_H
+struct list_head {
+    struct list_head *next, *prev;
+};
+#endif
+#include <dvr_wrapper.h>
+#include <dvb_utils.h>
 
 namespace aml_mp {
 
+#define AML_MP_UNUSED(x) (void)(x)
+
+///////////////////////////////////////////////////////////////////////////////
 #define RETURN_IF(error, cond)                                                       \
     do {                                                                             \
         if (cond) {                                                                  \
@@ -45,14 +58,17 @@ namespace aml_mp {
     } while (0)
 
 ///////////////////////////////////////////////////////////////////////////////
-#define AML_MP_TRACE(thresholdMs) FunctionLogger __flogger##__LINE__(mName, __FILE__, __FUNCTION__, __LINE__, thresholdMs, mConfig->mLogDebug)
+#define AML_MP_TRACE(thresholdMs) FunctionLogger __flogger##__LINE__(mName, __FILE__, __FUNCTION__, __LINE__, thresholdMs, AmlMpConfig::instance().mLogDebug)
 
 struct FunctionLogger
 {
 public:
 	FunctionLogger(const char * tag, const char * file, const char * func, const int line, int threshold, bool verbose)
-	: m_tag(tag), /*m_file(file), */ m_func(func), /*m_line(line),*/ mThreshold(threshold), mVerbose(verbose)
+	: m_tag(tag), m_file(file), m_func(func), m_line(line), mThreshold(threshold), mVerbose(verbose)
 	{
+        (void)m_file;
+        (void)m_line;
+
         mBeginTime = std::chrono::steady_clock::now();
         if (mVerbose) {
             ALOG(LOG_DEBUG, m_tag, "%s() >> begin", m_func);
@@ -74,16 +90,39 @@ public:
 
 private:
 	const char * m_tag;
-	//const char * m_file;
+    const char * m_file;
 	const char * m_func;
-	//const int m_line;
+    const int m_line;
     int mThreshold;
     bool mVerbose;
     std::chrono::steady_clock::time_point mBeginTime;
 };
 
-vformat_t convertToVFormat(Aml_MP_VideoCodec videoCodec);
-aformat_t convertToAForamt(Aml_MP_AudioCodec audioCodec);
+///////////////////////////////////////////////////////////////////////////////
+const char* mpCodecId2Str(Aml_MP_CodecID codecId);
+const char* mpStreamType2Str(Aml_MP_StreamType streamType);
+
+vformat_t convertToVFormat(Aml_MP_CodecID videoCodec);
+aformat_t convertToAForamt(Aml_MP_CodecID audioCodec);
+
+Aml_MP_StreamType convertToMpStreamType(DVR_StreamType_t streamType);
+DVR_StreamType_t convertToDVRStreamType(Aml_MP_StreamType streamType);
+
+Aml_MP_CodecID convertToMpCodecId(DVR_VideoFormat_t fmt);
+Aml_MP_CodecID convertToMpCodecId(DVR_AudioFormat_t fmt);
+DVR_VideoFormat_t convertToDVRVideoFormat(Aml_MP_CodecID codecId);
+DVR_AudioFormat_t convertToDVRAudioFormat(Aml_MP_CodecID codecId);
+
+void convertToMpDVRStream(Aml_MP_DVRStream* mpDvrStream, DVR_StreamPid_t* dvrStream);
+void convertToMpDVRStream(Aml_MP_DVRStream* mpDvrStream, DVR_StreamInfo_t* dvrStreamInfo);
+void convertToMpDVRSourceInfo(Aml_MP_DVRSourceInfo* dest, DVR_WrapperInfo_t* source);
+
+am_tsplayer_audio_out_mode convertToTsPlayerAudioOutMode(Aml_MP_AudioOutputMode audioOutputMode);
+void convertToMpVideoInfo(Aml_MP_VideoInfo* mpVideoInfo, am_tsplayer_video_info* tsVideoInfo);
+
+DVB_DemuxSource_t convertToDVBDemuxSource(Aml_MP_DemuxSource source);
+Aml_MP_DemuxSource convertToMpDemuxSource(DVB_DemuxSource_t source);
+
 
 }
 #endif

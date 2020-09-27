@@ -44,18 +44,6 @@ void AmlMpConfig::initProperty(const char* propertyName, std::string& value)
     }
 }
 
-AmlMpConfig::AmlMpConfig(int instanceId)
-: mInstanceId(instanceId)
-{
-    reset();
-    init();
-}
-
-AmlMpConfig::~AmlMpConfig()
-{
-
-}
-
 void AmlMpConfig::reset()
 {
     mLogDebug = 0;
@@ -64,6 +52,12 @@ void AmlMpConfig::reset()
 void AmlMpConfig::init()
 {
     initProperty("vendor.amlmp.log-debug", mLogDebug);
+}
+
+AmlMpConfig::AmlMpConfig()
+{
+    reset();
+    init();
 }
 
 

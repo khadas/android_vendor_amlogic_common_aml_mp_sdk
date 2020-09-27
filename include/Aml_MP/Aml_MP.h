@@ -39,7 +39,8 @@ int Aml_MP_Initialize();
 
 int Aml_MP_GetVersion(const char** versionString);
 
-int Aml_MP_IsCASystemIdSupported(int caSystemId);
+
+
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                  Player                                   //
@@ -206,14 +207,27 @@ int Aml_MP_Player_StartSubtitleDecoding(AML_MP_HANDLE handle);
 int Aml_MP_Player_StopSubtitleDecoding(AML_MP_HANDLE handle);
 
 //CAS
-int Aml_MP_Player_StartDescrambling(AML_MP_HANDLE handle);
+//int Aml_MP_Player_StartDescrambling(AML_MP_HANDLE handle);
 
-int Aml_MP_Player_StopDescrambling(AML_MP_HANDLE handle);
+//int Aml_MP_Player_StopDescrambling(AML_MP_HANDLE handle);
 
 //AD
 int Aml_MP_Player_SetADParams(AML_MP_HANDLE handle, Aml_MP_AudioParams* params);
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+//                                  CAS                                      //
+///////////////////////////////////////////////////////////////////////////////
+#include "Cas.h"
+
+///////////////////////////////////////////////////////////////////////////////
+//                                  DVR                                      //
+///////////////////////////////////////////////////////////////////////////////
+#include "Dvr.h"
+
+int Aml_MP_SetDemuxSource(Aml_MP_DemuxId demuxId, Aml_MP_DemuxSource source);
+
+int Aml_MP_GetDemuxSource(Aml_MP_DemuxId demuxId, Aml_MP_DemuxSource *source);
+
 
 
 #ifdef __cplusplus

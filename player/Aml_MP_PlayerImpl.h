@@ -91,7 +91,6 @@ private:
     };
 
     const int mInstanceId;
-    const sp<AmlMpConfig> mConfig;
     char mName[50];
     Aml_MP_PlayerCreateParams mCreateParams;
     Aml_MP_PlayerEventCallback mEventCb = nullptr;
