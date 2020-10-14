@@ -23,14 +23,14 @@ public:
     int start() override;
     int stop() override;
     int flush() override;
-    AML_MP_HANDLE createChannel(int pid) override;
-    int destroyChannel(AML_MP_HANDLE channel) override;
-    int openChannel(AML_MP_HANDLE channel) override;
-    int closeChannel(AML_MP_HANDLE channel) override;
-    AML_MP_HANDLE createFilter(Aml_MP_Demux_SectionFilterCb cb, void* userData) override;
-    int destroyFilter(AML_MP_HANDLE filter) override;
-    int attachFilter(AML_MP_HANDLE filter, AML_MP_HANDLE channel) override;
-    int detachFilter(AML_MP_HANDLE filter, AML_MP_HANDLE channel) override;
+    void* createChannel(int pid) override;
+    int destroyChannel(void* channel) override;
+    int openChannel(void* channel) override;
+    int closeChannel(void* channel) override;
+    void* createFilter(Aml_MP_Demux_SectionFilterCb cb, void* userData) override;
+    int destroyFilter(void* filter) override;
+    int attachFilter(void* filter, void* channel) override;
+    int detachFilter(void* filter, void* channel) override;
 
 private:
     struct Channel;

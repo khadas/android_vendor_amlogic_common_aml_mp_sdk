@@ -90,8 +90,8 @@ int AmlMpPlayerImpl::setVideoParams(const Aml_MP_VideoParams* params)
     mVideoParams.width = params->width;
     mVideoParams.height = params->height;
     mVideoParams.frameRate = params->frameRate;
+    memcpy(mVideoParams.extraData, params->extraData, sizeof(mVideoParams.extraData));
     mVideoParams.extraDataSize = params->extraDataSize;
-    mVideoParams.extraData =params->extraData;
 
     return 0;
 }
@@ -104,8 +104,8 @@ int AmlMpPlayerImpl::setAudioParams(const Aml_MP_AudioParams* params)
     mAudioParams.audioCodec = params->audioCodec;
     mAudioParams.nChannels = params->nChannels;
     mAudioParams.nSampleRate = params->nSampleRate;
-    mAudioParams.nExtraSize = params->nExtraSize;
-    mAudioParams.extraData = params->extraData;
+    memcpy(mAudioParams.extraData, params->extraData, sizeof(mAudioParams.extraData));
+    mAudioParams.extraDataSize = params->extraDataSize;
 
     return 0;
 }
@@ -537,8 +537,8 @@ int AmlMpPlayerImpl::setADParams(Aml_MP_AudioParams* params)
     mADParams.audioCodec = params->audioCodec;
     mADParams.nChannels = params->nChannels;
     mADParams.nSampleRate = params->nSampleRate;
-    mADParams.nExtraSize = params->nExtraSize;
-    mADParams.extraData = params->extraData;
+    memcpy(mADParams.extraData, params->extraData, sizeof(mADParams.extraData));
+    mADParams.extraDataSize = params->extraDataSize;
 
     return 0;
 }

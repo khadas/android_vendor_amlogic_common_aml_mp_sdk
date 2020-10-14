@@ -31,7 +31,6 @@ public:
     AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId);
     ~AmlTsPlayer();
 
-    int registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData);
     int setVideoParams(const Aml_MP_VideoParams* params) override;
     int setAudioParams(const Aml_MP_AudioParams* params) override;
     int start() override;

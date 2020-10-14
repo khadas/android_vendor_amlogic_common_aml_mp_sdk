@@ -20,11 +20,11 @@ public:
     int setSubtitleDisplayWindow(int x, int y, int width, int height);
 
 private:
-    void eventCallback(Aml_MP_PlayerEvent* event);
+    void eventCallback(Aml_MP_PlayerEventType eventType, int64_t param);
 
     const sp<ProgramInfo> mProgramInfo;
     const Aml_MP_DemuxId mDemuxId;
-    AML_MP_HANDLE mPlayer = AML_MP_INVALID_HANDLE;
+    AML_MP_PLAYER mPlayer = AML_MP_INVALID_HANDLE;
 
     Playback(const Playback&) = delete;
     Playback& operator= (const Playback&) = delete;

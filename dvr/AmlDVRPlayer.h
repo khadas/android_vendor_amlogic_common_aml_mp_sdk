@@ -35,7 +35,7 @@ class AmlDVRPlayer final : public AmlMpHandle
 public:
     AmlDVRPlayer(Aml_MP_DVRPlayerBasicParams* basicParams, Aml_MP_DVRPlayerDecryptParams* decryptParams = nullptr);
     ~AmlDVRPlayer();
-    int registerEventCallback(Aml_MP_DVRPlayerEventCallback cb, void* userData);
+    int registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData);
     int setStreams(Aml_MP_DVRStreamArray* streams);
     int start(bool initialPaused);
     int stop();
@@ -62,8 +62,12 @@ private:
     uint8_t* mSecureBuffer = nullptr;
     size_t mSecureBufferSize = 0;
 
+    Aml_MP_PlayerEventCallback mEventCb = nullptr;
+    void* mEventUserData;
+
     int setBasicParams(Aml_MP_DVRPlayerBasicParams* basicParams);
     int setDecryptParams(Aml_MP_DVRPlayerDecryptParams* decryptParams);
+    DVR_Result_t eventHandler(DVR_PlaybackEvent_t event, void* params);
 
 private:
     AmlDVRPlayer(const AmlDVRPlayer&) = delete;

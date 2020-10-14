@@ -67,57 +67,57 @@ int AmlSwDemux::flush()
     return aml::AML_DMX_FlushDemux(mDemuxHandle);
 }
 
-AML_MP_HANDLE AmlSwDemux::createChannel(int pid)
+void* AmlSwDemux::createChannel(int pid)
 {
     RETURN_IF(AML_INVALID_HANDLE, mDemuxHandle == AML_MP_INVALID_HANDLE);
 
-    AML_MP_HANDLE channel = aml::AML_DMX_CreateChannel(mDemuxHandle, pid);
+    void* channel = aml::AML_DMX_CreateChannel(mDemuxHandle, pid);
     return channel;
 }
 
-int AmlSwDemux::destroyChannel(AML_MP_HANDLE channel)
+int AmlSwDemux::destroyChannel(void* channel)
 {
     RETURN_IF(-1, mDemuxHandle == AML_MP_INVALID_HANDLE);
 
     return aml::AML_DMX_DestroyChannel(mDemuxHandle, channel);
 }
 
-int AmlSwDemux::openChannel(AML_MP_HANDLE channel)
+int AmlSwDemux::openChannel(void* channel)
 {
     RETURN_IF(-1, mDemuxHandle == AML_MP_INVALID_HANDLE);
 
     return aml::AML_DMX_OpenChannel(mDemuxHandle, channel);
 }
 
-int AmlSwDemux::closeChannel(AML_MP_HANDLE channel)
+int AmlSwDemux::closeChannel(void* channel)
 {
     RETURN_IF(-1, mDemuxHandle == AML_MP_INVALID_HANDLE);
 
     return aml::AML_DMX_CloseChannel(mDemuxHandle, channel);
 }
 
-AML_MP_HANDLE AmlSwDemux::createFilter(Aml_MP_Demux_SectionFilterCb cb, void* userData)
+void* AmlSwDemux::createFilter(Aml_MP_Demux_SectionFilterCb cb, void* userData)
 {
     RETURN_IF(AML_INVALID_HANDLE, mDemuxHandle == AML_MP_INVALID_HANDLE);
 
     return aml::AML_DMX_CreateFilter(mDemuxHandle, (aml::AML_SECTION_FILTER_CB)(cb), userData, mFilterId++);
 }
 
-int AmlSwDemux::destroyFilter(AML_MP_HANDLE filter)
+int AmlSwDemux::destroyFilter(void* filter)
 {
     RETURN_IF(-1, mDemuxHandle == AML_MP_INVALID_HANDLE);
 
     return aml::AML_DMX_DestroyFilter(mDemuxHandle, filter);
 }
 
-int AmlSwDemux::attachFilter(AML_MP_HANDLE filter, AML_MP_HANDLE channel)
+int AmlSwDemux::attachFilter(void* filter, void* channel)
 {
     RETURN_IF(-1, mDemuxHandle == AML_MP_INVALID_HANDLE);
 
     return aml::AML_DMX_AttachFilter(mDemuxHandle, filter, channel);
 }
 
-int AmlSwDemux::detachFilter(AML_MP_HANDLE filter, AML_MP_HANDLE channel)
+int AmlSwDemux::detachFilter(void* filter, void* channel)
 {
     RETURN_IF(-1, mDemuxHandle == AML_MP_INVALID_HANDLE);
 

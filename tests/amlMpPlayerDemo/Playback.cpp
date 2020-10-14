@@ -64,21 +64,21 @@ int Playback::start()
         {
             ALOGI("verimatrix iptv!");
             casParams.type = AML_MP_CAS_VERIMATRIX_IPTV;
-            casParams.iptvCasParam.videoCodec = mProgramInfo->videoCodec;
-            casParams.iptvCasParam.audioCodec = mProgramInfo->audioCodec;
-            casParams.iptvCasParam.videoPid = mProgramInfo->videoPid;
-            casParams.iptvCasParam.audioPid = mProgramInfo->audioPid;
-            casParams.iptvCasParam.ecmPid = mProgramInfo->ecmPid[0];
-            casParams.iptvCasParam.demuxId = mDemuxId;
+            casParams.u.iptvCasParam.videoCodec = mProgramInfo->videoCodec;
+            casParams.u.iptvCasParam.audioCodec = mProgramInfo->audioCodec;
+            casParams.u.iptvCasParam.videoPid = mProgramInfo->videoPid;
+            casParams.u.iptvCasParam.audioPid = mProgramInfo->audioPid;
+            casParams.u.iptvCasParam.ecmPid = mProgramInfo->ecmPid[0];
+            casParams.u.iptvCasParam.demuxId = mDemuxId;
 
             char value[PROPERTY_VALUE_MAX];
             property_get("config.media.vmx.dvb.key_file", value, "/data/mediadrm");
-            strncpy(casParams.iptvCasParam.keyPath, value, sizeof(casParams.iptvCasParam.keyPath)-1);
+            strncpy(casParams.u.iptvCasParam.keyPath, value, sizeof(casParams.u.iptvCasParam.keyPath)-1);
 
             property_get("config.media.vmx.dvb.server_ip", value, "client-test-3.verimatrix.com");
-            strncpy(casParams.iptvCasParam.serverAddress, value, sizeof(casParams.iptvCasParam.serverAddress)-1);
+            strncpy(casParams.u.iptvCasParam.serverAddress, value, sizeof(casParams.u.iptvCasParam.serverAddress)-1);
 
-            casParams.iptvCasParam.serverPort = property_get_int32("config.media.vmx.dvb.server_port", 12686);
+            casParams.u.iptvCasParam.serverPort = property_get_int32("config.media.vmx.dvb.server_port", 12686);
         }
         break;
 
@@ -144,8 +144,8 @@ int Playback::start()
         Aml_MP_Player_SetSubtitleParams(mPlayer, &subtitleParams);
     }
 
-    Aml_MP_Player_RegisterEventCallBack(mPlayer, [](void* userData, Aml_MP_PlayerEvent* event) {
-        static_cast<Playback*>(userData)->eventCallback(event);
+    Aml_MP_Player_RegisterEventCallBack(mPlayer, [](void* userData, Aml_MP_PlayerEventType eventType, int64_t param) {
+        static_cast<Playback*>(userData)->eventCallback(eventType, param);
     }, this);
 
     ret = Aml_MP_Player_Start(mPlayer);
@@ -180,7 +180,7 @@ int Playback::writeData(const uint8_t* buffer, size_t size)
     return wlen;
 }
 
-void Playback::eventCallback(Aml_MP_PlayerEvent* event __unused)
+void Playback::eventCallback(Aml_MP_PlayerEventType eventType __unused, int64_t param __unused)
 {
 }
 
@@ -189,7 +189,7 @@ struct Command {
     const char* name;
     size_t argCount;
     const char* help;
-    int (*fn)(AML_MP_HANDLE player, const std::vector<std::string>& args);
+    int (*fn)(AML_MP_PLAYER player, const std::vector<std::string>& args);
 };
 
 static void printCommands(const Command* pCommands, bool printHeader);
@@ -197,7 +197,7 @@ static void printCommands(const Command* pCommands, bool printHeader);
 static struct Command g_commandTable[] = {
     {
         "help", 0, "help",
-        [](AML_MP_HANDLE player __unused, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player __unused, const std::vector<std::string>& args __unused) -> int {
             printCommands(g_commandTable, true);
             return 0;
         }
@@ -205,35 +205,35 @@ static struct Command g_commandTable[] = {
 
     {
         "pause", 0, "pause player",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             return Aml_MP_Player_Pause(player);
         }
     },
 
     {
         "resume", 0, "resume player",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             return Aml_MP_Player_Resume(player);
         }
     },
 
     {
         "hide", 0, "hide video",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             return Aml_MP_Player_HideVideo(player);
         }
     },
 
     {
         "show", 0, "show video",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             return Aml_MP_Player_ShowVideo(player);
         }
     },
 
     {
         "gPts", 0, "get Pts",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             int64_t pts;
             int ret = Aml_MP_Player_GetCurrentPts(player, AML_MP_STREAM_TYPE_VIDEO, &pts);
             printf("Current video pts: 0x%llx, ret: %d\n", pts, ret);
@@ -245,7 +245,7 @@ static struct Command g_commandTable[] = {
 
     {
         "gVolume", 0, "get volume",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             float volume;
             int ret = Aml_MP_Player_GetVolume(player, &volume);
             printf("Current volume: %f, ret: %d\n", volume, ret);
@@ -257,7 +257,7 @@ static struct Command g_commandTable[] = {
  */
     {
         "sVolume", 0, "set volume",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             float volume, volume2;
             if (args.size() != 2) {
                 printf("Input example: sVolume volume\n");
@@ -274,7 +274,7 @@ static struct Command g_commandTable[] = {
 
     {
         "sFast", 0, "set Fast rate",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             float fastRate;
             if (args.size() != 2) {
                 printf("Input example: sFast rate\n");
@@ -290,7 +290,7 @@ static struct Command g_commandTable[] = {
 
     {
         "gBuffer", 0, "get Buffer state",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             Aml_MP_BufferStat bufferStat;
             int ret = Aml_MP_Player_GetBufferStat(player, &bufferStat);
             printf("Audio buffer stat: size: %d, dataLen: %d, bufferedMs: %d\n", bufferStat.audioBuffer.size, bufferStat.audioBuffer.dataLen, bufferStat.audioBuffer.bufferedMs);
@@ -301,7 +301,7 @@ static struct Command g_commandTable[] = {
 
     {
         "sWindow", 0, "set video window",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             int32_t x, y, width, height;
             if (args.size() != 5) {
                 printf("Input example: sWindow x y width height\n");
@@ -321,7 +321,7 @@ static struct Command g_commandTable[] = {
 
     {
         "sParam", 0, "set param",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             Aml_MP_VideoDisplayMode videoMode = AML_MP_VIDEO_DISPLAY_MODE_NORMAL;
             int ret = Aml_MP_Player_SetParameter(player, AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE, &videoMode);
             printf("AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE set mode: %d, ret: %d\n", videoMode, ret);
@@ -340,7 +340,7 @@ static struct Command g_commandTable[] = {
 
     {
         "gParam", 0, "get param",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             Aml_MP_VideoInfo videoInfo;
             int ret = Aml_MP_Player_GetParameter(player, AML_MP_PLAYER_PARAMETER_VIDEO_INFO, &videoInfo);
             printf("AML_MP_PLAYER_PARAMETER_VIDEO_INFO, width: %d, height: %d, framerate: %d, bitrate: %d, ratio64: %d, ret: %d\n", videoInfo.width, videoInfo.height, videoInfo.frameRate, videoInfo.bitrate, videoInfo.ratio64, ret);
@@ -365,7 +365,7 @@ static struct Command g_commandTable[] = {
 
     {
         "sSync", 0, "set sync mode",
-        [](AML_MP_HANDLE player, const std::vector<std::string>& args __unused) -> int {
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             int ret = Aml_MP_Player_SetAVSyncSource(player, AML_MP_AVSYNC_SOURCE_PCR);
             printf("set sync mode: %d, ret: %d\n", AML_MP_AVSYNC_SOURCE_PCR, ret);
             return ret;

@@ -262,12 +262,12 @@ int AmlPlayerBase::setSubtitleWindow(int x, int y, int width, int height) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void AmlPlayerBase::notifyListener(Aml_MP_PlayerEvent* event)
+void AmlPlayerBase::notifyListener(Aml_MP_PlayerEventType eventType, int64_t param)
 {
     if (mEventCb) {
-        mEventCb(mUserData, event);
+        mEventCb(mUserData, eventType, param);
     } else {
-        ALOGE("mEventCb is NULL! %d", event->type);
+        ALOGE("mEventCb is NULL! %d", eventType);
     }
 }
 

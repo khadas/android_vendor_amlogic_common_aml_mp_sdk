@@ -41,18 +41,18 @@ public:
     int startDVRRecord(Aml_MP_CASServiceInfo* serviceInfo);
     int stopDVRRecord();
 
-    int setDVRReplayPreParam(struct Aml_MP_CASPreParam* params);
-    int startDVRReplay(Aml_MP_CASCryptoParams* cryptoParams);
+    int startDVRReplay(Aml_MP_CASDVRReplayParams* dvrReplayParams);
     int stopDVRReplay();
 
     int DVREncrypt(Aml_MP_CASCryptoParams* cryptoParams);
     int DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams);
 
-    AML_MP_HANDLE createSecmem(Aml_MP_CASServiceType, void** pSecBuf, uint32_t* size);
-    int destroySecmem(AML_MP_HANDLE secMem);
+    AML_MP_SECMEM createSecmem(Aml_MP_CASServiceType, void** pSecBuf, uint32_t* size);
+    int destroySecmem(AML_MP_SECMEM secMem);
 
 private:
     CasSession mCasSession = 0;
+    bool mDvrReplayInited = false;
 
 private:
     AmlDvbCasHal(const AmlDvbCasHal&) = delete;

@@ -41,14 +41,14 @@ public:
     virtual int start() = 0;
     virtual int stop() = 0;
     virtual int flush() = 0;
-    virtual AML_MP_HANDLE createChannel(int pid) = 0;
-    virtual int destroyChannel(AML_MP_HANDLE channel) = 0;
-    virtual int openChannel(AML_MP_HANDLE channel) = 0;
-    virtual int closeChannel(AML_MP_HANDLE channel) = 0;
-    virtual AML_MP_HANDLE createFilter(Aml_MP_Demux_SectionFilterCb cb, void* userData) = 0;
-    virtual int destroyFilter(AML_MP_HANDLE filter) = 0;
-    virtual int attachFilter(AML_MP_HANDLE filter, AML_MP_HANDLE channel) = 0;
-    virtual int detachFilter(AML_MP_HANDLE filter, AML_MP_HANDLE channel) = 0;
+    virtual void* createChannel(int pid) = 0;
+    virtual int destroyChannel(void* channel) = 0;
+    virtual int openChannel(void* channel) = 0;
+    virtual int closeChannel(void* channel) = 0;
+    virtual void* createFilter(Aml_MP_Demux_SectionFilterCb cb, void* userData) = 0;
+    virtual int destroyFilter(void* filter) = 0;
+    virtual int attachFilter(void* filter, void* channel) = 0;
+    virtual int detachFilter(void* filter, void* channel) = 0;
     virtual int feedTs(const uint8_t* buffer, size_t size) {
         (void)buffer;
         return size;

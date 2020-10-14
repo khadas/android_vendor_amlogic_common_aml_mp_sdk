@@ -147,8 +147,8 @@ private:
         }
 
         int mPid;
-        AML_MP_HANDLE channel;
-        AML_MP_HANDLE filter;
+        void* channel;
+        void* filter;
     };
 
     struct PATSection {

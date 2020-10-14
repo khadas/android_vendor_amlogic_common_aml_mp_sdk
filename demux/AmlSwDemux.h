@@ -14,18 +14,18 @@ public:
     virtual int start() override;
     virtual int stop() override;
     virtual int flush() override;
-    virtual AML_MP_HANDLE createChannel(int pid) override;
-    virtual int destroyChannel(AML_MP_HANDLE channel) override;
-    virtual int openChannel(AML_MP_HANDLE channel) override;
-    virtual int closeChannel(AML_MP_HANDLE channel) override;
-    virtual AML_MP_HANDLE createFilter(Aml_MP_Demux_SectionFilterCb cb, void* userData) override;
-    virtual int destroyFilter(AML_MP_HANDLE filter) override;
-    virtual int attachFilter(AML_MP_HANDLE filter, AML_MP_HANDLE channel) override;
-    virtual int detachFilter(AML_MP_HANDLE filter, AML_MP_HANDLE channel) override;
+    virtual void* createChannel(int pid) override;
+    virtual int destroyChannel(void* channel) override;
+    virtual int openChannel(void* channel) override;
+    virtual int closeChannel(void* channel) override;
+    virtual void* createFilter(Aml_MP_Demux_SectionFilterCb cb, void* userData) override;
+    virtual int destroyFilter(void* filter) override;
+    virtual int attachFilter(void* filter, void* channel) override;
+    virtual int detachFilter(void* filter, void* channel) override;
     virtual int feedTs(const uint8_t* buffer, size_t size) override;
 
 private:
-    AML_MP_HANDLE mDemuxHandle = nullptr;
+    void* mDemuxHandle = nullptr;
     std::atomic<uint32_t> mFilterId;
 
     AmlSwDemux(const AmlSwDemux&) = delete;

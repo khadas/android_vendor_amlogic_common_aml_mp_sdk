@@ -66,7 +66,7 @@ typedef struct {
     Aml_MP_CASSectionType   sectionType;
 } Aml_MP_CASSectionReportAttr;
 
-typedef int (*Aml_MP_CAS_EventCallback)(AML_MP_HANDLE casSession, const char *json);
+typedef int (*Aml_MP_CAS_EventCallback)(AML_MP_CASSESSION casSession, const char *json);
 
 typedef enum {
     AML_MP_CAS_ENCRYPT, /**< Encrypt.*/
@@ -83,9 +83,9 @@ typedef struct {
   size_t                outputSize;                     /**< Output data size in bytes.*/
 } Aml_MP_CASCryptoParams;
 
-struct Aml_MP_CASPreParam {
+typedef struct Aml_MP_CASDVRReplayParams {
       Aml_MP_DemuxId dmxDev;      /**< The demux device's index.*/
-};
+} Aml_MP_CASDVRReplayParams;
 
 #ifdef __cplusplus
 extern "C" {
@@ -105,40 +105,37 @@ int Aml_MP_CAS_ReportSection(Aml_MP_CASSectionReportAttr* pAttr, uint8_t* data, 
 
 int Aml_MP_CAS_SetEmmPid(int dmx_dev, uint16_t emmPid);
 
-int Aml_MP_CAS_DVREncrypt(AML_MP_HANDLE casSession, Aml_MP_CASCryptoParams *cryptoPara);
+int Aml_MP_CAS_DVREncrypt(AML_MP_CASSESSION casSession, Aml_MP_CASCryptoParams *cryptoPara);
 
-int Aml_MP_CAS_DVRDecrypt(AML_MP_HANDLE casSession, Aml_MP_CASCryptoParams *cryptoPara);
+int Aml_MP_CAS_DVRDecrypt(AML_MP_CASSESSION casSession, Aml_MP_CASCryptoParams *cryptoPara);
 // global CAS function end
 
-int Aml_MP_CAS_OpenSession(AML_MP_HANDLE* casSession);
+int Aml_MP_CAS_OpenSession(AML_MP_CASSESSION* casSession);
 
-int Aml_MP_CAS_CloseSession(AML_MP_HANDLE casSession);
+int Aml_MP_CAS_CloseSession(AML_MP_CASSESSION casSession);
 
-int Aml_MP_CAS_RegisterEventCallback(AML_MP_HANDLE casSession, Aml_MP_CAS_EventCallback cb, void* userData);
+int Aml_MP_CAS_RegisterEventCallback(AML_MP_CASSESSION casSession, Aml_MP_CAS_EventCallback cb, void* userData);
 
 //for live
-int Aml_MP_CAS_StartDescrambling(AML_MP_HANDLE casSession, Aml_MP_CASServiceInfo* serviceInfo);
+int Aml_MP_CAS_StartDescrambling(AML_MP_CASSESSION casSession, Aml_MP_CASServiceInfo* serviceInfo);
 
-int Aml_MP_CAS_StopDescrambling(AML_MP_HANDLE casSession);
+int Aml_MP_CAS_StopDescrambling(AML_MP_CASSESSION casSession);
 
-int Aml_MP_CAS_UpdateDescramblingPid(AML_MP_HANDLE casSession, int oldStreamPid, int newStreamPid);
+int Aml_MP_CAS_UpdateDescramblingPid(AML_MP_CASSESSION casSession, int oldStreamPid, int newStreamPid);
 
 //for dvr record
-int Aml_MP_CAS_StartDVRRecord(AML_MP_HANDLE casSession, Aml_MP_CASServiceInfo *serviceInfo);
+int Aml_MP_CAS_StartDVRRecord(AML_MP_CASSESSION casSession, Aml_MP_CASServiceInfo *serviceInfo);
 
-int Aml_MP_CAS_StopDVRRecord(AML_MP_HANDLE casSession);
+int Aml_MP_CAS_StopDVRRecord(AML_MP_CASSESSION casSession);
 
 //for dvr replay
-int Aml_MP_CAS_SetDVRReplayPreParam(AML_MP_HANDLE casSession, struct Aml_MP_CASPreParam *params); //TODO: remove it
+int Aml_MP_CAS_StartDVRReplay(AML_MP_CASSESSION casSession, Aml_MP_CASDVRReplayParams *dvrReplayParams);
 
-int Aml_MP_CAS_StartDVRReplay(AML_MP_HANDLE casSession, Aml_MP_CASCryptoParams *cryptoParams);
+int Aml_MP_CAS_StopDVRReplay(AML_MP_CASSESSION casSession);
 
-int Aml_MP_CAS_StopDVRReplay(AML_MP_HANDLE casSession);
+AML_MP_SECMEM Aml_MP_CAS_CreateSecmem(AML_MP_CASSESSION casSession, Aml_MP_CASServiceType type, void **pSecbuf, uint32_t *size);
 
-//don't need be called by player or dvr would be better
-AML_MP_HANDLE Aml_MP_CAS_CreateSecmem(AML_MP_HANDLE casSession, Aml_MP_CASServiceType type, void **pSecbuf, uint32_t *size);
-
-int Aml_MP_CAS_DestroySecmem(AML_MP_HANDLE casSession, AML_MP_HANDLE secMem);
+int Aml_MP_CAS_DestroySecmem(AML_MP_CASSESSION casSession, AML_MP_SECMEM secMem);
 
 #ifdef __cplusplus
 }

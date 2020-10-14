@@ -87,11 +87,6 @@ static void convertToCAServiceInfo(AM_CA_ServiceInfo_t* caServiceInfo, Aml_MP_CA
     caServiceInfo->ca_private_data_len = mpServiceInfo->ca_private_data_len;
 }
 
-static void convertToCAPreParam(AM_CA_PreParam_t* caPreParam, Aml_MP_CASPreParam* mpPreParam)
-{
-    caPreParam->dmx_dev = mpPreParam->dmxDev;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 extern "C" {
 
@@ -300,34 +295,18 @@ int AmlDvbCasHal::stopDVRRecord()
     return ret;
 }
 
-int AmlDvbCasHal::setDVRReplayPreParam(struct Aml_MP_CASPreParam* params)
+int AmlDvbCasHal::startDVRReplay(Aml_MP_CASDVRReplayParams* dvrReplayParams)
 {
     MLOG();
 
     AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
     AM_CA_PreParam_t caParams;
-    convertToCAPreParam(&caParams, params);
+    caParams.dmx_dev = dvrReplayParams->dmxDev;
 
 #if !defined (__ANDROID_VNDK__)
     ret = AM_CA_DVRSetPreParam(mCasSession, &caParams);
-#endif
-
-    return ret;
-}
-
-int AmlDvbCasHal::startDVRReplay(Aml_MP_CASCryptoParams* cryptoParams)
-{
-    MLOG();
-
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
-    static_assert(sizeof(Aml_MP_CASCryptoParams) == sizeof(AM_CA_CryptoPara_t), "Imcompatible with AM_CA_CryptoPara_t!");
-    static_assert(sizeof(loff_t) == sizeof(int64_t), "Imcompatible loff_t vs int64_t");
-    AM_CA_CryptoPara_t* amCryptoParams = reinterpret_cast<AM_CA_CryptoPara_t*>(cryptoParams);
-
-#if !defined (__ANDROID_VNDK__)
-    ret = AM_CA_DVRReplay(mCasSession, amCryptoParams);
 #else
-    AML_MP_UNUSED(amCryptoParams);
+    AML_MP_UNUSED(caParams);
 #endif
 
     return ret;
@@ -369,6 +348,18 @@ int AmlDvbCasHal::DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams)
     static_assert(sizeof(loff_t) == sizeof(int64_t), "Imcompatible loff_t vs int64_t");
     AM_CA_CryptoPara_t* amCryptoParams = reinterpret_cast<AM_CA_CryptoPara_t*>(cryptoParams);
 
+    if (!mDvrReplayInited) {
+        mDvrReplayInited = true;
+        ALOGI("DVRReplay");
+#if !defined (__ANDROID_VNDK__)
+        ret = AM_CA_DVRReplay(mCasSession, amCryptoParams);
+        if (ret < 0) {
+            ALOGE("CAS DVR replay failed, ret = %d", ret);
+            return ret;
+        }
+#endif
+    }
+
 #if !defined (__ANDROID_VNDK__)
     ret = AM_CA_DVRDecrypt(mCasSession, amCryptoParams);
 #else
@@ -378,7 +369,7 @@ int AmlDvbCasHal::DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams)
     return ret;
 }
 
-AML_MP_HANDLE AmlDvbCasHal::createSecmem(Aml_MP_CASServiceType type, void** pSecbuf, uint32_t* size)
+AML_MP_SECMEM AmlDvbCasHal::createSecmem(Aml_MP_CASServiceType type, void** pSecbuf, uint32_t* size)
 {
     SecMemHandle secMem = 0;
     CA_SERVICE_TYPE_t caServiceType = convertToCAServiceType(type);
@@ -393,10 +384,10 @@ AML_MP_HANDLE AmlDvbCasHal::createSecmem(Aml_MP_CASServiceType type, void** pSec
 
     MLOG("service type:%d, secMem:%#x", type, secMem);
 
-    return (AML_MP_HANDLE)secMem;
+    return (AML_MP_SECMEM)secMem;
 }
 
-int AmlDvbCasHal::destroySecmem(AML_MP_HANDLE secMem)
+int AmlDvbCasHal::destroySecmem(AML_MP_SECMEM secMem)
 {
     MLOG("secMem:%#x", (SecMemHandle)secMem);
 

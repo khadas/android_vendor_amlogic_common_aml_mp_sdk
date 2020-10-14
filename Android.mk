@@ -35,6 +35,12 @@ AML_MP_SRCS := \
 	$(AML_MP_DVR_SRC) \
 	$(AML_MP_UTILS_SRC) \
 
+AML_MP_VENDOR_SRCS := \
+	$(AML_MP_PLAYER_SRC) \
+	$(AML_MP_CAS_SRC) \
+	$(AML_MP_DVR_SRC) \
+	$(AML_MP_UTILS_SRC) \
+
 AML_MP_INC := $(LOCAL_PATH)/include \
 	$(TOP)/vendor/amlogic/common/apps/LibTsPlayer/jni/include \
 	$(TOP)/vendor/amlogic/common/libdvr_release/include \
@@ -70,7 +76,6 @@ AML_MP_SYSTEM_STATIC_LIBS_29 := \
 	libam_cas
 
 AML_MP_VENDOR_SHARED_LIBS := \
-	libliveplayer.vendor \
 	libamdvr \
 	libmediahal_tsplayer \
 	libamgralloc_ext_vendor@2 \
@@ -94,7 +99,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libaml_mp_sdk.vendor
 LOCAL_VENDOR_MODULE := true
 LOCAL_MODULE_TAGS := optional
-LOCAL_SRC_FILES := $(AML_MP_SRCS)
+LOCAL_SRC_FILES := $(AML_MP_VENDOR_SRCS)
 LOCAL_CFLAGS := $(AML_MP_CFLAGS)
 LOCAL_C_INCLUDES := $(AML_MP_INC)
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(AML_MP_EXPORT_C_INCLUDE_DIRS)

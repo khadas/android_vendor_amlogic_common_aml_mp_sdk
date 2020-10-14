@@ -90,7 +90,7 @@ protected:
     int mSubWindowHeight;
 
     explicit AmlPlayerBase(int instanceId);
-    void notifyListener(Aml_MP_PlayerEvent* event);
+    void notifyListener(Aml_MP_PlayerEventType eventType, int64_t param = 0);
 
 private:
     static bool constructAmlSubtitleParam(AmlSubtitleParam* amlSubParam, Aml_MP_SubtitleParams* params);

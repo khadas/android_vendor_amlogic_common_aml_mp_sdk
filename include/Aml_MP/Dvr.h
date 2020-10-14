@@ -68,20 +68,9 @@ typedef enum {
   AML_MP_DVRRECORDER_EVENT_SYNC_END           = 0x1002,         /**< Signal that data sync has ended*/
   AML_MP_DVRRECORDER_EVENT_CRYPTO_STATUS      = 0x2001,         /**< Signal the current crypto status*/
   AML_MP_DVRRECORDER_EVENT_WRITE_ERROR       = 0x9001,         /**< Signal the current crypto status*/
-} AML_MP_DVRRecorderEvent;
+} AML_MP_DVRRecorderEventType;
 
-typedef int (*Aml_MP_DVRRecorderEventCallback) (AML_MP_DVRRecorderEvent event, void *params, void *userdata);
-
-typedef enum {
-    AML_MP_DVRRECORDER_STREAM_CREATE,          /**< Create a new pid used to record*/
-    AML_MP_DVRRECORDER_STREAM_KEEP,            /**< Indicate this pid keep last state*/
-    AML_MP_DVRRECORDER_STREAM_CLOSE            /**< Close this pid record*/
-} Aml_MP_DVRRecorderStreamAction;
-
-typedef struct {
-    Aml_MP_DVRStreamArray streamArray;
-    Aml_MP_DVRRecorderStreamAction streamActions[AML_MP_DVR_STREAMS_COUNT];
-} Aml_MP_DVRRecorderStreams;
+typedef void (*Aml_MP_DVRRecorderEventCallback) (void* userdata, AML_MP_DVRRecorderEventType event, int64_t params);
 
 typedef enum {
   AML_MP_DVRRECORDER_STATE_OPENED,        /**< Record state is opened*/
@@ -108,19 +97,19 @@ typedef struct {
 #ifdef __cplusplus
 extern "C" {
 #endif
-int Aml_MP_DVRRecorder_Create(Aml_MP_DVRRecorderCreateParams* createParams, AML_MP_HANDLE* recorder);
+int Aml_MP_DVRRecorder_Create(Aml_MP_DVRRecorderCreateParams* createParams, AML_MP_DVRRECORDER* recorder);
 
-int Aml_MP_DVRRecorder_Destroy(AML_MP_HANDLE recorder);
+int Aml_MP_DVRRecorder_Destroy(AML_MP_DVRRECORDER recorder);
 
-int Aml_MP_DVRRecorder_RegisterEventCallback(AML_MP_HANDLE recorder, Aml_MP_DVRRecorderEventCallback cb, void* userData);
+int Aml_MP_DVRRecorder_RegisterEventCallback(AML_MP_DVRRECORDER recorder, Aml_MP_DVRRecorderEventCallback cb, void* userData);
 
-int Aml_MP_DVRRecorder_SetStreams(AML_MP_HANDLE recorder, Aml_MP_DVRRecorderStreams* streams); //update record pids
+int Aml_MP_DVRRecorder_SetStreams(AML_MP_DVRRECORDER recorder, Aml_MP_DVRStreamArray* streams);
 
-int Aml_MP_DVRRecorder_Start(AML_MP_HANDLE recorder);
+int Aml_MP_DVRRecorder_Start(AML_MP_DVRRECORDER recorder);
 
-int Aml_MP_DVRRecorder_Stop(AML_MP_HANDLE recorder);
+int Aml_MP_DVRRecorder_Stop(AML_MP_DVRRECORDER recorder);
 
-int Aml_MP_DVRRecorder_GetStatus(AML_MP_HANDLE recorder, Aml_MP_DVRRecorderStatus* status);
+int Aml_MP_DVRRecorder_GetStatus(AML_MP_DVRRECORDER recorder, Aml_MP_DVRRecorderStatus* status);
 
 int Aml_MP_DVRRecorder_GetSegmentList(const char* location, uint32_t* segmentNums, uint64_t** segmentIds);
 
@@ -153,20 +142,6 @@ typedef struct {
     Aml_MP_DVRPlayerDecryptParams       decryptParams;
 } Aml_MP_DVRPlayerCreateParams;
 
-typedef enum {
-  AML_MP_DVRPLAYER_EVENT_ERROR              = 0x1000,   /**< Signal a critical playback error*/
-  AML_MP_DVRPLAYER_EVENT_TRANSITION_OK    ,             /**< transition ok*/
-  AML_MP_DVRPLAYER_EVENT_TRANSITION_FAILED,             /**< transition failed*/
-  AML_MP_DVRPLAYER_EVENT_KEY_FAILURE,                   /**< key failure*/
-  AML_MP_DVRPLAYER_EVENT_NO_KEY,                        /**< no key*/
-  AML_MP_DVRPLAYER_EVENT_REACHED_BEGIN     ,            /**< reached begin*/
-  AML_MP_DVRPLAYER_EVENT_REACHED_END,                    /**< reached end*/
-  AML_MP_DVRPLAYER_EVENT_NOTIFY_PLAYTIME,               /**< notify play cur segmeng time ms*/
-  AML_MP_DVRPLAYER_EVENT_FIRST_FRAME                    /**< first frame*/
-} Aml_MP_DVRPlayerEvent;
-
-typedef int (*Aml_MP_DVRPlayerEventCallback)(Aml_MP_DVRPlayerEvent event, void *params, void *userdata);
-
 /**\brief playback play state*/
 typedef enum
 {
@@ -198,39 +173,39 @@ typedef struct {
 #ifdef __cplusplus
 extern "C" {
 #endif
-int Aml_MP_DVRPlayer_Create(Aml_MP_DVRPlayerCreateParams* createParams, AML_MP_HANDLE* player);
+int Aml_MP_DVRPlayer_Create(Aml_MP_DVRPlayerCreateParams* createParams, AML_MP_DVRPLAYER* player);
 
-int Aml_MP_DVRPlayer_Destroy(AML_MP_HANDLE player);
+int Aml_MP_DVRPlayer_Destroy(AML_MP_DVRPLAYER player);
 
-int Aml_MP_DVRPlayer_RegisterEventCallback(AML_MP_HANDLE player, Aml_MP_DVRPlayerEventCallback cb, void* userData);
+int Aml_MP_DVRPlayer_RegisterEventCallback(AML_MP_DVRPLAYER player, Aml_MP_PlayerEventCallback cb, void* userData);
 
-int Aml_MP_DVRPlayer_SetStreams(AML_MP_HANDLE player, Aml_MP_DVRStreamArray* streams);
+int Aml_MP_DVRPlayer_SetStreams(AML_MP_DVRPLAYER player, Aml_MP_DVRStreamArray* streams);
 
-int Aml_MP_DVRPlayer_Start(AML_MP_HANDLE player, bool initialPaused);
+int Aml_MP_DVRPlayer_Start(AML_MP_DVRPLAYER player, bool initialPaused);
 
-int Aml_MP_DVRPlayer_Stop(AML_MP_HANDLE player);
+int Aml_MP_DVRPlayer_Stop(AML_MP_DVRPLAYER player);
 
-int Aml_MP_DVRPlayer_Pause(AML_MP_HANDLE player);
+int Aml_MP_DVRPlayer_Pause(AML_MP_DVRPLAYER player);
 
-int Aml_MP_DVRPlayer_Resume(AML_MP_HANDLE player);
+int Aml_MP_DVRPlayer_Resume(AML_MP_DVRPLAYER player);
 
-int Aml_MP_DVRPlayer_Seek(AML_MP_HANDLE player, int timeOffset);
+int Aml_MP_DVRPlayer_Seek(AML_MP_DVRPLAYER player, int timeOffset);
 
-int Aml_MP_DVRPlayer_SetPlaybackRate(AML_MP_HANDLE player, float rate);
+int Aml_MP_DVRPlayer_SetPlaybackRate(AML_MP_DVRPLAYER player, float rate);
 
-int Aml_MP_DVRPlayer_GetStatus(AML_MP_HANDLE player, Aml_MP_DVRPlayerStatus* status);
+int Aml_MP_DVRPlayer_GetStatus(AML_MP_DVRPLAYER player, Aml_MP_DVRPlayerStatus* status);
 
-int Aml_MP_DVRPlayer_ShowVideo(AML_MP_HANDLE handle);
+int Aml_MP_DVRPlayer_ShowVideo(AML_MP_DVRPLAYER handle);
 
-int Aml_MP_DVRPlayer_HideVideo(AML_MP_HANDLE handle);
+int Aml_MP_DVRPlayer_HideVideo(AML_MP_DVRPLAYER handle);
 
-int Aml_MP_DVRPlayer_SetVolume(AML_MP_HANDLE handle, float volume);
+int Aml_MP_DVRPlayer_SetVolume(AML_MP_DVRPLAYER handle, float volume);
 
-int Aml_MP_DVRPlayer_GetVolume(AML_MP_HANDLE handle, float* volume);
+int Aml_MP_DVRPlayer_GetVolume(AML_MP_DVRPLAYER handle, float* volume);
 
-int Aml_MP_DVRPlayer_SetParameter(AML_MP_HANDLE handle, Aml_MP_PlayerParameterKey key, void* parameter);
+int Aml_MP_DVRPlayer_SetParameter(AML_MP_DVRPLAYER handle, Aml_MP_PlayerParameterKey key, void* parameter);
 
-int Aml_MP_DVRPlayer_GetParameter(AML_MP_HANDLE handle, Aml_MP_PlayerParameterKey key, void* parameter);
+int Aml_MP_DVRPlayer_GetParameter(AML_MP_DVRPLAYER handle, Aml_MP_PlayerParameterKey key, void* parameter);
 #ifdef __cplusplus
 }
 #endif

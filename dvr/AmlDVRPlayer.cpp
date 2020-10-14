@@ -51,12 +51,12 @@ AmlDVRPlayer::~AmlDVRPlayer()
     MLOG();
 }
 
-int AmlDVRPlayer::registerEventCallback(Aml_MP_DVRPlayerEventCallback cb, void* userData)
+int AmlDVRPlayer::registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData)
 {
     AML_MP_TRACE(10);
 
-    mPlaybackOpenParams.event_fn = (DVR_PlaybackEventFunction_t)cb;
-    mPlaybackOpenParams.event_userdata = userData;
+    mEventCb = cb;
+    mEventUserData = userData;
 
     return 0;
 }
@@ -120,6 +120,11 @@ int AmlDVRPlayer::start(bool initialPaused)
     ALOGI(" TsPlayer set Syncmode PCRMASTER %s, result(%d)", (ret)? "FAIL" : "OK", ret);
 
     mPlaybackOpenParams.playback_handle = (Playback_DeviceHandle_t)tsPlayerHandle;
+    mPlaybackOpenParams.event_fn = [](DVR_PlaybackEvent_t event, void* params, void* userData) {
+        AmlDVRPlayer* player = static_cast<AmlDVRPlayer*>(userData);
+        return player->eventHandler(event, params);
+    };
+    mPlaybackOpenParams.event_userdata = this;
 
     int error = dvr_wrapper_open_playback(&mDVRPlayerHandle, &mPlaybackOpenParams);
     if (error < 0) {
@@ -394,6 +399,55 @@ int AmlDVRPlayer::setDecryptParams(Aml_MP_DVRPlayerDecryptParams * decryptParams
     ALOGI("mSecureBuffer:%p, mSecureBufferSize:%d", mSecureBuffer, mSecureBufferSize);
 
     return 0;
+}
+
+DVR_Result_t AmlDVRPlayer::eventHandler(DVR_PlaybackEvent_t event, void* params)
+{
+    DVR_Result_t ret = DVR_SUCCESS;
+
+    switch (event) {
+    case DVR_PLAYBACK_EVENT_ERROR:
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_ERROR, (int64_t)params);
+        break;
+
+    case DVR_PLAYBACK_EVENT_TRANSITION_OK:
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_TRANSITION_OK, (int64_t)params);
+        break;
+
+    case DVR_PLAYBACK_EVENT_TRANSITION_FAILED:
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_TRANSITION_FAILED, (int64_t)params);
+        break;
+
+    case DVR_PLAYBACK_EVENT_KEY_FAILURE:
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_KEY_FAILURE, (int64_t)params);
+        break;
+
+    case DVR_PLAYBACK_EVENT_NO_KEY:
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_NO_KEY, (int64_t)params);
+        break;
+
+    case DVR_PLAYBACK_EVENT_REACHED_BEGIN:
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_REACHED_BEGIN, (int64_t)params);
+        break;
+
+    case DVR_PLAYBACK_EVENT_REACHED_END:
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_REACHED_END, (int64_t)params);
+        break;
+
+    case DVR_PLAYBACK_EVENT_NOTIFY_PLAYTIME:
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_NOTIFY_PLAYTIME, (int64_t)params);
+        break;
+
+    case DVR_PLAYBACK_EVENT_FIRST_FRAME:
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_PLAYER_EVENT_FIRST_FRAME, (int64_t)params);
+        break;
+
+    default:
+        MLOG("unhandled event:%d", event);
+        break;
+    }
+
+    return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

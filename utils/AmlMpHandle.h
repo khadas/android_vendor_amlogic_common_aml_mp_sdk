@@ -53,7 +53,7 @@ private:
     AmlMpHandle& operator= (const AmlMpHandle&) = delete;
 };
 
-static inline AML_MP_HANDLE aml_handle_cast(const sp<AmlMpHandle>& amlMpHandle)
+static inline void* aml_handle_cast(const sp<AmlMpHandle>& amlMpHandle)
 {
     if (!(amlMpHandle && *amlMpHandle)) {
         if (amlMpHandle) {
@@ -67,7 +67,7 @@ static inline AML_MP_HANDLE aml_handle_cast(const sp<AmlMpHandle>& amlMpHandle)
 }
 
 template <typename T>
-sp<T> aml_handle_cast(AML_MP_HANDLE h)
+sp<T> aml_handle_cast(void* h)
 {
     AmlMpHandle* amlMpHandle = static_cast<AmlMpHandle*>(h);
     if (!(amlMpHandle && *amlMpHandle)) {

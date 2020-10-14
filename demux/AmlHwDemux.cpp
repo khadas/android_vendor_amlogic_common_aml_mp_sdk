@@ -225,7 +225,7 @@ int AmlHwDemux::flush()
     return 0;
 }
 
-AML_MP_HANDLE AmlHwDemux::createChannel(int pid)
+void* AmlHwDemux::createChannel(int pid)
 {
     sp<Channel> channel;
 
@@ -263,7 +263,7 @@ exit:
     return aml_handle_cast(channel);
 }
 
-int AmlHwDemux::destroyChannel(AML_MP_HANDLE _channel)
+int AmlHwDemux::destroyChannel(void* _channel)
 {
     sp<Channel> channel = aml_handle_cast<Channel>(_channel);
     if (channel == nullptr) {
@@ -293,7 +293,7 @@ int AmlHwDemux::destroyChannel(AML_MP_HANDLE _channel)
     return 0;
 }
 
-int AmlHwDemux::openChannel(AML_MP_HANDLE _channel)
+int AmlHwDemux::openChannel(void* _channel)
 {
     sp<Channel> channel = aml_handle_cast<Channel>(_channel);
     ALOGI("channel:%p, _channel:%p", channel.get(), _channel);
@@ -306,7 +306,7 @@ int AmlHwDemux::openChannel(AML_MP_HANDLE _channel)
     return 0;
 }
 
-int AmlHwDemux::closeChannel(AML_MP_HANDLE _channel)
+int AmlHwDemux::closeChannel(void* _channel)
 {
     sp<Channel> channel = aml_handle_cast<Channel>(_channel);
     if (channel == nullptr) {
@@ -318,7 +318,7 @@ int AmlHwDemux::closeChannel(AML_MP_HANDLE _channel)
     return 0;
 }
 
-AML_MP_HANDLE AmlHwDemux::createFilter(Aml_MP_Demux_SectionFilterCb cb, void* userData)
+void* AmlHwDemux::createFilter(Aml_MP_Demux_SectionFilterCb cb, void* userData)
 {
     sp<Filter> filter = new Filter(cb, userData, mFilterId++);
 
@@ -327,7 +327,7 @@ AML_MP_HANDLE AmlHwDemux::createFilter(Aml_MP_Demux_SectionFilterCb cb, void* us
     return aml_handle_cast(filter);
 }
 
-int AmlHwDemux::destroyFilter(AML_MP_HANDLE _filter)
+int AmlHwDemux::destroyFilter(void* _filter)
 {
     sp<Filter> filter = aml_handle_cast<Filter>(_filter);
     if (filter == nullptr) {
@@ -346,7 +346,7 @@ int AmlHwDemux::destroyFilter(AML_MP_HANDLE _filter)
     return 0;
 }
 
-int AmlHwDemux::attachFilter(AML_MP_HANDLE _filter, AML_MP_HANDLE _channel)
+int AmlHwDemux::attachFilter(void* _filter, void* _channel)
 {
     sp<Filter> filter = aml_handle_cast<Filter>(_filter);
     sp<Channel> channel = aml_handle_cast<Channel>(_channel);
@@ -360,7 +360,7 @@ int AmlHwDemux::attachFilter(AML_MP_HANDLE _filter, AML_MP_HANDLE _channel)
     return 0;
 }
 
-int AmlHwDemux::detachFilter(AML_MP_HANDLE _filter, AML_MP_HANDLE _channel)
+int AmlHwDemux::detachFilter(void* _filter, void* _channel)
 {
     sp<Filter> filter = aml_handle_cast<Filter>(_filter);
     sp<Channel> channel = aml_handle_cast<Channel>(_channel);

@@ -23,12 +23,18 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-////////////////////////////////////////
-typedef void* AML_MP_HANDLE;
+///////////////////////////////////////////////////////////////////////////////
+//typedef void* AML_MP_HANDLE;
 #define AML_MP_INVALID_HANDLE   (0)
 #define AML_MP_INVALID_PID      (0x1FFF)
 
-////////////////////////////////////////
+typedef void* AML_MP_PLAYER;
+typedef void* AML_MP_DVRRECORDER;
+typedef void* AML_MP_DVRPLAYER;
+typedef void* AML_MP_CASSESSION;
+typedef void* AML_MP_SECMEM;
+
+///////////////////////////////////////////////////////////////////////////////
 typedef enum {
     AML_MP_DEMUX_ID_DEFAULT         = -1,
     AML_MP_HW_DEMUX_ID_0            = 0,
@@ -38,6 +44,26 @@ typedef enum {
     AML_MP_HW_DEMUX_NB              = (AML_MP_HW_DEMUX_ID_MAX - AML_MP_HW_DEMUX_ID_0),
 } Aml_MP_DemuxId;
 
+typedef enum {
+    AML_MP_DEMUX_SOURCE_TS0,  /**< Hardware TS input port 0.*/
+    AML_MP_DEMUX_SOURCE_TS1,  /**< Hardware TS input port 1.*/
+    AML_MP_DEMUX_SOURCE_TS2,  /**< Hardware TS input port 2.*/
+    AML_MP_DEMUX_SOURCE_TS3,  /**< Hardware TS input port 3.*/
+    AML_MP_DEMUX_SOURCE_TS4,  /**< Hardware TS input port 4.*/
+    AML_MP_DEMUX_SOURCE_TS5,  /**< Hardware TS input port 5.*/
+    AML_MP_DEMUX_SOURCE_TS6,  /**< Hardware TS input port 6.*/
+    AML_MP_DEMUX_SOURCE_TS7,  /**< Hardware TS input port 7.*/
+    AML_MP_DEMUX_SOURCE_DMA0,  /**< DMA input port 0.*/
+    AML_MP_DEMUX_SOURCE_DMA1,  /**< DMA input port 1.*/
+    AML_MP_DEMUX_SOURCE_DMA2,  /**< DMA input port 2.*/
+    AML_MP_DEMUX_SOURCE_DMA3,  /**< DMA input port 3.*/
+    AML_MP_DEMUX_SOURCE_DMA4,  /**< DMA input port 4.*/
+    AML_MP_DEMUX_SOURCE_DMA5,  /**< DMA input port 5.*/
+    AML_MP_DEMUX_SOURCE_DMA6,  /**< DMA input port 6.*/
+    AML_MP_DEMUX_SOURCE_DMA7  /**< DMA input port 7.*/
+} Aml_MP_DemuxSource;
+
+///////////////////////////////////////////////////////////////////////////////
 typedef enum {
     AML_MP_INPUT_SOURCE_TS_DEMOD,
     AML_MP_INPUT_SOURCE_TS_MEMORY,
@@ -96,8 +122,8 @@ typedef struct {
     uint32_t        		width;
     uint32_t        		height;
     uint32_t        		frameRate;
+    uint8_t         		extraData[512];
     uint32_t        		extraDataSize;
-    uint8_t         		*extraData;
 } Aml_MP_VideoParams;
 
 typedef struct {
@@ -105,14 +131,14 @@ typedef struct {
     Aml_MP_CodecID          audioCodec;
     uint32_t                nChannels;
     uint32_t                nSampleRate;
-    uint32_t                nExtraSize;
-    uint8_t         		*extraData;
+    uint8_t         		extraData[512];
+    uint32_t                extraDataSize;
 } Aml_MP_AudioParams;
 
 ////////////////////////////////////////
 typedef struct {
-    Aml_MP_CodecID subtitleCodec;
     int pid;
+    Aml_MP_CodecID subtitleCodec;
     Aml_MP_CodecID videoFormat;        //cc
     int channelId;                     //cc
     int ancillaryPageId;               //dvb
@@ -146,7 +172,7 @@ typedef struct {
             uint8_t data[1024];
             size_t size;
         } casParam;
-    };
+    } u;
 } Aml_MP_CASParams;
 
 ////////////////////////////////////////
@@ -386,23 +412,59 @@ typedef struct {
 
 ///////////////////////////////////////////////////////////////////////////////
 typedef enum {
-    AML_MP_DEMUX_SOURCE_TS0,  /**< Hardware TS input port 0.*/
-    AML_MP_DEMUX_SOURCE_TS1,  /**< Hardware TS input port 1.*/
-    AML_MP_DEMUX_SOURCE_TS2,  /**< Hardware TS input port 2.*/
-    AML_MP_DEMUX_SOURCE_TS3,  /**< Hardware TS input port 3.*/
-    AML_MP_DEMUX_SOURCE_TS4,  /**< Hardware TS input port 4.*/
-    AML_MP_DEMUX_SOURCE_TS5,  /**< Hardware TS input port 5.*/
-    AML_MP_DEMUX_SOURCE_TS6,  /**< Hardware TS input port 6.*/
-    AML_MP_DEMUX_SOURCE_TS7,  /**< Hardware TS input port 7.*/
-    AML_MP_DEMUX_SOURCE_DMA0,  /**< DMA input port 0.*/
-    AML_MP_DEMUX_SOURCE_DMA1,  /**< DMA input port 1.*/
-    AML_MP_DEMUX_SOURCE_DMA2,  /**< DMA input port 2.*/
-    AML_MP_DEMUX_SOURCE_DMA3,  /**< DMA input port 3.*/
-    AML_MP_DEMUX_SOURCE_DMA4,  /**< DMA input port 4.*/
-    AML_MP_DEMUX_SOURCE_DMA5,  /**< DMA input port 5.*/
-    AML_MP_DEMUX_SOURCE_DMA6,  /**< DMA input port 6.*/
-    AML_MP_DEMUX_SOURCE_DMA7  /**< DMA input port 7.*/
-} Aml_MP_DemuxSource;
+    AML_MP_EVENT_UNKNOWN,
+    AML_MP_PLAYER_EVENT_VIDEO_CHANGED,
+    AML_MP_PLAYER_EVENT_AUDIO_CHANGED,
+    AML_MP_PLAYER_EVENT_FIRST_FRAME,
+    AML_MP_PLAYER_EVENT_AV_SYNC_DONE,
 
+    AML_MP_PLAYER_EVENT_DATA_LOSS,
+    AML_MP_PLAYER_EVENT_DATA_RESUME,
+    AML_MP_PLAYER_EVENT_SCRAMBLING,
+
+    AML_MP_PLAYER_EVENT_USERDATA_AFD,
+    AML_MP_PLAYER_EVENT_USERDATA_CC,
+
+    //DVR player
+    AML_MP_DVRPLAYER_EVENT_ERROR              = 0x1000,   /**< Signal a critical playback error*/
+    AML_MP_DVRPLAYER_EVENT_TRANSITION_OK    ,             /**< transition ok*/
+    AML_MP_DVRPLAYER_EVENT_TRANSITION_FAILED,             /**< transition failed*/
+    AML_MP_DVRPLAYER_EVENT_KEY_FAILURE,                   /**< key failure*/
+    AML_MP_DVRPLAYER_EVENT_NO_KEY,                        /**< no key*/
+    AML_MP_DVRPLAYER_EVENT_REACHED_BEGIN     ,            /**< reached begin*/
+    AML_MP_DVRPLAYER_EVENT_REACHED_END,                    /**< reached end*/
+    AML_MP_DVRPLAYER_EVENT_NOTIFY_PLAYTIME,               /**< notify play cur segmeng time ms*/
+} Aml_MP_PlayerEventType;
+
+
+//AML_MP_PLAYER_EVENT_VIDEO_CHANGED,
+typedef struct {
+    uint32_t frame_width;
+    uint32_t frame_height;
+    uint32_t frame_rate;
+    uint32_t frame_aspectratio;
+} Aml_MP_PlayerEventVideoFormat;
+
+//AML_MP_PLAYER_EVENT_AUDIO_CHANGED,
+typedef struct {
+    uint32_t sample_rate;
+    uint32_t channels;
+} Aml_MP_PlayerEventAudioFormat;
+
+//AML_MP_PLAYER_EVENT_SCRAMBLING,
+typedef struct {
+	Aml_MP_StreamType type;
+	char scramling;
+} Aml_MP_PlayerEventScrambling;
+
+
+//AML_MP_PLAYER_EVENT_USERDATA_AFD,
+//AML_MP_PLAYER_EVENT_USERDATA_CC,
+typedef struct {
+	uint8_t  *data;
+    size_t   len;
+} Aml_MP_PlayerEventMpegUserData;
+
+typedef void (*Aml_MP_PlayerEventCallback)(void* userData, Aml_MP_PlayerEventType event, int64_t param);
 
 #endif

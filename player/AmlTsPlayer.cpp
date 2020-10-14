@@ -642,90 +642,78 @@ int AmlTsPlayer::setADParams(Aml_MP_AudioParams* params) {
 
 void AmlTsPlayer::eventCallback(am_tsplayer_event* event)
 {
-    Aml_MP_PlayerEvent mpEvent;
-    bool notify = false;
-
     switch (event->type) {
-    case AM_TSPLAYER_EVENT_TYPE_PTS:
-        break;
-
-    case AM_TSPLAYER_EVENT_TYPE_DTV_SUBTITLE:
-        break;
-
-    case AM_TSPLAYER_EVENT_TYPE_USERDATA_AFD:
-        break;
-
-    case AM_TSPLAYER_EVENT_TYPE_USERDATA_CC:
-        break;
-
     case AM_TSPLAYER_EVENT_TYPE_VIDEO_CHANGED:
     {
         ALOGE("[evt] AML_MP_PLAYER_EVENT_VIDEO_CHANGED");
-        mpEvent.type = AML_MP_PLAYER_EVENT_VIDEO_CHANGED;
-        mpEvent.event.videoFormat.frame_width = event->event.video_format.frame_width;
-        mpEvent.event.videoFormat.frame_height = event->event.video_format.frame_height;
-        mpEvent.event.videoFormat.frame_rate = event->event.video_format.frame_rate;
-        mpEvent.event.videoFormat.frame_aspectratio = event->event.video_format.frame_aspectratio;
 
-        notify = true;
+        Aml_MP_PlayerEventVideoFormat videoFormatEvent;
+        videoFormatEvent.frame_width = event->event.video_format.frame_width;
+        videoFormatEvent.frame_height = event->event.video_format.frame_height;
+        videoFormatEvent.frame_rate = event->event.video_format.frame_rate;
+        videoFormatEvent.frame_aspectratio = event->event.video_format.frame_aspectratio;
+
+        notifyListener(AML_MP_PLAYER_EVENT_VIDEO_CHANGED, (int64_t)&videoFormatEvent);
     }
     break;
 
     case AM_TSPLAYER_EVENT_TYPE_AUDIO_CHANGED:
-        break;
-
-    case AM_TSPLAYER_EVENT_TYPE_DATA_LOSS:
-        break;
-
-    case AM_TSPLAYER_EVENT_TYPE_DATA_RESUME:
-        break;
-
-    case AM_TSPLAYER_EVENT_TYPE_SCRAMBLING:
-        {
-            mpEvent.type = AML_MP_PLAYER_EVENT_SCRAMBLING;
-            mpEvent.event.scrambling.scramling = 1;
-            mpEvent.event.scrambling.type = streamTypeConvert(event->event.scramling.stream_type);
-
-            notify = true;
-        }
+        notifyListener(AML_MP_PLAYER_EVENT_AUDIO_CHANGED);
         break;
 
     case AM_TSPLAYER_EVENT_TYPE_FIRST_FRAME:
         ALOGE("[evt] AM_TSPLAYER_EVENT_TYPE_FIRST_FRAME\n");
-        mpEvent.type = AML_MP_PLAYER_EVENT_FIRST_FRAME;
 
-        notify = true;
-        break;
-
-    case AM_TSPLAYER_EVENT_TYPE_STREAM_MODE_EOF:
-        break;
-
-    case AM_TSPLAYER_EVENT_TYPE_DECODE_FIRST_FRAME_VIDEO:
-        ALOGE("[evt] AML_MP_PLAYER_EVENT_DECODE_FIRST_FRAME_VIDEO");
-        mpEvent.type = AML_MP_PLAYER_EVENT_DECODE_FIRST_FRAME_VIDEO;
-
-        notify = true;
-        break;
-
-    case AM_TSPLAYER_EVENT_TYPE_DECODE_FIRST_FRAME_AUDIO:
-        mpEvent.type = AML_MP_PLAYER_EVENT_DECODE_FIRST_FRAME_AUDIO;
-
-        notify = true;
+        notifyListener(AML_MP_PLAYER_EVENT_FIRST_FRAME);
         break;
 
     case AM_TSPLAYER_EVENT_TYPE_AV_SYNC_DONE:
         ALOGE("[evt] AML_MP_PLAYER_EVENT_AV_SYNC_DONE");
-        mpEvent.type = AML_MP_PLAYER_EVENT_AV_SYNC_DONE;
 
-        notify = true;
+        notifyListener(AML_MP_PLAYER_EVENT_AV_SYNC_DONE);
         break;
+
+    case AM_TSPLAYER_EVENT_TYPE_DATA_LOSS:
+        notifyListener(AML_MP_PLAYER_EVENT_DATA_LOSS);
+        break;
+
+    case AM_TSPLAYER_EVENT_TYPE_DATA_RESUME:
+        notifyListener(AML_MP_PLAYER_EVENT_DATA_RESUME);
+        break;
+
+    case AM_TSPLAYER_EVENT_TYPE_SCRAMBLING:
+    {
+        Aml_MP_PlayerEventScrambling scrambling;
+        scrambling.scramling = 1;
+        scrambling.type = streamTypeConvert(event->event.scramling.stream_type);
+
+        notifyListener(AML_MP_PLAYER_EVENT_SCRAMBLING, (int64_t)&scrambling);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_USERDATA_AFD:
+    {
+        Aml_MP_PlayerEventMpegUserData userData;
+        userData.data = event->event.mpeg_user_data.data;
+        userData.len = event->event.mpeg_user_data.len;
+
+        notifyListener(AML_MP_PLAYER_EVENT_USERDATA_AFD, (int64_t)&userData);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_USERDATA_CC:
+    {
+        Aml_MP_PlayerEventMpegUserData userData;
+        userData.data = event->event.mpeg_user_data.data;
+        userData.len = event->event.mpeg_user_data.len;
+
+        notifyListener(AML_MP_PLAYER_EVENT_USERDATA_CC, (int64_t)&userData);
+    }
+    break;
 
     default:
+        ALOGE("unhandled event:%d", event->type);
         break;
-    }
-
-    if (notify) {
-        notifyListener(&mpEvent);
     }
 }
 

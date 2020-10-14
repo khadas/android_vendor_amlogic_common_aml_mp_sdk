@@ -27,7 +27,7 @@
 using namespace aml_mp;
 using namespace android;
 
-int Aml_MP_CAS_OpenSession(AML_MP_HANDLE* casSession)
+int Aml_MP_CAS_OpenSession(AML_MP_CASSESSION* casSession)
 {
     sp<AmlDvbCasHal> dvbCasHal = new AmlDvbCasHal();
     dvbCasHal->incStrong(dvbCasHal.get());
@@ -37,7 +37,7 @@ int Aml_MP_CAS_OpenSession(AML_MP_HANDLE* casSession)
     return 0;
 }
 
-int Aml_MP_CAS_CloseSession(AML_MP_HANDLE casSession)
+int Aml_MP_CAS_CloseSession(AML_MP_CASSESSION casSession)
 {
     sp<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
     RETURN_IF(-1, dvbCasHal == nullptr);
@@ -46,7 +46,7 @@ int Aml_MP_CAS_CloseSession(AML_MP_HANDLE casSession)
     return 0;
 }
 
-int Aml_MP_CAS_RegisterEventCallback(AML_MP_HANDLE casSession, Aml_MP_CAS_EventCallback cb, void* userData)
+int Aml_MP_CAS_RegisterEventCallback(AML_MP_CASSESSION casSession, Aml_MP_CAS_EventCallback cb, void* userData)
 {
     sp<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
     int ret = 0;
@@ -65,7 +65,7 @@ int Aml_MP_CAS_RegisterEventCallback(AML_MP_HANDLE casSession, Aml_MP_CAS_EventC
     return ret;
 }
 
-int Aml_MP_CAS_StartDescrambling(AML_MP_HANDLE casSession, Aml_MP_CASServiceInfo* serviceInfo)
+int Aml_MP_CAS_StartDescrambling(AML_MP_CASSESSION casSession, Aml_MP_CASServiceInfo* serviceInfo)
 {
     sp<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
     RETURN_IF(-1, dvbCasHal == nullptr);
@@ -73,7 +73,7 @@ int Aml_MP_CAS_StartDescrambling(AML_MP_HANDLE casSession, Aml_MP_CASServiceInfo
     return dvbCasHal->startDescrambling(serviceInfo);
 }
 
-int Aml_MP_CAS_StopDescrambling(AML_MP_HANDLE casSession)
+int Aml_MP_CAS_StopDescrambling(AML_MP_CASSESSION casSession)
 {
     sp<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
     RETURN_IF(-1, dvbCasHal == nullptr);
@@ -81,7 +81,7 @@ int Aml_MP_CAS_StopDescrambling(AML_MP_HANDLE casSession)
     return dvbCasHal->stopDescrambling();
 }
 
-int Aml_MP_CAS_UpdateDescramblingPid(AML_MP_HANDLE casSession, int oldStreamPid, int newStreamPid)
+int Aml_MP_CAS_UpdateDescramblingPid(AML_MP_CASSESSION casSession, int oldStreamPid, int newStreamPid)
 {
     sp<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
     RETURN_IF(-1, dvbCasHal == nullptr);
@@ -89,7 +89,7 @@ int Aml_MP_CAS_UpdateDescramblingPid(AML_MP_HANDLE casSession, int oldStreamPid,
     return dvbCasHal->updateDescramblingPid(oldStreamPid, newStreamPid);
 }
 
-int Aml_MP_CAS_StartDVRRecord(AML_MP_HANDLE casSession, Aml_MP_CASServiceInfo *serviceInfo)
+int Aml_MP_CAS_StartDVRRecord(AML_MP_CASSESSION casSession, Aml_MP_CASServiceInfo *serviceInfo)
 {
     sp<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
     RETURN_IF(-1, dvbCasHal == nullptr);
@@ -97,7 +97,7 @@ int Aml_MP_CAS_StartDVRRecord(AML_MP_HANDLE casSession, Aml_MP_CASServiceInfo *s
     return dvbCasHal->startDVRRecord(serviceInfo);
 }
 
-int Aml_MP_CAS_StopDVRRecord(AML_MP_HANDLE casSession)
+int Aml_MP_CAS_StopDVRRecord(AML_MP_CASSESSION casSession)
 {
     sp<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
     RETURN_IF(-1, dvbCasHal == nullptr);
@@ -105,23 +105,15 @@ int Aml_MP_CAS_StopDVRRecord(AML_MP_HANDLE casSession)
     return dvbCasHal->stopDVRRecord();
 }
 
-int Aml_MP_CAS_SetDVRReplayPreParam(AML_MP_HANDLE casSession, struct Aml_MP_CASPreParam *params)
+int Aml_MP_CAS_StartDVRReplay(AML_MP_CASSESSION casSession, Aml_MP_CASDVRReplayParams *dvrReplayParams)
 {
     sp<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
     RETURN_IF(-1, dvbCasHal == nullptr);
 
-    return dvbCasHal->setDVRReplayPreParam(params);
+    return dvbCasHal->startDVRReplay(dvrReplayParams);
 }
 
-int Aml_MP_CAS_StartDVRReplay(AML_MP_HANDLE casSession, Aml_MP_CASCryptoParams *cryptoParams)
-{
-    sp<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
-
-    return dvbCasHal->startDVRReplay(cryptoParams);
-}
-
-int Aml_MP_CAS_StopDVRReplay(AML_MP_HANDLE casSession)
+int Aml_MP_CAS_StopDVRReplay(AML_MP_CASSESSION casSession)
 {
     sp<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
     RETURN_IF(-1, dvbCasHal == nullptr);
@@ -129,7 +121,7 @@ int Aml_MP_CAS_StopDVRReplay(AML_MP_HANDLE casSession)
     return dvbCasHal->stopDVRReplay();
 }
 
-int Aml_MP_CAS_DVREncrypt(AML_MP_HANDLE casSession, Aml_MP_CASCryptoParams *cryptoParams)
+int Aml_MP_CAS_DVREncrypt(AML_MP_CASSESSION casSession, Aml_MP_CASCryptoParams *cryptoParams)
 {
     android::sp<aml_mp::AmlDvbCasHal> dvbCasHal = aml_mp::aml_handle_cast<aml_mp::AmlDvbCasHal>(casSession);
     RETURN_IF(-1, dvbCasHal == nullptr);
@@ -137,7 +129,7 @@ int Aml_MP_CAS_DVREncrypt(AML_MP_HANDLE casSession, Aml_MP_CASCryptoParams *cryp
     return dvbCasHal->DVREncrypt(cryptoParams);
 }
 
-int Aml_MP_CAS_DVRDecrypt(AML_MP_HANDLE casSession, Aml_MP_CASCryptoParams *cryptoParams)
+int Aml_MP_CAS_DVRDecrypt(AML_MP_CASSESSION casSession, Aml_MP_CASCryptoParams *cryptoParams)
 {
     android::sp<aml_mp::AmlDvbCasHal> dvbCasHal = aml_mp::aml_handle_cast<aml_mp::AmlDvbCasHal>(casSession);
     RETURN_IF(-1, dvbCasHal == nullptr);
@@ -145,7 +137,7 @@ int Aml_MP_CAS_DVRDecrypt(AML_MP_HANDLE casSession, Aml_MP_CASCryptoParams *cryp
     return dvbCasHal->DVRDecrypt(cryptoParams);
 }
 
-AML_MP_HANDLE Aml_MP_CAS_CreateSecmem(AML_MP_HANDLE casSession, Aml_MP_CASServiceType type, void **pSecbuf, uint32_t *size)
+AML_MP_SECMEM Aml_MP_CAS_CreateSecmem(AML_MP_CASSESSION casSession, Aml_MP_CASServiceType type, void **pSecbuf, uint32_t *size)
 {
     sp<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
     RETURN_IF(AML_MP_INVALID_HANDLE, dvbCasHal == nullptr);
@@ -153,7 +145,7 @@ AML_MP_HANDLE Aml_MP_CAS_CreateSecmem(AML_MP_HANDLE casSession, Aml_MP_CASServic
     return dvbCasHal->createSecmem(type, pSecbuf, size);
 }
 
-int Aml_MP_CAS_DestroySecmem(AML_MP_HANDLE casSession, AML_MP_HANDLE secMem)
+int Aml_MP_CAS_DestroySecmem(AML_MP_CASSESSION casSession, AML_MP_SECMEM secMem)
 {
     sp<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
     RETURN_IF(-1, dvbCasHal == nullptr);
