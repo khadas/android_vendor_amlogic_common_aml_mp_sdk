@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2020 Amlogic, Inc. All rights reserved.
+ *
+ * This source code is subject to the terms and conditions defined in the
+ * file 'LICENSE' which is part of this source code package.
+ *
+ * Description:
+ */
+
 #ifndef _AML_HW_DEMUX_H_
 #define _AML_HW_DEMUX_H_
 
