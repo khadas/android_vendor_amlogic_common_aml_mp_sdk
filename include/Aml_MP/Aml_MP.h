@@ -69,6 +69,15 @@ int Aml_MP_Player_SetAudioParams(AML_MP_PLAYER handle, Aml_MP_AudioParams* param
 
 int Aml_MP_Player_SetSubtitleParams(AML_MP_PLAYER handle, Aml_MP_SubtitleParams* params);
 
+/**
+ * \brief Aml_MP_Player_SetCASParams
+ * mainly used for iptv
+ *
+ * \param handle
+ * \param params
+ *
+ * \return
+ */
 int Aml_MP_Player_SetCASParams(AML_MP_PLAYER handle, Aml_MP_CASParams* params);
 
 int Aml_MP_Player_Start(AML_MP_PLAYER handle);

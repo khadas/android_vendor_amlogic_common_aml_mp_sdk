@@ -16,7 +16,7 @@
 namespace aml_mp {
 using namespace android;
 
-struct ISourceReceiver : public RefBase {
+struct ISourceReceiver : virtual public RefBase {
     ~ISourceReceiver() {}
     void linkNextReceiver(const sp<ISourceReceiver>& receiver) {
         mNextReceiver = receiver;

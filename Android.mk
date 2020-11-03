@@ -8,11 +8,6 @@ AML_MP_PLAYER_SRC := \
 	player/AmlTsPlayer.cpp \
 	player/AmlCTCPlayer.cpp \
 
-AML_MP_DEMUX_SRC := \
-	demux/AmlDemuxBase.cpp \
-	demux/AmlSwDemux.cpp \
-	demux/AmlHwDemux.cpp \
-
 AML_MP_CAS_SRC := \
 	cas/Aml_MP_CAS.cpp \
 	cas/AmlCasBase.cpp \
@@ -30,7 +25,6 @@ AML_MP_UTILS_SRC := \
 
 AML_MP_SRCS := \
 	$(AML_MP_PLAYER_SRC) \
-	$(AML_MP_DEMUX_SRC) \
 	$(AML_MP_CAS_SRC) \
 	$(AML_MP_DVR_SRC) \
 	$(AML_MP_UTILS_SRC) \
@@ -42,7 +36,7 @@ AML_MP_VENDOR_SRCS := \
 	$(AML_MP_UTILS_SRC) \
 
 AML_MP_INC := $(LOCAL_PATH)/include \
-	$(TOP)/vendor/amlogic/common/apps/LibTsPlayer/jni/include \
+    $(TOP)/vendor/amlogic/common/apps/LibTsPlayer/jni/include \
 	$(TOP)/vendor/amlogic/common/libdvr_release/include \
 	$(TOP)/vendor/amlogic/common/external/DTVKit/cas_hal/libamcas/include \
 	$(TOP)/vendor/amlogic/common/mediahal_sdk/include \
@@ -66,7 +60,6 @@ AML_MP_SHARED_LIBS := \
 	libstagefright_foundation \
 
 AML_MP_SYSTEM_SHARED_LIBS := \
-	libliveplayer \
 	libamdvr.product \
 	libmediahal_tsplayer.system \
 	libamgralloc_ext@2 \

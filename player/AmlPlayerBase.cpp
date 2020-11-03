@@ -78,14 +78,12 @@ int AmlPlayerBase::setANativeWindow(ANativeWindow* nativeWindow)
 int AmlPlayerBase::start()
 {
     startSubtitleDecoding();
-    showSubtitle();
 
     return 0;
 }
 
 int AmlPlayerBase::stop()
 {
-    hideSubtitle();
     stopSubtitleDecoding();
 
     return 0;
@@ -207,7 +205,13 @@ int AmlPlayerBase::startSubtitleDecoding()
         ALOGE("amlsub_UiSetSurfaceViewRect failed!");
     }
 
+    amlsub_RegistGetDimesionCb(mSubtitleHandle, [](int width, int height) {
+        //printf("subtitle size:%d x %d\n", width, height);
+    });
+
 #endif
+
+    showSubtitle();
 
     return 0;
 }
@@ -217,6 +221,8 @@ int AmlPlayerBase::stopSubtitleDecoding()
     ALOGI("stopSubtitleDecoding");
 
     RETURN_IF(-1, mSubtitleHandle == nullptr);
+
+    hideSubtitle();
 
 #ifndef __ANDROID_VNDK__
     AmlSubtitleStatus ret = amlsub_Close(mSubtitleHandle);

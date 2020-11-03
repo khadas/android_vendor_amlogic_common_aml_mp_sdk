@@ -14,6 +14,7 @@
 #include <utils/AmlMpUtils.h>
 #include <utils/AmlMpConfig.h>
 #include <mutex>
+#include <sstream>
 #include <condition_variable>
 #include <media/stagefright/foundation/ADebug.h>
 #include "AmlPlayerBase.h"
@@ -58,12 +59,19 @@ AmlMpPlayerImpl::~AmlMpPlayerImpl()
 {
     MLOG();
 
+    CHECK(mState == STATE_IDLE);
+    CHECK(mStreamState == ALL_STREAMS_STOPPED);
+
     AmlMpPlayerRoster::instance().unregisterPlayer(mInstanceId);
 }
 
 int AmlMpPlayerImpl::registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData)
 {
     AML_MP_TRACE(10);
+
+    if (mState != STATE_IDLE) {
+        return -1;
+    }
 
     mEventCb = cb;
     mUserData = userData;
@@ -74,6 +82,11 @@ int AmlMpPlayerImpl::registerEventCallback(Aml_MP_PlayerEventCallback cb, void* 
 int AmlMpPlayerImpl::setVideoParams(const Aml_MP_VideoParams* params)
 {
     AML_MP_TRACE(10);
+
+    if (mStreamState & VIDEO_STARTED) {
+        ALOGE("video started already!");
+        return -1;
+    }
 
     mVideoParams.pid = params->pid;
     mVideoParams.videoCodec = params->videoCodec;
@@ -90,6 +103,11 @@ int AmlMpPlayerImpl::setAudioParams(const Aml_MP_AudioParams* params)
 {
     AML_MP_TRACE(10);
 
+    if (mStreamState & AUDIO_STARTED) {
+        ALOGE("audio started already!");
+        return -1;
+    }
+
     mAudioParams.pid = params->pid;
     mAudioParams.audioCodec = params->audioCodec;
     mAudioParams.nChannels = params->nChannels;
@@ -103,6 +121,11 @@ int AmlMpPlayerImpl::setAudioParams(const Aml_MP_AudioParams* params)
 int AmlMpPlayerImpl::setSubtitleParams(const Aml_MP_SubtitleParams* params)
 {
     AML_MP_TRACE(10);
+
+    if (mStreamState & SUBTITLE_STARTED) {
+        ALOGE("subtitle started already!");
+        return -1;
+    }
 
     memcpy(&mSubtitleParams, params, sizeof(Aml_MP_SubtitleParams));
 
@@ -122,53 +145,32 @@ int AmlMpPlayerImpl::start()
 {
     AML_MP_TRACE(10);
 
-    if (mCreateParams.drmMode == AML_MP_INPUT_STREAM_ENCRYPTED) {
-        startDescrambling();
+    if (mState == STATE_IDLE) {
+        if (prepare() < 0) {
+            ALOGE("prepare failed!");
+            return -1;
+        }
     }
 
-    if (mPlayer == nullptr) {
-        mPlayer = AmlPlayerBase::create(&mCreateParams, mInstanceId);
-    }
-
-    if (mPlayer == nullptr) {
-        ALOGE("AmlPlayerBase create failed!");
-        return -1;
-    }
-
-    mPlayer->registerEventCallback(mEventCb, mUserData);
-
-    if (mVideoParams.pid != AML_MP_INVALID_PID) {
-        mPlayer->setVideoParams(&mVideoParams);
-    }
-
-    if (mAudioParams.pid != AML_MP_INVALID_PID) {
-        mPlayer->setAudioParams(&mAudioParams);
-    }
-
-    if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
-        mPlayer->setSubtitleParams(&mSubtitleParams);
-    }
-
-    if ((mSubtitleWindow.width > 0) && (mSubtitleWindow.height > 0)) {
-        mPlayer->setSubtitleWindow(mSubtitleWindow.x, mSubtitleWindow.y, mSubtitleWindow.width, mSubtitleWindow.height);
-    }
-
-    ALOGI("mNativeWindow:%p", mNativeWindow.get());
-    if (mNativeWindow != nullptr) {
-        mPlayer->setANativeWindow(mNativeWindow.get());
-    } else {
-        mPlayer->setVideoWindow(mVideoWindow.x, mVideoWindow.y, mVideoWindow.width, mVideoWindow.height);
-    }
-
-    if (mSyncSource == AML_MP_AVSYNC_SOURCE_DEFAULT) {
-        mSyncSource = AML_MP_AVSYNC_SOURCE_PCR;
-    }
-
-    mPlayer->setAVSyncSource(mSyncSource);
-
+    setParams();
     int ret = mPlayer->start();
     if (ret < 0) {
-        ALOGE("start failed!");
+        ALOGE("%s failed!", __FUNCTION__);
+    }
+
+    setState(STATE_RUNNING);
+
+    //CHECK: assume start always be success if param exist
+    if (mAudioParams.pid != AML_MP_INVALID_PID) {
+        mStreamState |= AUDIO_STARTED;
+    }
+
+    if (mVideoParams.pid != AML_MP_INVALID_PID) {
+        mStreamState |= VIDEO_STARTED;
+    }
+
+    if (mSubtitleParams.pid != AML_MP_INVALID_PID) {
+        mStreamState |= SUBTITLE_STARTED;
     }
 
     return ret;
@@ -177,16 +179,16 @@ int AmlMpPlayerImpl::start()
 int AmlMpPlayerImpl::stop()
 {
     AML_MP_TRACE(10);
-    RETURN_IF(-1, mPlayer == nullptr);
 
-    if (mCasHandle) {
-        stopDescrambling();
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
+        if (mPlayer) {
+            mPlayer->stop();
+        }
+
+        mStreamState &= ~(AUDIO_STARTED | VIDEO_STARTED | SUBTITLE_STARTED);
     }
 
-    mPlayer->stop();
-    mPlayer.clear();
-
-    return 0;
+    return resetIfNeeded();
 }
 
 int AmlMpPlayerImpl::pause()
@@ -194,7 +196,16 @@ int AmlMpPlayerImpl::pause()
     AML_MP_TRACE(10);
     RETURN_IF(-1, mPlayer == nullptr);
 
-    return mPlayer->pause();
+    if (mState != STATE_RUNNING) {
+        return 0;
+    }
+
+    if (mPlayer->pause() < 0) {
+        return -1;
+    }
+
+    setState(STATE_PAUSED);
+    return 0;
 }
 
 int AmlMpPlayerImpl::resume()
@@ -202,7 +213,16 @@ int AmlMpPlayerImpl::resume()
     AML_MP_TRACE(10);
     RETURN_IF(-1, mPlayer == nullptr);
 
-    return mPlayer->resume();
+    if (mState != STATE_PAUSED) {
+        return 0;
+    }
+
+    if (mPlayer->resume() < 0) {
+        return -1;
+    }
+
+    setState(STATE_RUNNING);
+    return 0;
 }
 
 int AmlMpPlayerImpl::flush()
@@ -389,67 +409,68 @@ int AmlMpPlayerImpl::startVideoDecoding()
     AML_MP_TRACE(10);
     MLOG();
 
-    if (mPlayer == nullptr) {
-        mPlayer = AmlPlayerBase::create(&mCreateParams, mInstanceId);
+    if (mState == STATE_IDLE) {
+        if (prepare() < 0) {
+            ALOGE("prepare failed!");
+            return -1;
+        }
     }
 
-    if (mPlayer == nullptr) {
-        ALOGE("AmlPlayerBase create failed!");
+    setParams();
+    int ret = mPlayer->startVideoDecoding();
+    if (ret < 0) {
+        ALOGE("%s failed!", __FUNCTION__);
         return -1;
     }
 
-    mPlayer->registerEventCallback(mEventCb, mUserData);
-
-    ALOGI("mVideoParams: pid:%d, fmt:%d", mVideoParams.pid, mVideoParams.videoCodec);
+    setState(STATE_RUNNING);
     if (mVideoParams.pid != AML_MP_INVALID_PID) {
-        mPlayer->setVideoParams(&mVideoParams);
+        mStreamState |= VIDEO_STARTED;
     }
 
-    if (mSyncSource == AML_MP_AVSYNC_SOURCE_DEFAULT) {
-        mSyncSource = AML_MP_AVSYNC_SOURCE_PCR;
-    }
-
-    mPlayer->setAVSyncSource(mSyncSource);
-
-    return mPlayer->startVideoDecoding();
+    return ret;
 }
-
 
 int AmlMpPlayerImpl::stopVideoDecoding()
 {
     AML_MP_TRACE(10);
     RETURN_IF(-1, mPlayer == nullptr);
 
-    return mPlayer->stopVideoDecoding();
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
+        if (mPlayer) {
+            mPlayer->stopVideoDecoding();
+        }
+
+        mStreamState &= ~VIDEO_STARTED;
+    }
+
+    return resetIfNeeded();
 }
 
 int AmlMpPlayerImpl::startAudioDecoding()
 {
     AML_MP_TRACE(10);
 
-    if (mPlayer == nullptr) {
-        mPlayer = AmlPlayerBase::create(&mCreateParams, mInstanceId);
+    if (mState == STATE_IDLE) {
+        if (prepare() < 0) {
+            ALOGE("prepare failed!");
+            return -1;
+        }
     }
 
-    if (mPlayer == nullptr) {
-        ALOGE("AmlPlayerBase create failed!");
+    setParams();
+    int ret = mPlayer->startAudioDecoding();
+    if (ret < 0) {
+        ALOGE("%s failed!", __FUNCTION__);
         return -1;
     }
 
-    mPlayer->registerEventCallback(mEventCb, mUserData);
-
-    ALOGI("mAudioParams.pid:%d", mAudioParams.pid);
+    setState(STATE_RUNNING);
     if (mAudioParams.pid != AML_MP_INVALID_PID) {
-        mPlayer->setAudioParams(&mAudioParams);
+        mStreamState |= AUDIO_STARTED;
     }
 
-    if (mSyncSource == AML_MP_AVSYNC_SOURCE_DEFAULT) {
-        mSyncSource = AML_MP_AVSYNC_SOURCE_PCR;
-    }
-
-    mPlayer->setAVSyncSource(mSyncSource);
-
-    return mPlayer->startAudioDecoding();
+    return ret;
 }
 
 int AmlMpPlayerImpl::stopAudioDecoding()
@@ -457,7 +478,15 @@ int AmlMpPlayerImpl::stopAudioDecoding()
     AML_MP_TRACE(10);
     RETURN_IF(-1, mPlayer == nullptr);
 
-    return mPlayer->stopAudioDecoding();
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
+        if (mPlayer) {
+            mPlayer->stopAudioDecoding();
+        }
+
+        mStreamState &= ~AUDIO_STARTED;
+    }
+
+    return resetIfNeeded();
 }
 
 int AmlMpPlayerImpl::startSubtitleDecoding()
@@ -465,7 +494,26 @@ int AmlMpPlayerImpl::startSubtitleDecoding()
     AML_MP_TRACE(10);
     RETURN_IF(-1, mPlayer == nullptr);
 
-    return mPlayer->startSubtitleDecoding();
+    if (mState == STATE_IDLE) {
+        if (prepare() < 0) {
+            ALOGE("prepare failed!");
+            return -1;
+        }
+    }
+
+    setParams();
+    int ret = mPlayer->startSubtitleDecoding();
+    if (ret < 0) {
+        ALOGE("%s failed!", __FUNCTION__);
+        return -1;
+    }
+
+    setState(STATE_RUNNING);
+    if (mSubtitleParams.pid != AML_MP_INVALID_PID) {
+        mStreamState |= SUBTITLE_STARTED;
+    }
+
+    return ret;
 }
 
 int AmlMpPlayerImpl::stopSubtitleDecoding()
@@ -473,7 +521,15 @@ int AmlMpPlayerImpl::stopSubtitleDecoding()
     AML_MP_TRACE(10);
     RETURN_IF(-1, mPlayer == nullptr);
 
-    return mPlayer->stopSubtitleDecoding();
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
+        if (mPlayer) {
+            mPlayer->stopSubtitleDecoding();
+        }
+
+        mStreamState &= ~SUBTITLE_STARTED;
+    }
+
+    return resetIfNeeded();
 }
 
 int AmlMpPlayerImpl::setSubtitleWindow(int x, int y, int width, int height)
@@ -529,6 +585,153 @@ int AmlMpPlayerImpl::setADParams(Aml_MP_AudioParams* params)
     mADParams.nSampleRate = params->nSampleRate;
     memcpy(mADParams.extraData, params->extraData, sizeof(mADParams.extraData));
     mADParams.extraDataSize = params->extraDataSize;
+
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+const char* AmlMpPlayerImpl::stateString(State state)
+{
+    switch (state) {
+    case STATE_IDLE:
+        return "STATE_IDLE";
+    case STATE_PREPARED:
+        return "STATE_PREPARED";
+    case STATE_RUNNING:
+        return "STATE_RUNNING";
+    case STATE_PAUSED:
+        return "STATE_PAUSED";
+    }
+}
+
+std::string AmlMpPlayerImpl::streamStateString(int streamState)
+{
+    std::stringstream ss;
+    bool hasValue = false;
+
+    if (streamState & AUDIO_STARTED) {
+        if (hasValue) {
+            ss << "|";
+        }
+        ss << "AUDIO_STARTED";
+        hasValue = true;
+    }
+
+    if (streamState & VIDEO_STARTED) {
+        if (hasValue) {
+            ss << "|";
+        }
+        ss << "VIDEO_STARTED";
+        hasValue = true;
+    }
+
+    if (streamState & SUBTITLE_STARTED) {
+        if (hasValue) {
+            ss << "|";
+        }
+        ss << "SUBTITLE_STARTED";
+        hasValue = true;
+    }
+
+    if (!hasValue) {
+        ss << "STREAM_STOPPED";
+    }
+
+    return ss.str();
+}
+
+void AmlMpPlayerImpl::setState(State state)
+{
+    if (mState != state) {
+        ALOGI("%s -> %s", stateString(mState), stateString(state));
+        mState = state;
+    }
+}
+
+int AmlMpPlayerImpl::prepare()
+{
+    MLOG();
+
+    if (mCreateParams.drmMode == AML_MP_INPUT_STREAM_ENCRYPTED) {
+        startDescrambling();
+    }
+
+    if (mPlayer == nullptr) {
+        mPlayer = AmlPlayerBase::create(&mCreateParams, mInstanceId);
+    }
+
+    if (mPlayer == nullptr) {
+        ALOGE("AmlPlayerBase create failed!");
+        return -1;
+    }
+
+    mPlayer->registerEventCallback(mEventCb, mUserData);
+
+    if ((mSubtitleWindow.width > 0) && (mSubtitleWindow.height > 0)) {
+        mPlayer->setSubtitleWindow(mSubtitleWindow.x, mSubtitleWindow.y, mSubtitleWindow.width, mSubtitleWindow.height);
+    }
+
+    ALOGI("mNativeWindow:%p", mNativeWindow.get());
+    if (mNativeWindow != nullptr) {
+        mPlayer->setANativeWindow(mNativeWindow.get());
+    } else {
+        mPlayer->setVideoWindow(mVideoWindow.x, mVideoWindow.y, mVideoWindow.width, mVideoWindow.height);
+    }
+
+    if (mSyncSource == AML_MP_AVSYNC_SOURCE_DEFAULT) {
+        mSyncSource = AML_MP_AVSYNC_SOURCE_PCR;
+    }
+
+    mPlayer->setAVSyncSource(mSyncSource);
+
+    setState(STATE_PREPARED);
+
+    return 0;
+}
+
+void AmlMpPlayerImpl::setParams()
+{
+    if (mVideoParams.pid != AML_MP_INVALID_PID) {
+        mPlayer->setVideoParams(&mVideoParams);
+    }
+
+    if (mAudioParams.pid != AML_MP_INVALID_PID) {
+        mPlayer->setAudioParams(&mAudioParams);
+    }
+
+    if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
+        mPlayer->setSubtitleParams(&mSubtitleParams);
+    }
+}
+
+int AmlMpPlayerImpl::resetIfNeeded()
+{
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
+        if (mStreamState == ALL_STREAMS_STOPPED) {
+            setState(STATE_PREPARED);
+        } else {
+            ALOGE("current streamState:%s", streamStateString(mStreamState).c_str());
+        }
+    }
+
+    if (mState == STATE_PREPARED) {
+        reset();
+    }
+
+    return 0;
+}
+
+int AmlMpPlayerImpl::reset()
+{
+    MLOG();
+
+    if (mCasHandle) {
+        stopDescrambling();
+    }
+
+    mPlayer.clear();
+
+    setState(STATE_IDLE);
 
     return 0;
 }

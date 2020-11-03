@@ -15,12 +15,16 @@
 #include <vector>
 #include <string>
 
+#define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+
 namespace aml_mp {
 
 Playback::Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, const sp<ProgramInfo>& programInfo)
 : mProgramInfo(programInfo)
 , mDemuxId(demuxId)
 {
+    mIsDVBSource = sourceType == AML_MP_INPUT_SOURCE_TS_DEMOD;
+
     Aml_MP_PlayerCreateParams createParams;
     memset(&createParams, 0, sizeof(createParams));
     createParams.userId = 0;
@@ -57,8 +61,16 @@ void Playback::setANativeWindow(const sp<ANativeWindow>& window)
     Aml_MP_Player_SetANativeWindow(mPlayer, window.get());
 }
 
-int Playback::start()
+void Playback::registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData)
 {
+    mEventCallback = cb;
+    mUserData = userData;
+}
+
+int Playback::start(PlayMode playMode)
+{
+    mPlayMode = playMode;
+
     int ret = 0;
 
     if (mPlayer == AML_MP_INVALID_HANDLE) {
@@ -66,68 +78,95 @@ int Playback::start()
     }
 
     if (mProgramInfo->scrambled) {
-        Aml_MP_CASParams casParams;
-
-        switch (mProgramInfo->caSystemId) {
-        case 0x5601:
-        {
-            ALOGI("verimatrix iptv!");
-            casParams.type = AML_MP_CAS_VERIMATRIX_IPTV;
-            casParams.u.iptvCasParam.videoCodec = mProgramInfo->videoCodec;
-            casParams.u.iptvCasParam.audioCodec = mProgramInfo->audioCodec;
-            casParams.u.iptvCasParam.videoPid = mProgramInfo->videoPid;
-            casParams.u.iptvCasParam.audioPid = mProgramInfo->audioPid;
-            casParams.u.iptvCasParam.ecmPid = mProgramInfo->ecmPid[0];
-            casParams.u.iptvCasParam.demuxId = mDemuxId;
-
-            char value[PROPERTY_VALUE_MAX];
-            property_get("config.media.vmx.dvb.key_file", value, "/data/mediadrm");
-            strncpy(casParams.u.iptvCasParam.keyPath, value, sizeof(casParams.u.iptvCasParam.keyPath)-1);
-
-            property_get("config.media.vmx.dvb.server_ip", value, "client-test-3.verimatrix.com");
-            strncpy(casParams.u.iptvCasParam.serverAddress, value, sizeof(casParams.u.iptvCasParam.serverAddress)-1);
-
-            casParams.u.iptvCasParam.serverPort = property_get_int32("config.media.vmx.dvb.server_port", 12686);
-        }
-        break;
-
-        case 0x1724:
-        {
-            ALOGI("VMX DVB");
-#if 0
-            casParams.type = AML_MP_CAS_VERIMATRIX_DVB;
-            casParams.dvbCasParam.demuxId = mDemuxId;
-            casParams.dvbCasParam.emmPid = mProgramInfo->emmPid;
-            casParams.dvbCasParam.serviceId = mProgramInfo->serviceNum;
-            casParams.dvbCasParam.ecmPid = mProgramInfo->ecmPid[0];
-            casParams.dvbCasParam.streamPids[0] = mProgramInfo->videoPid;
-            casParams.dvbCasParam.streamPids[1] = mProgramInfo->audioPid;
-#endif
-        }
-        break;
-
-        default:
-            ALOGI("unknown caSystemId:%#x", mProgramInfo->caSystemId);
-            break;
-        }
-
-        if (casParams.type != AML_MP_CAS_UNKNOWN) {
-            Aml_MP_Player_SetCASParams(mPlayer, &casParams);
+        if (mIsDVBSource) {
+            startDVBDescrambling();
+        } else {
+            startIPTVDescrambling();
         }
     }
 
+    Aml_MP_Player_RegisterEventCallBack(mPlayer,mEventCallback, mUserData);
+
+    if (mPlayMode == PlayMode::START_AUDIO_START_VIDEO) {
+        if (setAudioParams()) {
+            ret |= Aml_MP_Player_StartAudioDecoding(mPlayer);
+        }
+
+        if (setVideoParams()) {
+            ret |= Aml_MP_Player_StartVideoDecoding(mPlayer);
+        }
+
+        if (setSubtitleParams()) {
+            ret |= Aml_MP_Player_StartSubtitleDecoding(mPlayer);
+        }
+    } else if (mPlayMode == PlayMode::START_VIDEO_START_AUDIO) {
+        if (setVideoParams()) {
+            ret |= Aml_MP_Player_StartVideoDecoding(mPlayer);
+        }
+
+        if (setAudioParams()) {
+            ret |= Aml_MP_Player_StartAudioDecoding(mPlayer);
+        }
+
+        if (setSubtitleParams()) {
+            ret |= Aml_MP_Player_StartSubtitleDecoding(mPlayer);
+        }
+    } else if (mPlayMode == PlayMode::START_ALL_STOP_ALL || mPlayMode == PlayMode::START_ALL_STOP_SEPARATELY) {
+        setAudioParams();
+        setVideoParams();
+        setSubtitleParams();
+
+        ret = Aml_MP_Player_Start(mPlayer);
+    } else if (mPlayMode == PlayMode::START_SEPARATELY_STOP_ALL ||
+            mPlayMode == PlayMode::START_SEPARATELY_STOP_SEPARATELY ||
+            playMode == PlayMode::START_SEPARATELY_STOP_SEPARATELY_V2) {
+        setAudioParams();
+        setVideoParams();
+        setSubtitleParams();
+
+        if (playMode == PlayMode::START_SEPARATELY_STOP_SEPARATELY_V2) {
+            ret |= Aml_MP_Player_StartVideoDecoding(mPlayer);
+            ret |= Aml_MP_Player_StartAudioDecoding(mPlayer);
+        } else {
+            ret |= Aml_MP_Player_StartAudioDecoding(mPlayer);
+            ret |= Aml_MP_Player_StartVideoDecoding(mPlayer);
+        }
+        ret |= Aml_MP_Player_StartSubtitleDecoding(mPlayer);
+    } else {
+        ALOGE("unknown playmode:%d", mPlayMode);
+    }
+
+    if (ret != 0) {
+        ALOGE("player start failed!");
+    }
+
+    return ret;
+}
+
+bool Playback::setAudioParams()
+{
     Aml_MP_AudioParams audioParams;
     memset(&audioParams, 0, sizeof(audioParams));
     audioParams.audioCodec = mProgramInfo->audioCodec;
     audioParams.pid = mProgramInfo->audioPid;
     Aml_MP_Player_SetAudioParams(mPlayer, &audioParams);
 
+    return audioParams.pid != AML_MP_INVALID_PID;
+}
+
+bool Playback::setVideoParams()
+{
     Aml_MP_VideoParams videoParams;
     memset(&videoParams, 0, sizeof(videoParams));
     videoParams.videoCodec = mProgramInfo->videoCodec;
     videoParams.pid = mProgramInfo->videoPid;
     Aml_MP_Player_SetVideoParams(mPlayer, &videoParams);
 
+    return videoParams.pid != AML_MP_INVALID_PID;
+}
+
+bool Playback::setSubtitleParams()
+{
     Aml_MP_SubtitleParams subtitleParams{};
     subtitleParams.subtitleCodec = mProgramInfo->subtitleCodec;
     switch (subtitleParams.subtitleCodec) {
@@ -151,27 +190,42 @@ int Playback::start()
 
     if (subtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
         Aml_MP_Player_SetSubtitleParams(mPlayer, &subtitleParams);
+        return true;
     }
 
-    Aml_MP_Player_RegisterEventCallBack(mPlayer, [](void* userData, Aml_MP_PlayerEventType eventType, int64_t param) {
-        static_cast<Playback*>(userData)->eventCallback(eventType, param);
-    }, this);
-
-    ret = Aml_MP_Player_Start(mPlayer);
-    if (ret < 0) {
-        ALOGE("player start failed!");
-    }
-
-    return ret;
+    return false;
 }
 
 int Playback::stop()
 {
     int ret = 0;
 
-    ret = Aml_MP_Player_Stop(mPlayer);
-    if (ret < 0) {
-        ALOGE("player stop failed!");
+    if (mPlayMode == PlayMode::START_ALL_STOP_ALL || mPlayMode == PlayMode::START_SEPARATELY_STOP_ALL) {
+        ret = Aml_MP_Player_Stop(mPlayer);
+        if (ret < 0) {
+            ALOGE("player stop failed!");
+        }
+    } else {
+        if (mPlayMode == PlayMode::START_VIDEO_START_AUDIO) {
+            ret |= Aml_MP_Player_StopVideoDecoding(mPlayer);
+            ret |= Aml_MP_Player_StopAudioDecoding(mPlayer);
+        } else {
+            ret |= Aml_MP_Player_StopAudioDecoding(mPlayer);
+            ret |= Aml_MP_Player_StopVideoDecoding(mPlayer);
+        }
+        ret |= Aml_MP_Player_StopSubtitleDecoding(mPlayer);
+
+        if (ret != 0) {
+            ALOGE("player stop separately failed!");
+        }
+    }
+
+    if (mProgramInfo->scrambled) {
+        if (mIsDVBSource) {
+            stopDVBDescrambling();
+        } else {
+            stopIPTVDescrambling();
+        }
     }
 
     return ret;
@@ -189,25 +243,135 @@ int Playback::writeData(const uint8_t* buffer, size_t size)
     return wlen;
 }
 
-void Playback::eventCallback(Aml_MP_PlayerEventType eventType __unused, int64_t param __unused)
+int Playback::startDVBDescrambling()
 {
+    MLOG();
+
+    Aml_MP_CAS_Initialize();
+
+    if (!Aml_MP_CAS_IsSystemIdSupported(mProgramInfo->caSystemId)) {
+        ALOGE("unsupported caSystemId:%#x", mProgramInfo->caSystemId);
+        return -1;
+    }
+
+    Aml_MP_CAS_SetEmmPid(mDemuxId, mProgramInfo->emmPid);
+
+    int ret = Aml_MP_CAS_OpenSession(&mCasSession, AML_MP_CAS_SERVICE_LIVE_PLAY);
+    if (ret < 0) {
+        ALOGE("open session failed!");
+        return -1;
+    }
+
+
+    Aml_MP_CAS_RegisterEventCallback(mCasSession, [](AML_MP_CASSESSION session, const char* json) {
+        ALOGI("ca_cb:%s", json);
+        return 0;
+    }, this);
+
+    Aml_MP_CASServiceInfo casServiceInfo;
+    memset(&casServiceInfo, 0, sizeof(casServiceInfo));
+    casServiceInfo.service_id = mProgramInfo->serviceNum;
+    casServiceInfo.serviceType = AML_MP_CAS_SERVICE_LIVE_PLAY;
+    casServiceInfo.ecm_pid = mProgramInfo->ecmPid[0];
+    casServiceInfo.stream_pids[0] = mProgramInfo->audioPid;
+    casServiceInfo.stream_pids[1] = mProgramInfo->videoPid;
+    casServiceInfo.stream_num = 2;
+    casServiceInfo.ca_private_data_len = 0;
+    ret = Aml_MP_CAS_StartDescrambling(mCasSession, &casServiceInfo);
+    if (ret < 0) {
+        ALOGE("start descrambling failed with %d", ret);
+        return ret;
+    }
+
+    return 0;
+}
+
+int Playback::stopDVBDescrambling()
+{
+    MLOG();
+
+    if (mCasSession == nullptr) {
+        return 0;
+    }
+
+    Aml_MP_CAS_StopDescrambling(mCasSession);
+
+    Aml_MP_CAS_CloseSession(mCasSession);
+    mCasSession = nullptr;
+
+    return 0;
+}
+
+int Playback::startIPTVDescrambling()
+{
+    MLOG();
+
+    Aml_MP_CASParams casParams;
+    int ret = 0;
+
+    switch (mProgramInfo->caSystemId) {
+    case 0x5601:
+    {
+        ALOGI("verimatrix iptv!");
+        casParams.type = AML_MP_CAS_VERIMATRIX_IPTV;
+        casParams.u.iptvCasParam.videoCodec = mProgramInfo->videoCodec;
+        casParams.u.iptvCasParam.audioCodec = mProgramInfo->audioCodec;
+        casParams.u.iptvCasParam.videoPid = mProgramInfo->videoPid;
+        casParams.u.iptvCasParam.audioPid = mProgramInfo->audioPid;
+        casParams.u.iptvCasParam.ecmPid = mProgramInfo->ecmPid[0];
+        casParams.u.iptvCasParam.demuxId = mDemuxId;
+
+        char value[PROPERTY_VALUE_MAX];
+        property_get("config.media.vmx.dvb.key_file", value, "/data/mediadrm");
+        strncpy(casParams.u.iptvCasParam.keyPath, value, sizeof(casParams.u.iptvCasParam.keyPath)-1);
+
+        property_get("config.media.vmx.dvb.server_ip", value, "client-test-3.verimatrix.com");
+        strncpy(casParams.u.iptvCasParam.serverAddress, value, sizeof(casParams.u.iptvCasParam.serverAddress)-1);
+
+        casParams.u.iptvCasParam.serverPort = property_get_int32("config.media.vmx.dvb.server_port", 12686);
+    }
+    break;
+
+    case 0x1724:
+    {
+        ALOGI("VMX DVB");
+#if 0
+        casParams.type = AML_MP_CAS_VERIMATRIX_DVB;
+        casParams.dvbCasParam.demuxId = mDemuxId;
+        casParams.dvbCasParam.emmPid = mProgramInfo->emmPid;
+        casParams.dvbCasParam.serviceId = mProgramInfo->serviceNum;
+        casParams.dvbCasParam.ecmPid = mProgramInfo->ecmPid[0];
+        casParams.dvbCasParam.streamPids[0] = mProgramInfo->videoPid;
+        casParams.dvbCasParam.streamPids[1] = mProgramInfo->audioPid;
+#endif
+    }
+    break;
+
+    default:
+        ALOGI("unknown caSystemId:%#x", mProgramInfo->caSystemId);
+        break;
+    }
+
+    if (casParams.type != AML_MP_CAS_UNKNOWN) {
+        ret = Aml_MP_Player_SetCASParams(mPlayer, &casParams);
+    }
+
+    return ret;
+}
+
+int Playback::stopIPTVDescrambling()
+{
+    MLOG();
+
+    return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-struct Command {
-    const char* name;
-    size_t argCount;
-    const char* help;
-    int (*fn)(AML_MP_PLAYER player, const std::vector<std::string>& args);
-};
-
-static void printCommands(const Command* pCommands, bool printHeader);
-
-static struct Command g_commandTable[] = {
+static struct TestModule::Command g_commandTable[] = {
     {
         "help", 0, "help",
         [](AML_MP_PLAYER player __unused, const std::vector<std::string>& args __unused) -> int {
-            printCommands(g_commandTable, true);
+            TestModule::printCommands(g_commandTable, true);
             return 0;
         }
     },
@@ -384,63 +548,14 @@ static struct Command g_commandTable[] = {
     {nullptr, 0, nullptr, nullptr}
 };
 
-static const Command* findCommand(const std::string& cmdName, const Command* commandTable)
+const TestModule::Command* Playback::getCommandTable() const
 {
-    if (commandTable == nullptr)
-        return nullptr;
-
-    const struct Command* command = commandTable;
-    const struct Command* result  = nullptr;
-
-    while (command && command->name) {
-        if (command->name == cmdName) {
-            result = command;
-            break;
-        }
-
-        ++command;
-    }
-
-    return result;
+    return g_commandTable;
 }
 
-static void printCommands(const Command* pCommands, bool printHeader)
+void* Playback::getCommandHandle() const
 {
-    if (pCommands == nullptr) return;
-
-    const struct Command* command = pCommands;
-
-    if (printHeader && command && command->name) {
-        printf("commands help:\n%20s | %s | %-s\n", "Command Name", "Args count", "Help");
-    }
-
-    while (command && command->name) {
-        const char* help = command->help ? command->help : "";
-        printf("%20s | %10u | %s\n", command->name, command->argCount, help);
-
-        ++command;
-    }
+    return mPlayer;
 }
-
-void Playback::processCommand(const std::vector<std::string>& args)
-{
-    std::string cmdName = *args.begin();
-    const struct Command* command = nullptr;
-
-    command = findCommand(cmdName, g_commandTable);
-    if (command == nullptr) {
-        printf("Unknown command: %s\n", cmdName.c_str());
-        return;
-    }
-
-    if (args.size() <= command->argCount) {
-        printf("missing arguments, expect %d args\n", command->argCount);
-        return;
-    }
-
-    command->fn(mPlayer, args);
-}
-
-
 
 }

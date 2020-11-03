@@ -13,14 +13,18 @@
 #include "AmlDemuxBase.h"
 #include <thread>
 #include <map>
+#include <set>
+#include <utils/Looper.h>
 
 namespace android {
 class Looper;
+struct ABuffer;
 }
 
 namespace aml_mp {
 using android::sp;
 using android::Looper;
+class HwTsParser;
 
 class AmlHwDemux : public AmlDemuxBase
 {
@@ -32,40 +36,22 @@ public:
     int start() override;
     int stop() override;
     int flush() override;
-    void* createChannel(int pid) override;
-    int destroyChannel(void* channel) override;
-    int openChannel(void* channel) override;
-    int closeChannel(void* channel) override;
-    void* createFilter(Aml_MP_Demux_SectionFilterCb cb, void* userData) override;
-    int destroyFilter(void* filter) override;
-    int attachFilter(void* filter, void* channel) override;
-    int detachFilter(void* filter, void* channel) override;
 
 private:
-    struct Channel;
-    struct Filter;
-    struct HwSectionCallback;
-
-    int openHardwareChannel(int pid, int* pFd);
-    int closeHardwareChannel(int fd);
-    void startPollHardwareChannel(Channel* channel);
-    void stopPollHardwareChannel(Channel* channel);
-
     void threadLoop();
+    int addPSISection(int pid) override;
+    int removePSISection(int pid) override;
+    bool isStopped() const override;
 
     Aml_MP_DemuxId mDemuxId = AML_MP_DEMUX_ID_DEFAULT;
     std::string mDemuxName;
-    std::atomic<bool> mStopped;
-
-    std::atomic<uint32_t> mFilterId;
-    sp<HwSectionCallback> mHwSectionCallback;
-
     std::thread mThread;
     sp<Looper> mLooper;
+    sp<HwTsParser> mTsParser;
 
-    std::mutex mLock;
-    std::map<int, sp<Channel>> mChannels;
+    std::atomic<bool> mStopped;
 
+private:
     AmlHwDemux(const AmlHwDemux&) = delete;
     AmlHwDemux& operator= (const AmlHwDemux&) = delete;
 };

@@ -47,6 +47,14 @@ static const StreamType g_descTypes[] = {
     { 0, AML_MP_STREAM_TYPE_UNKNOWN, AML_MP_CODEC_UNKNOWN},
 };
 
+#define MKTAG(a,b,c,d) ((a) | ((b) << 8) | ((c) << 16) | ((unsigned)(d) << 24))
+static const StreamType g_identifierTypes[] = {
+    { MKTAG('A', 'C', '-', '3'), AML_MP_STREAM_TYPE_AUDIO, AML_MP_AUDIO_CODEC_AC3},
+    { MKTAG('E', 'A', 'C', '3'), AML_MP_STREAM_TYPE_AUDIO, AML_MP_AUDIO_CODEC_EAC3},
+    { MKTAG('H', 'E', 'V', 'C'), AML_MP_STREAM_TYPE_VIDEO, AML_MP_VIDEO_CODEC_HEVC},
+    {0, AML_MP_STREAM_TYPE_UNKNOWN, AML_MP_CODEC_UNKNOWN},
+};
+
 static const struct StreamType* getStreamTypeInfo(int esStreamType, const StreamType* table = g_streamTypes)
 {
     const struct StreamType* result = nullptr;
@@ -348,8 +356,16 @@ int Parser::pmtCb(size_t size, const uint8_t* data, void* userData)
                 }
                 break;
 
+                case 0x05:
+                {
+                    int32_t formatIdentifier = MKTAG(p2[2], p2[3], p2[4], p2[5]);
+                    ALOGI("formatIdentifier:%#x, %x %x %x %x", formatIdentifier, p2[2], p2[3], p2[4], p2[5]);
+                    esStream->descriptorTags[esStream->descriptorCount-1] = formatIdentifier;
+                }
+                break;
+
                 default:
-                    ALOGI("unhandled stream descriptor_tag:%#x", descriptor_tag);
+                    ALOGI("unhandled stream descriptor_tag:%#x, length:%d", descriptor_tag, descriptor_length);
                     break;
                 }
 
@@ -490,6 +506,12 @@ void Parser::onPmtParsed(const PMTSection& results)
                 typeInfo = getStreamTypeInfo(stream->descriptorTags[j], g_descTypes);
                 if (typeInfo != nullptr) {
                     ALOGI("stream pid:%d, found tag:%#x", stream->streamPid, stream->descriptorTags[j]);
+                    break;
+                }
+
+                typeInfo = getStreamTypeInfo(stream->descriptorTags[j], g_identifierTypes);
+                if (typeInfo != nullptr) {
+                    ALOGI("identified stream pid:%d, %.4s", stream->streamPid, (char*)&stream->descriptorTags[j]);
                     break;
                 }
             }

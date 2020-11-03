@@ -73,6 +73,20 @@ public:
     int setSubtitleWindow(int x, int y, int width, int height);
 
 private:
+    enum State {
+        STATE_IDLE,
+        STATE_PREPARED,
+        STATE_RUNNING, //audio,video,subtitle at least one is running
+        STATE_PAUSED, //all paused
+    };
+
+    enum StreamState {
+        ALL_STREAMS_STOPPED     = 0,
+        AUDIO_STARTED           = 1 << 0,
+        VIDEO_STARTED           = 1 << 1,
+        SUBTITLE_STARTED        = 1 << 2,
+    };
+
     struct WindowSize {
         int x = 0;
         int y = 0;
@@ -80,8 +94,19 @@ private:
         int height = 0;
     };
 
+    const char* stateString(State state);
+    std::string streamStateString(int streamState);
+    void setState(State state);
+    int prepare();
+    void setParams();
+    int resetIfNeeded();
+    int reset();
+
     const int mInstanceId;
     char mName[50];
+    State mState{STATE_IDLE};
+    int mStreamState{ALL_STREAMS_STOPPED};
+
     Aml_MP_PlayerCreateParams mCreateParams;
     Aml_MP_PlayerEventCallback mEventCb = nullptr;
     void* mUserData = nullptr;
