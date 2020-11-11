@@ -29,6 +29,7 @@ public:
 
 public:
     int mLogDebug;
+    int mCtcDebug;
 
 private:
     void reset();

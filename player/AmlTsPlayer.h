@@ -13,13 +13,22 @@
 #include "AmlPlayerBase.h"
 #include <AmTsPlayer.h>
 
+namespace android {
+class NativeHandle;
+}
+
+struct ANativeWindow;
+
 namespace aml_mp {
+using android::NativeHandle;
 
 class AmlTsPlayer : public aml_mp::AmlPlayerBase
 {
 public:
     AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId);
     ~AmlTsPlayer();
+
+    int setANativeWindow(ANativeWindow* nativeWindow);
 
     int setVideoParams(const Aml_MP_VideoParams* params) override;
     int setAudioParams(const Aml_MP_AudioParams* params) override;
@@ -64,6 +73,7 @@ private:
     const int kRwTimeout = 30000;
 
 private:
+    sp<NativeHandle> mSidebandHandle;
     AmlTsPlayer(const AmlTsPlayer&) = delete;
     AmlTsPlayer& operator= (const AmlTsPlayer&) = delete;
 };

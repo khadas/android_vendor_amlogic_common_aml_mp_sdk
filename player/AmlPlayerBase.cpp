@@ -22,9 +22,14 @@ namespace aml_mp {
 sp<AmlPlayerBase> AmlPlayerBase::create(Aml_MP_PlayerCreateParams* createParams, int instanceId)
 {
     sp<AmlPlayerBase> player;
-
-    player = new AmlTsPlayer(createParams, instanceId);
-
+    // Select Instance with ChipID (HwDemux Count)
+    // Fixme: Need to add dmx select code
+    int mUseCtc = AmlMpConfig::instance().mCtcDebug;
+    if (mUseCtc > 0 || instanceId > 0) {
+        player = new AmlCTCPlayer(createParams, instanceId);
+    } else {
+        player = new AmlTsPlayer(createParams, instanceId);
+    }
     return player;
 }
 

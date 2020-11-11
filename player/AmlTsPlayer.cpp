@@ -12,6 +12,8 @@
 #include "AmlTsPlayer.h"
 #include <AmTsPlayer.h>
 #include <utils/AmlMpUtils.h>
+#include <system/window.h>
+#include <amlogic/am_gralloc_ext.h>
 
 #define VOLUME_MULTIPLE 100.0;
 
@@ -196,6 +198,21 @@ AmlTsPlayer::~AmlTsPlayer()
         AmTsPlayer_release(mPlayer);
         mPlayer = AML_MP_INVALID_HANDLE;
     }
+}
+
+int AmlTsPlayer::setANativeWindow(ANativeWindow* nativeWindow)
+{
+    native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(AM_TV_SIDEBAND, AM_VIDEO_DEFAULT);
+    mSidebandHandle = NativeHandle::create(sidebandHandle, true);
+
+    ALOGI("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
+
+    int ret = native_window_set_sideband_stream(nativeWindow, sidebandHandle);
+    if (ret < 0) {
+        ALOGE("set sideband stream failed!");
+    }
+
+    return ret;
 }
 
 int AmlTsPlayer::setVideoParams(const Aml_MP_VideoParams* params) {

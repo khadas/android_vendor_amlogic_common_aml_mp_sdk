@@ -7,3 +7,71 @@
  * Description:
  */
 
+#ifndef _AML_CTC_PLAYER_H_
+#define _AML_CTC_PLAYER_H_
+
+#include "AmlPlayerBase.h"
+#include <CTC_MediaProcessor.h>
+
+struct ANativeWindow;
+
+namespace aml_mp {
+using namespace aml;
+
+class AmlCTCPlayer : public aml_mp::AmlPlayerBase
+{
+public:
+    AmlCTCPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId);
+    ~AmlCTCPlayer();
+
+    int setANativeWindow(ANativeWindow* nativeWindow);
+
+    int setVideoParams(const Aml_MP_VideoParams* params) override;
+    int setAudioParams(const Aml_MP_AudioParams* params) override;
+    int start() override;
+    int stop() override;
+    int pause() override;
+    int resume() override;
+    int flush() override;
+    int setPlaybackRate(float rate) override;
+    int switchAudioTrack(const Aml_MP_AudioParams* params) override;
+    int writeData(const uint8_t* buffer, size_t size) override;
+    int writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size_t size, int64_t pts) override;
+    int getCurrentPts(Aml_MP_StreamType type, int64_t* pts) override;
+    int getBufferStat(Aml_MP_BufferStat* bufferStat) override;
+    int setVideoWindow(int x, int y, int width, int height) override;
+    int setVolume(float volume) override;
+    int getVolume(float* volume) override;
+    int showVideo() override;
+    int hideVideo() override;
+    int setParameter(Aml_MP_PlayerParameterKey key, void* parameter) override;
+    int getParameter(Aml_MP_PlayerParameterKey key, void* parameter) override;
+    int setAVSyncSource(Aml_MP_AVSyncSource syncSource) override;
+    int setPcrPid(int pid) override;
+
+    int startVideoDecoding() override;
+    int stopVideoDecoding() override;
+    int pauseVideoDecoding();
+    int resumeVideoDecoding();
+
+    int startAudioDecoding() override;
+    int stopAudioDecoding() override;
+    int pauseAudioDecoding();
+    int resumeAudioDecoding();
+
+    int setADParams(Aml_MP_AudioParams* params) override;
+
+
+private:
+    aml::CTC_MediaProcessor* mCtcPlayer = nullptr;
+    void eventCtcCallback(aml::IPTV_PLAYER_EVT_E event, uint32_t param1, uint32_t param2);
+
+private:
+    AmlCTCPlayer(const AmlCTCPlayer&) = delete;
+    AmlCTCPlayer& operator= (const AmlCTCPlayer&) = delete;
+};
+
+}
+
+#endif
+

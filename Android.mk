@@ -64,6 +64,7 @@ AML_MP_SYSTEM_SHARED_LIBS := \
 	libmediahal_tsplayer.system \
 	libamgralloc_ext@2 \
 	libSubtitleClient \
+	libCTC_MediaProcessor \
 
 AML_MP_SYSTEM_STATIC_LIBS_29 := \
 	libam_cas
@@ -72,6 +73,7 @@ AML_MP_VENDOR_SHARED_LIBS := \
 	libamdvr \
 	libmediahal_tsplayer \
 	libamgralloc_ext_vendor@2 \
+	libCTC_MediaProcessor.vendor \
 
 ###############################################################################
 include $(CLEAR_VARS)

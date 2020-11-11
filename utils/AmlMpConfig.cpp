@@ -37,11 +37,13 @@ void AmlMpConfig::initProperty(const char* propertyName, std::string& value)
 void AmlMpConfig::reset()
 {
     mLogDebug = 0;
+    mCtcDebug = 0;
 }
 
 void AmlMpConfig::init()
 {
     initProperty("vendor.amlmp.log-debug", mLogDebug);
+    initProperty("vendor.amlmp.use-ctc", mCtcDebug);
 }
 
 AmlMpConfig::AmlMpConfig()
