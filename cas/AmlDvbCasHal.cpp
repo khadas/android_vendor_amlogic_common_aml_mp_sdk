@@ -172,11 +172,13 @@ int Aml_MP_CAS_SetEmmPid(int dmxDev, uint16_t emmPid)
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace aml_mp {
-AmlDvbCasHal::AmlDvbCasHal()
+AmlDvbCasHal::AmlDvbCasHal(Aml_MP_CASServiceType serviceType)
+: mServiceType(serviceType)
 {
     AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
 #if !defined (__ANDROID_VNDK__)
-    ret = AM_CA_OpenSession(g_casHandle, &mCasSession);
+    CA_SERVICE_TYPE_t caServiceType = convertToCAServiceType(mServiceType);
+    ret = AM_CA_OpenSession(g_casHandle, &mCasSession, caServiceType);
 #endif
     if (ret != AM_ERROR_SUCCESS) {
         ALOGE("AM_CA_OpenSession failed!");

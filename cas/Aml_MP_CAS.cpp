@@ -17,9 +17,9 @@
 using namespace aml_mp;
 using namespace android;
 
-int Aml_MP_CAS_OpenSession(AML_MP_CASSESSION* casSession)
+int Aml_MP_CAS_OpenSession(AML_MP_CASSESSION* casSession, Aml_MP_CASServiceType serviceType)
 {
-    sp<AmlDvbCasHal> dvbCasHal = new AmlDvbCasHal();
+    sp<AmlDvbCasHal> dvbCasHal = new AmlDvbCasHal(serviceType);
     dvbCasHal->incStrong(dvbCasHal.get());
 
     *casSession = aml_handle_cast(dvbCasHal);

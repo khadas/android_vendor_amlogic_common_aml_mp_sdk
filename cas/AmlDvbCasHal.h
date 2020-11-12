@@ -19,7 +19,7 @@ namespace aml_mp {
 class AmlDvbCasHal : public AmlMpHandle
 {
 public:
-    AmlDvbCasHal();
+    AmlDvbCasHal(Aml_MP_CASServiceType serviceType);
     ~AmlDvbCasHal();
 
     int registerEventCallback(Aml_MP_CAS_EventCallback cb, void* userData);
@@ -41,6 +41,7 @@ public:
     int destroySecmem(AML_MP_SECMEM secMem);
 
 private:
+    Aml_MP_CASServiceType mServiceType = AML_MP_CAS_SERVICE_TYPE_INVALID;
     CasSession mCasSession = 0;
     bool mDvrReplayInited = false;
 

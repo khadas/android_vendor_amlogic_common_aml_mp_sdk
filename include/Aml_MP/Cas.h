@@ -100,7 +100,7 @@ int Aml_MP_CAS_DVREncrypt(AML_MP_CASSESSION casSession, Aml_MP_CASCryptoParams *
 int Aml_MP_CAS_DVRDecrypt(AML_MP_CASSESSION casSession, Aml_MP_CASCryptoParams *cryptoPara);
 // global CAS function end
 
-int Aml_MP_CAS_OpenSession(AML_MP_CASSESSION* casSession);
+int Aml_MP_CAS_OpenSession(AML_MP_CASSESSION* casSession, Aml_MP_CASServiceType serviceType);
 
 int Aml_MP_CAS_CloseSession(AML_MP_CASSESSION casSession);
 
