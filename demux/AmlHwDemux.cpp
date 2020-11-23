@@ -386,6 +386,7 @@ int AmlHwDemux::openHardwareChannel(int pid, int* pFd)
     int ret = ioctl(fd, DMX_SET_FILTER, &filter_param);
     if (ret < 0) {
         MLOG("set filter failed!");
+        ::close(fd);
         return -1;
     }
 
@@ -393,12 +394,14 @@ int AmlHwDemux::openHardwareChannel(int pid, int* pFd)
     ret = ioctl(fd, DMX_SET_BUFFER_SIZE, buffersize);
     if (ret < 0) {
         MLOG("set buffer size failed!");
+        ::close(fd);
         return -1;
     }
 
     ret = ioctl(fd, DMX_START);
     if (ret < 0) {
         MLOG("dmx start failed!");
+        ::close(fd);
         return -1;
     }
 

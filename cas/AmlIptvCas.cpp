@@ -18,6 +18,7 @@ namespace aml_mp {
 
 struct CasLibWrapper {
     CasLibWrapper();
+    ~CasLibWrapper();
 
     void init();
     dvb_ca_t* create(aml_dvb_init_para_t* init_para, int* err);
@@ -163,6 +164,12 @@ CasLibWrapper::CasLibWrapper()
     ca_destory     = (int (*)(dvb_ca_t *))dlsym(casHandle, "AM_MP_DVB_destory");
 
     init();
+}
+
+CasLibWrapper::~CasLibWrapper() {
+    if (mCasLibHandle != nullptr) {
+        dlclose(mCasLibHandle);
+    }
 }
 
 void CasLibWrapper::init()
