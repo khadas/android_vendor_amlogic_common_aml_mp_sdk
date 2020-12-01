@@ -52,6 +52,13 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
 
     MLOG();
 
+    memset(&mVideoParams, 0, sizeof(mVideoParams));
+    mVideoParams.pid = AML_MP_INVALID_PID;
+    memset(&mAudioParams, 0, sizeof(mAudioParams));
+    mAudioParams.pid = AML_MP_INVALID_PID;
+    memset(&mSubtitleParams, 0, sizeof(mSubtitleParams));
+    mSubtitleParams.pid = AML_MP_INVALID_PID;
+
     AmlMpConfig::instance().init();
 }
 
@@ -450,6 +457,7 @@ int AmlMpPlayerImpl::stopVideoDecoding()
 int AmlMpPlayerImpl::startAudioDecoding()
 {
     AML_MP_TRACE(10);
+    MLOG();
 
     if (mState == STATE_IDLE) {
         if (prepare() < 0) {

@@ -65,6 +65,7 @@ AML_MP_SYSTEM_SHARED_LIBS := \
 	libamgralloc_ext@2 \
 	libSubtitleClient \
 	libCTC_MediaProcessor \
+	libgui \
 
 AML_MP_SYSTEM_STATIC_LIBS_29 := \
 	libam_cas

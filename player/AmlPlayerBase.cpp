@@ -184,7 +184,7 @@ int AmlPlayerBase::startSubtitleDecoding()
     AmlSubtitleParam subParam{};
     subParam.ioSource = AmlSubtitleIOType::E_SUBTITLE_DEMUX;
     if (!constructAmlSubtitleParam(&subParam, &mSubtitleParams)) {
-        return -1;
+        return 0;
     }
 
 #ifndef __ANDROID_VNDK__
@@ -194,6 +194,7 @@ int AmlPlayerBase::startSubtitleDecoding()
 #endif
 
     if (mSubtitleHandle == nullptr) {
+        ALOGE("mSubtitleHandle is NULL");
         return -1;
     }
 

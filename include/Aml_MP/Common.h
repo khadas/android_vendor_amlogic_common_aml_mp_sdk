@@ -65,7 +65,7 @@ typedef enum {
 } Aml_MP_InputStreamType;
 
 typedef enum {
-	AML_MP_INPUT_BUFFER_TYPE_NORMAL,
+    AML_MP_INPUT_BUFFER_TYPE_NORMAL,
     AML_MP_INPUT_BUFFER_TYPE_SECURE,
     AML_MP_INPUT_BUFFER_TYPE_TVP,
 } Aml_MP_InputBufferType;
@@ -107,13 +107,13 @@ typedef enum {
 } Aml_MP_CodecID;
 
 typedef struct {
-    uint16_t        		pid;
+    uint16_t                pid;
     Aml_MP_CodecID          videoCodec;
-    uint32_t        		width;
-    uint32_t        		height;
-    uint32_t        		frameRate;
-    uint8_t         		extraData[512];
-    uint32_t        		extraDataSize;
+    uint32_t                width;
+    uint32_t                height;
+    uint32_t                frameRate;
+    uint8_t                 extraData[512];
+    uint32_t                extraDataSize;
 } Aml_MP_VideoParams;
 
 typedef struct {
@@ -121,7 +121,7 @@ typedef struct {
     Aml_MP_CodecID          audioCodec;
     uint32_t                nChannels;
     uint32_t                nSampleRate;
-    uint8_t         		extraData[512];
+    uint8_t                 extraData[512];
     uint32_t                extraDataSize;
 } Aml_MP_AudioParams;
 
@@ -210,6 +210,8 @@ typedef enum {
     AML_MP_PLAYER_PARAMETER_AD_STATE,                       //setADState(int)
     AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL,                   //setADMixLevel(Aml_MP_ADVolume)
 
+    //AML_MP_PLAYER_PARAMETER_SET_SURFACE,                  //setSurface(void*)
+    AML_MP_PLAYER_PARAMETER_WORK_MODE,                      //setWorkMode(Aml_MP_PlayerWorkMode)
 
     //get only
     AML_MP_PLAYER_PARAMETER_GET_BASE        = 0x2000,
@@ -241,6 +243,14 @@ typedef enum {
     AML_MP_VIDEO_DECODE_MODE_NONE,
     AML_MP_VIDEO_DECODE_MODE_IONLY,
 } Aml_MP_VideoDecodeMode;
+
+////////////////////////////////////////
+//AML_MP_PLAYER_PARAMETER_PLAYER_WORK_MODE
+typedef enum {
+    AML_MP_PLAYER_MODE_NORMAL = 0,             // Normal mode
+    AML_MP_PLAYER_MODE_CACHING_ONLY = 1,       // Only caching data, do not decode. Used in FCC
+    AML_MP_PLAYER_MODE_DECODE_ONLY = 2         // Decode data but do not output
+} Aml_MP_PlayerWorkMode;
 
 ////////////////////////////////////////
 //AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE
@@ -370,7 +380,7 @@ typedef enum {
 
 ///////////////////////////////////////////////////////////////////////////////
 enum {
-	Aml_MP_ERROR_BASE = -2000,
+    Aml_MP_ERROR_BASE = -2000,
 
 };
 
@@ -443,15 +453,15 @@ typedef struct {
 
 //AML_MP_PLAYER_EVENT_SCRAMBLING,
 typedef struct {
-	Aml_MP_StreamType type;
-	char scramling;
+    Aml_MP_StreamType type;
+    char scramling;
 } Aml_MP_PlayerEventScrambling;
 
 
 //AML_MP_PLAYER_EVENT_USERDATA_AFD,
 //AML_MP_PLAYER_EVENT_USERDATA_CC,
 typedef struct {
-	uint8_t  *data;
+    uint8_t  *data;
     size_t   len;
 } Aml_MP_PlayerEventMpegUserData;
 

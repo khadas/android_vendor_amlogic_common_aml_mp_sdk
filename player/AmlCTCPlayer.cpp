@@ -96,6 +96,24 @@ PLAYER_STREAMTYPE_E ctcStreamTypeConvert(Aml_MP_StreamType streamType) {
     }
 }
 
+aml::ABALANCE_E ctcAudioBalanceConvert(Aml_MP_AudioBalance balance)
+{
+    switch (balance) {
+    case AML_MP_AUDIO_BALANCE_STEREO:
+        return aml::ABALANCE_STEREO;
+
+    case AML_MP_AUDIO_BALANCE_LEFT:
+        return aml::ABALANCE_LEFT;
+
+    case AML_MP_AUDIO_BALANCE_RIGHT:
+        return aml::ABALANCE_RIGHT;
+
+    default:
+        return aml::ABALANCE_MAX;
+    }
+}
+
+
 AmlCTCPlayer::AmlCTCPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId)
 : aml_mp::AmlPlayerBase(instanceId)
 {
@@ -108,7 +126,13 @@ AmlCTCPlayer::AmlCTCPlayer(Aml_MP_PlayerCreateParams* createParams, int instance
     params.isEsSource = 0; //0:TS source 1:ES source
     params.flags = 0;
     params.extensionSize = 0;
+    memset(mVideoPara, 0, sizeof(mVideoPara));
+    mVideoPara[0].pid = AML_MP_INVALID_PID;
+    memset(mAudioPara, 0, sizeof(mAudioPara));
+    mAudioPara[0].pid = AML_MP_INVALID_PID;
     mCtcPlayer = aml::GetMediaProcessor(&params);
+    mVideoParaSeted = false;
+    mAudioParaSeted = false;
 
     mCtcPlayer->playerback_register_evt_cb([](void* user_data, aml::IPTV_PLAYER_EVT_E event, uint32_t param1, uint32_t param2) {
         static_cast<AmlCTCPlayer*>(user_data)->eventCtcCallback(event,param1,param2);
@@ -138,18 +162,24 @@ int AmlCTCPlayer::setVideoParams(const Aml_MP_VideoParams* params) {
     RETURN_IF(-1, params == nullptr);
     RETURN_IF(-1, mCtcPlayer == nullptr);
 
-    aml::VIDEO_PARA_T videoPara[MAX_VIDEO_PARAM_SIZE];
-    memset(videoPara, 0, sizeof(videoPara));
     ALOGI("%s:%d videoCodec: %d vpid: %d width: %d height: %d\n", __FUNCTION__, __LINE__,
         params->videoCodec, params->pid, params->width, params->height);
-    videoPara[0].pid = params->pid;
-    videoPara[0].nVideoWidth = params->width;
-    videoPara[0].nVideoHeight = params->height;
-    videoPara[0].nFrameRate = params->frameRate;
-    videoPara[0].vFmt = ctcVideoCodecConvert(params->videoCodec);
-    videoPara[0].nExtraSize = params->extraDataSize;
-    videoPara[0].pExtraData = (uint8_t *)params->extraData;
-    mCtcPlayer->InitVideo(videoPara);
+    if (params->pid == AML_MP_INVALID_PID) {
+        ALOGI("Video pid invalid, return -1\n");
+        return -1;
+    }
+    if (params->pid == mVideoPara[0].pid) {
+        ALOGI("This params is already seted skip");
+        return -1;
+    }
+    mVideoPara[0].pid = params->pid;
+    mVideoPara[0].nVideoWidth = params->width;
+    mVideoPara[0].nVideoHeight = params->height;
+    mVideoPara[0].nFrameRate = params->frameRate;
+    mVideoPara[0].vFmt = ctcVideoCodecConvert(params->videoCodec);
+    mVideoPara[0].nExtraSize = params->extraDataSize;
+    mVideoPara[0].pExtraData = (uint8_t *)params->extraData;
+    mVideoParaSeted = true;
 
     return 0;
 }
@@ -158,19 +188,25 @@ int AmlCTCPlayer::setAudioParams(const Aml_MP_AudioParams* params) {
     RETURN_IF(-1, params == nullptr);
     RETURN_IF(-1, mCtcPlayer == nullptr);
 
-    aml::AUDIO_PARA_T audioPara[MAX_AUDIO_PARAM_SIZE];
-    memset(audioPara, 0, sizeof(audioPara));
     ALOGI("%s:%d audioCodec: %d apid: %d ch: %d samp: %d\n", __FUNCTION__, __LINE__,
         params->audioCodec, params->pid, params->nChannels, params->nSampleRate);
-    audioPara[0].pid = params->pid;
-    audioPara[0].nChannels = params->nChannels;
-    audioPara[0].nSampleRate = params->nSampleRate;
-    audioPara[0].aFmt = ctcAudioCodecConvert(params->audioCodec);
-    audioPara[0].block_align = 0;
-    audioPara[0].bit_per_sample = 0;
-    audioPara[0].nExtraSize = params->extraDataSize;
-    audioPara[0].pExtraData = (uint8_t *)params->extraData;
-    mCtcPlayer->InitAudio(audioPara);
+    if (params->pid == AML_MP_INVALID_PID) {
+        ALOGI("Audio pid invalid, return -1\n");
+        return -1;
+    }
+    if (params->pid == mAudioPara[0].pid) {
+        ALOGI("This params is already seted skip");
+        return -1;
+    }
+    mAudioPara[0].pid = params->pid;
+    mAudioPara[0].nChannels = params->nChannels;
+    mAudioPara[0].nSampleRate = params->nSampleRate;
+    mAudioPara[0].aFmt = ctcAudioCodecConvert(params->audioCodec);
+    mAudioPara[0].block_align = 0;
+    mAudioPara[0].bit_per_sample = 0;
+    mAudioPara[0].nExtraSize = params->extraDataSize;
+    mAudioPara[0].pExtraData = (uint8_t *)params->extraData;
+    mAudioParaSeted = true;
 
     return 0;
 }
@@ -180,8 +216,20 @@ int AmlCTCPlayer::start() {
 
     int ret = 0;
     ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
+    if (mVideoParaSeted) {
+        mCtcPlayer->InitVideo(mVideoPara);
+    } else {
+        ALOGI("Video para not seted");
+    }
+    if (mAudioParaSeted) {
+        mCtcPlayer->InitAudio(mAudioPara);
+    } else {
+        ALOGI("Audio para not seted");
+    }
     ret = mCtcPlayer->StartPlay();
     AmlPlayerBase::start();
+    mPlayerStat = CTC_STAT_ASTART_VSTART;
+    mIsPause = false;
 
     return ret;
 }
@@ -193,6 +241,7 @@ int AmlCTCPlayer::stop() {
     ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
     AmlPlayerBase::stop();
     ret = mCtcPlayer->Stop();
+    mPlayerStat = CTC_STAT_ASTOP_VSTOP;
 
     return ret;
 }
@@ -227,6 +276,12 @@ int AmlCTCPlayer::setPlaybackRate(float rate) {
     if (rate == 1.0f) {
         ret = mCtcPlayer->StopFast();
     } else {
+        aml::CTC_PLAYSPEED_OPT_S params;
+        int rateInt = rate * 100;
+        params.enPlaySpeedDirect = (rate > 0.0f)?(aml::CTC_PLAYSPEED_DIRECT_FORWARD):(aml::CTC_PLAYSPEED_DIRECT_BACKWARD);
+        params.u32SpeedInteger = rateInt / 100;
+        params.u32SpeedDecimal = rateInt % 100;
+        mCtcPlayer->SetParameter(aml::CTC_KEY_PARAMETER_PLAYSPEED, &params);
         ret = mCtcPlayer->Fast();
     }
 
@@ -237,19 +292,17 @@ int AmlCTCPlayer::switchAudioTrack(const Aml_MP_AudioParams* params){
     RETURN_IF(-1, params == nullptr);
     RETURN_IF(-1, mCtcPlayer == nullptr);
 
-    aml::AUDIO_PARA_T audioPara;
-    memset(&audioPara, 0, sizeof(audioPara));
     ALOGI("%s:%d audioCodec: %d apid: %d ch: %d samp: %d\n", __FUNCTION__, __LINE__,
         params->pid, params->audioCodec, params->nChannels, params->nSampleRate);
-    audioPara.pid = params->pid;
-    audioPara.nChannels = params->nChannels;
-    audioPara.nSampleRate = params->nSampleRate;
-    audioPara.aFmt = ctcAudioCodecConvert(params->audioCodec);
-    audioPara.block_align = 0;
-    audioPara.bit_per_sample = 0;
-    audioPara.nExtraSize = params->extraDataSize;
-    audioPara.pExtraData = (uint8_t *)params->extraData;
-    mCtcPlayer->SwitchAudioTrack(audioPara.pid , &audioPara);
+    mAudioPara[0].pid = params->pid;
+    mAudioPara[0].nChannels = params->nChannels;
+    mAudioPara[0].nSampleRate = params->nSampleRate;
+    mAudioPara[0].aFmt = ctcAudioCodecConvert(params->audioCodec);
+    mAudioPara[0].block_align = 0;
+    mAudioPara[0].bit_per_sample = 0;
+    mAudioPara[0].nExtraSize = params->extraDataSize;
+    mAudioPara[0].pExtraData = (uint8_t *)params->extraData;
+    mCtcPlayer->SwitchAudioTrack(mAudioPara[0].pid , &mAudioPara[0]);
 
     return 0;
 }
@@ -268,12 +321,13 @@ int AmlCTCPlayer::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, siz
 {
     ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
 
-    AML_MP_UNUSED(type);
-    AML_MP_UNUSED(buffer);
-    AML_MP_UNUSED(size);
-    AML_MP_UNUSED(pts);
+    RETURN_IF(-1, mCtcPlayer == nullptr);
+    uint8_t* buf = const_cast<uint8_t *>(buffer);
 
-    return -1;
+    int ret = 0;
+    ret = mCtcPlayer->WriteData(ctcStreamTypeConvert(type), buf, size, pts);
+
+    return ret;
 }
 
 int AmlCTCPlayer::getCurrentPts(Aml_MP_StreamType type, int64_t* pts) {
@@ -354,13 +408,37 @@ int AmlCTCPlayer::hideVideo() {
 
 int AmlCTCPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
     ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
-    AML_MP_UNUSED(key);
-    AML_MP_UNUSED(parameter);
-    return 0;
+
+    RETURN_IF(-1, mCtcPlayer == nullptr);
+    int ret = 0;
+    aml::CTC_AVOFFEST_OPT_S param;
+    switch (key) {
+        case AML_MP_PLAYER_PARAMETER_AUDIO_MUTE:
+            aml::CTC_MEDIACONFIG_AUDIOMUTE_S request;
+            request.mute = *((bool*)parameter);
+            mCtcPlayer->SetParameter(aml::CTC_KEY_PARAMETER_SET_AUDIOMUTE, &request);
+            break;
+        case AML_MP_PLAYER_PARAMETER_VIDEO_PTS_OFFSET:
+            param.u64offest = (*((int*)parameter));
+            mCtcPlayer->SetParameter(aml::CTC_KEY_PARAMETER_VIDEO_DELAY, &param);
+            break;
+        case AML_MP_PLAYER_PARAMETER_AUDIO_PTS_OFFSET:
+            param.u64offest = (*((int*)parameter));
+            mCtcPlayer->SetParameter(aml::CTC_KEY_PARAMETER_AUDIO_DELAY, &param);
+            break;
+        case AML_MP_PLAYER_PARAMETER_AUDIO_BALANCE:
+            ret = mCtcPlayer->SetAudioBalance(ctcAudioBalanceConvert(*(Aml_MP_AudioBalance*)parameter));
+            break;
+        default:
+            ALOGI("Not support parameter key: %d", key);
+            break;
+    }
+    return ret;
 }
 
 int AmlCTCPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
     ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
+    ALOGI("Not support parameter key: %d", key);
     AML_MP_UNUSED(key);
     AML_MP_UNUSED(parameter);
     return 0;
@@ -379,59 +457,192 @@ int AmlCTCPlayer::setAVSyncSource(Aml_MP_AVSyncSource syncSource) {
 }
 
 int AmlCTCPlayer::setPcrPid(int pid) {
+    RETURN_IF(-1, mCtcPlayer == nullptr);
+
     ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
-    AML_MP_UNUSED(pid);
+    aml::CTC_DEMUX_PCRPID_OPT_S para;
+    para.pcrpid = pid;
+    mCtcPlayer->SetParameter(aml::CTC_KEY_PARAMETER_DEMUX_PCRPID, &para);
     return 0;
 }
 
 int AmlCTCPlayer::startVideoDecoding() {
+    RETURN_IF(-1, mCtcPlayer == nullptr);
+
     ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
+    switch (mPlayerStat) {
+        case CTC_STAT_ASTOP_VSTOP:
+            if (!mVideoParaSeted) {
+                ALOGI("Video param not seted!!!");
+                return -1;
+            }
+            start();
+            if (mAudioParaSeted) {
+                mPlayerStat = CTC_STAT_ASTART_VSTART;
+            } else {
+                mPlayerStat = CTC_STAT_ASTOP_VSTART;
+            }
+            break;
+        case CTC_STAT_ASTART_VSTOP:
+            if (!mVideoParaSeted) {
+                ALOGI("Video param not seted!!!");
+                return -1;
+            }
+            mCtcPlayer->SwitchVideoTrack(mVideoPara[0].pid, &mVideoPara[0]);
+            mPlayerStat = CTC_STAT_ASTART_VSTART;
+            break;
+        case CTC_STAT_ASTART_VSTART:
+        case CTC_STAT_ASTOP_VSTART:
+            ALOGI("Video is already start");
+            break;
+    }
+    mIsPause = false;
     return 0;
 }
 
 int AmlCTCPlayer::stopVideoDecoding() {
-    ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
-    return 0;
+    RETURN_IF(-1, mCtcPlayer == nullptr);
 
+    ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
+    switch (mPlayerStat) {
+        case CTC_STAT_ASTART_VSTART:
+            mCtcPlayer->VideoHide();
+            mPlayerStat = CTC_STAT_ASTART_VSTOP;
+            break;
+        case CTC_STAT_ASTOP_VSTART:
+            mCtcPlayer->Stop();
+            mPlayerStat = CTC_STAT_ASTOP_VSTOP;
+            break;
+        case CTC_STAT_ASTART_VSTOP:
+        case CTC_STAT_ASTOP_VSTOP:
+            ALOGI("Video is already stop");
+            break;
+    }
+    return 0;
 }
 
 int AmlCTCPlayer::pauseVideoDecoding() {
+    RETURN_IF(-1, mCtcPlayer == nullptr);
+
     ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
-    return 0;
+    int ret = -1;
+    if (!mIsPause) {
+        ret = mCtcPlayer->Pause();
+        mIsPause = true;
+    } else {
+        ALOGI("Video is already paused");
+    }
+    return ret;
 }
 
 int AmlCTCPlayer::resumeVideoDecoding() {
+    RETURN_IF(-1, mCtcPlayer == nullptr);
+
     ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
-    return 0;
+    int ret = -1;
+    if (mIsPause) {
+        ret = mCtcPlayer->Resume();
+        mIsPause = false;
+    } else {
+        ALOGI("Video is already resumed");
+    }
+    return ret;
 }
 
 int AmlCTCPlayer::startAudioDecoding() {
+    RETURN_IF(-1, mCtcPlayer == nullptr);
+
     ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
+    switch (mPlayerStat) {
+        case CTC_STAT_ASTOP_VSTOP:
+            if (!mAudioParaSeted) {
+                ALOGI("Audio param not seted!!!");
+                return -1;
+            }
+            start();
+            if (mVideoParaSeted) {
+                mPlayerStat = CTC_STAT_ASTART_VSTART;
+            } else {
+                mPlayerStat = CTC_STAT_ASTART_VSTOP;
+            }
+            break;
+        case CTC_STAT_ASTOP_VSTART:
+            if (!mAudioParaSeted) {
+                ALOGI("Audio param not seted!!!");
+                return -1;
+            }
+            mCtcPlayer->SwitchAudioTrack(mAudioPara[0].pid, &mAudioPara[0]);
+            mPlayerStat = CTC_STAT_ASTART_VSTART;
+            break;
+        case CTC_STAT_ASTART_VSTART:
+        case CTC_STAT_ASTART_VSTOP:
+            ALOGI("Audio is already start");
+            break;
+    }
+    mIsPause = false;
     return 0;
 }
 
 int AmlCTCPlayer::stopAudioDecoding() {
+    RETURN_IF(-1, mCtcPlayer == nullptr);
+
     ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
+
+    bool tmp = true;
+    switch (mPlayerStat) {
+        case CTC_STAT_ASTART_VSTART:
+            mCtcPlayer->SetParameter(aml::CTC_KEY_PARAMETER_SET_AUDIOMUTE, &tmp);
+            mPlayerStat = CTC_STAT_ASTOP_VSTART;
+            break;
+        case CTC_STAT_ASTART_VSTOP:
+            mCtcPlayer->Stop();
+            mPlayerStat = CTC_STAT_ASTOP_VSTOP;
+            break;
+        case CTC_STAT_ASTOP_VSTART:
+        case CTC_STAT_ASTOP_VSTOP:
+            ALOGI("Audio is already stop");
+            break;
+    }
     return 0;
 }
 
 int AmlCTCPlayer::pauseAudioDecoding() {
+    RETURN_IF(-1, mCtcPlayer == nullptr);
+
     ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
-    return 0;
+    int ret = -1;
+    if (!mIsPause) {
+        ret = mCtcPlayer->Pause();
+        mIsPause = true;
+    } else {
+        ALOGI("Audio is already paused");
+    }
+    return ret;
 }
 
 int AmlCTCPlayer::resumeAudioDecoding() {
+    RETURN_IF(-1, mCtcPlayer == nullptr);
+
     ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
-    return 0;
+    int ret = -1;
+    if (mIsPause) {
+        ret = mCtcPlayer->Resume();
+        mIsPause = false;
+    } else {
+        ALOGI("Audio is already resumed");
+    }
+    return ret;
 }
 
 int AmlCTCPlayer::setADParams(Aml_MP_AudioParams* params) {
     AML_MP_UNUSED(params);
+    ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
     return -1;
 }
 
 void AmlCTCPlayer::eventCtcCallback(aml::IPTV_PLAYER_EVT_E event, uint32_t param1, uint32_t param2)
 {
+    ALOGI("%s:%d\n", __FUNCTION__, __LINE__);
     AML_MP_UNUSED(param1);
     AML_MP_UNUSED(param2);
 

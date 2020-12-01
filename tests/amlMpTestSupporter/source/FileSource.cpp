@@ -140,7 +140,7 @@ void FileSource::threadLoop()
 
             written = receiver->writeData(data, size);
             if (written < 0) {
-                ALOGI("written < 0");
+                //ALOGI("written < 0");
                 written = 0;
                 usleep(10*1000);
             } else if (written == 0) {

@@ -18,6 +18,13 @@ struct ANativeWindow;
 namespace aml_mp {
 using namespace aml;
 
+typedef enum {
+    CTC_STAT_ASTOP_VSTOP,
+    CTC_STAT_ASTOP_VSTART,
+    CTC_STAT_ASTART_VSTOP,
+    CTC_STAT_ASTART_VSTART,
+} Ctc_Player_Stat;
+
 class AmlCTCPlayer : public aml_mp::AmlPlayerBase
 {
 public:
@@ -65,6 +72,12 @@ public:
 private:
     aml::CTC_MediaProcessor* mCtcPlayer = nullptr;
     void eventCtcCallback(aml::IPTV_PLAYER_EVT_E event, uint32_t param1, uint32_t param2);
+    Ctc_Player_Stat mPlayerStat = CTC_STAT_ASTOP_VSTOP;
+    aml::VIDEO_PARA_T mVideoPara[MAX_VIDEO_PARAM_SIZE];
+    aml::AUDIO_PARA_T mAudioPara[MAX_AUDIO_PARAM_SIZE];
+    bool mIsPause;
+    bool mVideoParaSeted;
+    bool mAudioParaSeted;
 
 private:
     AmlCTCPlayer(const AmlCTCPlayer&) = delete;

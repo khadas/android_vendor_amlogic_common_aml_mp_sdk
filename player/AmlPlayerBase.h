@@ -31,7 +31,7 @@ public:
     virtual ~AmlPlayerBase();
 
     int registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData);
-    virtual int setANativeWindow(ANativeWindow* nativeWindow);
+    virtual int setANativeWindow(ANativeWindow* nativeWindow) = 0;
 
     int setSubtitleParams(const Aml_MP_SubtitleParams* params);
     int switchSubtitleTrack(const Aml_MP_SubtitleParams* params);

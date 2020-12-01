@@ -14,6 +14,9 @@
 #include <utils/AmlMpUtils.h>
 #include <system/window.h>
 #include <amlogic/am_gralloc_ext.h>
+#ifndef __ANDROID_VNDK__
+#include <gui/Surface.h>
+#endif
 
 #define VOLUME_MULTIPLE 100.0;
 
@@ -202,17 +205,16 @@ AmlTsPlayer::~AmlTsPlayer()
 
 int AmlTsPlayer::setANativeWindow(ANativeWindow* nativeWindow)
 {
-    native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(AM_TV_SIDEBAND, AM_VIDEO_DEFAULT);
-    mSidebandHandle = NativeHandle::create(sidebandHandle, true);
+    ALOGI("Ping_debug AmlTsPlayer::setANativeWindow: %p", nativeWindow);
 
-    ALOGI("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
-
-    int ret = native_window_set_sideband_stream(nativeWindow, sidebandHandle);
-    if (ret < 0) {
-        ALOGE("set sideband stream failed!");
+    am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
+#ifndef __ANDROID_VNDK__
+    ret = AmTsPlayer_setSurface(mPlayer, (android::Surface*)nativeWindow);
+#endif
+    if (ret != AM_TSPLAYER_OK) {
+        return -1;
     }
-
-    return ret;
+    return 0;
 }
 
 int AmlTsPlayer::setVideoParams(const Aml_MP_VideoParams* params) {
@@ -472,6 +474,13 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             ADVolume = (Aml_MP_ADVolume*)parameter;
             //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL, AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE, value is master %d, slave %d", ADVolume->masterVolume, ADVolume->slaveVolume);
             ret = AmTsPlayer_setADMixLevel(mPlayer, ADVolume->masterVolume, ADVolume->slaveVolume);
+            break;
+        //case AML_MP_PLAYER_PARAMETER_SET_SURFACE:
+            //ret = AmTsPlayer_setSurface(mPlayer, parameter);
+            //break;
+
+        case AML_MP_PLAYER_PARAMETER_WORK_MODE:
+            ret = AmTsPlayer_setWorkMode(mPlayer, *(am_tsplayer_work_mode*)(parameter));
             break;
         default:
             ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
