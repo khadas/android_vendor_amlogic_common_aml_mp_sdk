@@ -52,6 +52,10 @@ int UdpSource::initCheck()
         return -1;
     }
 
+    if (strlen(mAddress.data()+p+1) > 9) {
+        ALOGE("Port len is too large");
+        return -1;
+    }
     strcpy(port, mAddress.data()+p+1);
     strncpy(hostAddress, mAddress.data(), p);
 
