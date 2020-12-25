@@ -8,6 +8,7 @@
  */
 
 #define LOG_TAG "AmlPlayerBase"
+#define KEEP_ALOGX
 #include "utils/AmlMpLog.h"
 #include <utils/AmlMpUtils.h>
 #include "AmlPlayerBase.h"
@@ -16,25 +17,30 @@
 #include <system/window.h>
 #include <amlogic/am_gralloc_ext.h>
 #include <SubtitleNativeAPI.h>
+#include "Aml_MP_PlayerImpl.h"
 
 namespace aml_mp {
 
 sp<AmlPlayerBase> AmlPlayerBase::create(Aml_MP_PlayerCreateParams* createParams, int instanceId)
 {
     sp<AmlPlayerBase> player;
-    // Select Instance with ChipID (HwDemux Count)
-    // Fixme: Need to add dmx select code
     int mUseCtc = AmlMpConfig::instance().mCtcDebug;
-    if (mUseCtc > 0 || instanceId > 0) {
-        player = new AmlCTCPlayer(createParams, instanceId);
-    } else {
+
+    if (createParams->channelId == AML_MP_CHANNEL_ID_MAIN ||
+        !AmlMpPlayerRoster::instance().isAmTsPlayerExist() ||
+        isSupportMultiHwDemux() ||
+        AmlMpConfig::instance().mTsPlayerNonTunnel) {
         player = new AmlTsPlayer(createParams, instanceId);
+    } else {
+        player = new AmlCTCPlayer(createParams, instanceId);
     }
+
     return player;
 }
 
 AmlPlayerBase::AmlPlayerBase(int instanceId)
-:mEventCb(nullptr)
+:mInstanceId(instanceId)
+, mEventCb(nullptr)
 , mUserData(nullptr)
 , mSubtitleParams{}
 {
@@ -67,6 +73,7 @@ int AmlPlayerBase::registerEventCallback(Aml_MP_PlayerEventCallback cb, void* us
 
 int AmlPlayerBase::setANativeWindow(ANativeWindow* nativeWindow)
 {
+    RETURN_IF(-1, nativeWindow == nullptr);
     native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(AM_TV_SIDEBAND, AM_VIDEO_DEFAULT);
     mSidebandHandle = NativeHandle::create(sidebandHandle, true);
 

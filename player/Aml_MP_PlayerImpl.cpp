@@ -8,40 +8,23 @@
  */
 
 #define LOG_NDEBUG 0
+#define KEEP_ALOGX
 #define LOG_TAG "AmlMpPlayerImpl"
 #include "Aml_MP_PlayerImpl.h"
 #include <utils/AmlMpLog.h>
 #include <utils/AmlMpUtils.h>
 #include <utils/AmlMpConfig.h>
-#include <mutex>
 #include <sstream>
+#include <mutex>
 #include <condition_variable>
 #include <media/stagefright/foundation/ADebug.h>
 #include "AmlPlayerBase.h"
+#ifndef __ANDROID_VNDK__
+#include <gui/Surface.h>
+#include <gui/SurfaceComposerClient.h>
+#endif
 
 namespace aml_mp {
-
-struct AmlMpPlayerRoster final : public RefBase
-{
-    static constexpr int kPlayerInstanceMax = 9;
-
-    static AmlMpPlayerRoster& instance();
-    int registerPlayer(void* player);
-    void unregisterPlayer(int id);
-
-private:
-    static AmlMpPlayerRoster* sAmlPlayerRoster;
-    std::mutex mLock;
-    std::condition_variable mcond;
-    void* mPlayers[kPlayerInstanceMax];
-    int mPlayerNum = 0;
-
-    AmlMpPlayerRoster();
-    ~AmlMpPlayerRoster();
-
-    AmlMpPlayerRoster(const AmlMpPlayerRoster&) = delete;
-    AmlMpPlayerRoster& operator= (const AmlMpPlayerRoster&) = delete;
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
@@ -58,6 +41,8 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
     mAudioParams.pid = AML_MP_INVALID_PID;
     memset(&mSubtitleParams, 0, sizeof(mSubtitleParams));
     mSubtitleParams.pid = AML_MP_INVALID_PID;
+
+    mWorkmode = AML_MP_PLAYER_MODE_NORMAL;
 
     AmlMpConfig::instance().init();
 }
@@ -300,14 +285,53 @@ int AmlMpPlayerImpl::getBufferStat(Aml_MP_BufferStat* bufferStat)
 int AmlMpPlayerImpl::setAnativeWindow(void* nativeWindow)
 {
     AML_MP_TRACE(10);
-    mNativeWindow = static_cast<ANativeWindow*>(nativeWindow);
+    if (nativeWindow == nullptr) {
+        mNativeWindow = nullptr;
+    } else {
+        mNativeWindow = static_cast<ANativeWindow*>(nativeWindow);
+    }
+    ALOGI("setAnativeWindow: %p, mNativewindow: %p", nativeWindow, mNativeWindow.get());
 
+    if (mPlayer != nullptr) {
+        mPlayer->setANativeWindow(mNativeWindow.get());
+    }
     return 0;
 }
 
 int AmlMpPlayerImpl::setVideoWindow(int x, int y, int width, int height)
 {
     AML_MP_TRACE(10);
+#ifndef __ANDROID_VNDK__
+    if (mNativeWindow == nullptr) {
+        ALOGI("Nativewindow is null, create it");
+        mComposerClient = new android::SurfaceComposerClient;
+        mComposerClient->initCheck();
+
+        mSurfaceControl = mComposerClient->createSurface(android::String8("AmlMpPlayer"), width, height, android::PIXEL_FORMAT_RGB_565, 0);
+        mSurfaceControl->isValid();
+        mSurface = mSurfaceControl->getSurface();
+        android::SurfaceComposerClient::Transaction()
+            .setFlags(mSurfaceControl, android::layer_state_t::eLayerOpaque, android::layer_state_t::eLayerOpaque)
+            .show(mSurfaceControl)
+            .apply();
+
+        mNativeWindow = mSurface;
+    }
+
+    if (mSurfaceControl != nullptr) {
+        ALOGI("Set video window size: x %d, y %d, width: %d, height: %d", x, y, width, height);
+        auto transcation = android::SurfaceComposerClient::Transaction();
+        if (x >= 0 && y >= 0) {
+            transcation.setPosition(mSurfaceControl, x, y);
+        }
+
+        transcation.setSize(mSurfaceControl, width, height);
+        transcation.setCrop_legacy(mSurfaceControl, android::Rect(width, height));
+        transcation.setLayer(mSurfaceControl, mZorder);
+
+        transcation.apply();
+    }
+#endif
     mVideoWindow = {x, y, width, height};
     RETURN_IF(-1, mPlayer == nullptr);
 
@@ -375,6 +399,30 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
     }
     break;
 
+    case AML_MP_PLAYER_PARAMETER_WORK_MODE:
+    {
+        mWorkmode = *(Aml_MP_PlayerWorkMode*)parameter;
+        ALOGI("Set workmode: %d", mWorkmode);
+    }
+    break;
+
+    case AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER:
+    {
+        mZorder = *(int*)parameter;
+        ALOGI("Set zorder: %d", mZorder);
+
+#ifndef __ANDROID_VNDK__
+        if (mSurfaceControl != nullptr) {
+            auto transcation = android::SurfaceComposerClient::Transaction();
+
+            transcation.setLayer(mSurfaceControl, mZorder);
+
+            transcation.apply();
+        }
+#endif
+        return 0;
+    }
+    break;
 
     default:
         break;
@@ -673,6 +721,9 @@ int AmlMpPlayerImpl::prepare()
         return -1;
     }
 
+    ALOGI("mWorkmode: %d", mWorkmode);
+    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_WORK_MODE, &mWorkmode);
+
     mPlayer->registerEventCallback(mEventCb, mUserData);
 
     if ((mSubtitleWindow.width > 0) && (mSubtitleWindow.height > 0)) {
@@ -680,17 +731,17 @@ int AmlMpPlayerImpl::prepare()
     }
 
     ALOGI("mNativeWindow:%p", mNativeWindow.get());
-    if (mNativeWindow != nullptr) {
-        mPlayer->setANativeWindow(mNativeWindow.get());
-    } else {
-        mPlayer->setVideoWindow(mVideoWindow.x, mVideoWindow.y, mVideoWindow.width, mVideoWindow.height);
-    }
+    mPlayer->setANativeWindow(mNativeWindow.get());
 
     if (mSyncSource == AML_MP_AVSYNC_SOURCE_DEFAULT) {
         mSyncSource = AML_MP_AVSYNC_SOURCE_PCR;
     }
 
     mPlayer->setAVSyncSource(mSyncSource);
+
+    if (mSyncSource == AML_MP_AVSYNC_SOURCE_PCR && mPcrPid != AML_MP_INVALID_PID) {
+        mPlayer->setPcrPid(mPcrPid);
+    }
 
     setState(STATE_PREPARED);
 
@@ -710,10 +761,13 @@ void AmlMpPlayerImpl::setParams()
     if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
         mPlayer->setSubtitleParams(&mSubtitleParams);
     }
+
 }
 
 int AmlMpPlayerImpl::resetIfNeeded()
 {
+    MLOG();
+
     if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         if (mStreamState == ALL_STREAMS_STOPPED) {
             setState(STATE_PREPARED);
@@ -798,6 +852,18 @@ void AmlMpPlayerRoster::unregisterPlayer(int id)
     CHECK(mPlayers[id]);
     mPlayers[id] = nullptr;
     (void)--mPlayerNum;
+}
+
+void AmlMpPlayerRoster::signalAmTsPlayerId(int id)
+{
+    std::lock_guard<std::mutex> _l(mLock);
+    mAmtsPlayerId = id;
+}
+
+bool AmlMpPlayerRoster::isAmTsPlayerExist() const
+{
+    std::lock_guard<std::mutex> _l(mLock);
+    return mAmtsPlayerId != -1;
 }
 
 

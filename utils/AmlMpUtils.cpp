@@ -10,6 +10,7 @@
 #define LOG_TAG "AmlMpUtils"
 #include <utils/Log.h>
 #include "AmlMpUtils.h"
+#include <unistd.h>
 
 namespace aml_mp {
 #define ENUM_TO_STR(e) case e: return #e; break
@@ -486,5 +487,9 @@ Aml_MP_DemuxSource convertToMpDemuxSource(DVB_DemuxSource_t source)
     }
 }
 
+bool isSupportMultiHwDemux()
+{
+    return access("/sys/module/dvb_demux/", F_OK) == 0;
+}
 
 }

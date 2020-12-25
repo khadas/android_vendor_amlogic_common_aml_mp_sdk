@@ -121,7 +121,7 @@ AmlCTCPlayer::AmlCTCPlayer(Aml_MP_PlayerCreateParams* createParams, int instance
 
     aml::CTC_InitialParameter params;
     ALOGI("%s:%d instanceId=%d\n", __FUNCTION__, __LINE__, instanceId);
-    params.userId = createParams->userId;
+    params.userId = createParams->channelId;
     params.useOmx = 1; //0:ctc 1:pip
     params.isEsSource = 0; //0:TS source 1:ES source
     params.flags = 0;
@@ -173,8 +173,13 @@ int AmlCTCPlayer::setVideoParams(const Aml_MP_VideoParams* params) {
         return -1;
     }
     mVideoPara[0].pid = params->pid;
-    mVideoPara[0].nVideoWidth = params->width;
-    mVideoPara[0].nVideoHeight = params->height;
+    if (params->width > 0 && params->height > 0) {
+        mVideoPara[0].nVideoWidth = params->width;
+        mVideoPara[0].nVideoHeight = params->height;
+    } else {
+        mVideoPara[0].nVideoWidth = 0;
+        mVideoPara[0].nVideoHeight = 0;
+    }
     mVideoPara[0].nFrameRate = params->frameRate;
     mVideoPara[0].vFmt = ctcVideoCodecConvert(params->videoCodec);
     mVideoPara[0].nExtraSize = params->extraDataSize;

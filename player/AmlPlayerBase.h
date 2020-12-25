@@ -31,7 +31,6 @@ public:
     virtual ~AmlPlayerBase();
 
     int registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData);
-    virtual int setANativeWindow(ANativeWindow* nativeWindow) = 0;
 
     int setSubtitleParams(const Aml_MP_SubtitleParams* params);
     int switchSubtitleTrack(const Aml_MP_SubtitleParams* params);
@@ -43,6 +42,7 @@ public:
 
     virtual int setVideoParams(const Aml_MP_VideoParams* params) = 0;
     virtual int setAudioParams(const Aml_MP_AudioParams* params) = 0;
+    virtual int setANativeWindow(ANativeWindow* nativeWindow);
     virtual int start();
     virtual int stop();
     virtual int pause() = 0;
@@ -86,6 +86,7 @@ private:
     static bool constructAmlSubtitleParam(AmlSubtitleParam* amlSubParam, Aml_MP_SubtitleParams* params);
 
     char mName[50];
+    const int mInstanceId;
 
     Aml_MP_PlayerEventCallback mEventCb;
     void* mUserData;

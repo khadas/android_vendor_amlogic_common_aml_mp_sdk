@@ -36,7 +36,7 @@ AML_MP_VENDOR_SRCS := \
 	$(AML_MP_UTILS_SRC) \
 
 AML_MP_INC := $(LOCAL_PATH)/include \
-    $(TOP)/vendor/amlogic/common/apps/LibTsPlayer/jni/include \
+	$(TOP)/vendor/amlogic/common/apps/LibTsPlayer/jni/include \
 	$(TOP)/vendor/amlogic/common/libdvr_release/include \
 	$(TOP)/vendor/amlogic/common/external/DTVKit/cas_hal/libamcas/include \
 	$(TOP)/vendor/amlogic/common/mediahal_sdk/include \

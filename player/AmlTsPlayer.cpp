@@ -17,8 +17,7 @@
 #ifndef __ANDROID_VNDK__
 #include <gui/Surface.h>
 #endif
-
-#define VOLUME_MULTIPLE 100.0;
+#include "Aml_MP_PlayerImpl.h"
 
 namespace aml_mp {
 
@@ -152,10 +151,13 @@ am_tsplayer_avsync_mode AVSyncSourceTypeConvert(Aml_MP_AVSyncSource avSyncSource
 AmlTsPlayer::AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId)
 : aml_mp::AmlPlayerBase(instanceId)
 {
+    AmlMpPlayerRoster::instance().signalAmTsPlayerId(instanceId);
+
+    ALOGI("demuxId: %d", createParams->demuxId);
     if (createParams->demuxId == AML_MP_DEMUX_ID_DEFAULT) {
         createParams->demuxId = AML_MP_HW_DEMUX_ID_0;
     }
-
+/*
     if (createParams->sourceType == AML_MP_INPUT_SOURCE_TS_MEMORY) {
         ALOGI("set demux source AML_MP_DEMUX_SOURCE_DMA0");
         Aml_MP_SetDemuxSource(createParams->demuxId, AML_MP_DEMUX_SOURCE_DMA0);
@@ -178,9 +180,9 @@ AmlTsPlayer::AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId
             break;
         }
 
-        Aml_MP_SetDemuxSource(createParams->demuxId, demuxSource);
+        Aml_MP_SetDemuxSource(createParams->demuxId, AML_MP_DEMUX_SOURCE_TS0);
     }
-
+*/
     init_param.source = sourceTypeConvert(createParams->sourceType);
     init_param.drmmode = inputStreamTypeConvert(createParams->drmMode);
     init_param.dmx_dev_id = createParams->demuxId;
@@ -201,20 +203,28 @@ AmlTsPlayer::~AmlTsPlayer()
         AmTsPlayer_release(mPlayer);
         mPlayer = AML_MP_INVALID_HANDLE;
     }
+
+    AmlMpPlayerRoster::instance().signalAmTsPlayerId(-1);
 }
 
 int AmlTsPlayer::setANativeWindow(ANativeWindow* nativeWindow)
 {
-    ALOGI("Ping_debug AmlTsPlayer::setANativeWindow: %p", nativeWindow);
+    ALOGI("AmlTsPlayer::setANativeWindow: %p", nativeWindow);
 
-    am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
+    int ret = 0;
 #ifndef __ANDROID_VNDK__
-    ret = AmTsPlayer_setSurface(mPlayer, (android::Surface*)nativeWindow);
-#endif
-    if (ret != AM_TSPLAYER_OK) {
-        return -1;
+    if (AmlMpConfig::instance().mTsPlayerNonTunnel) {
+        android::Surface* surface = nullptr;
+        if (nativeWindow != nullptr) {
+            surface = (android::Surface*)nativeWindow;
+        }
+        ALOGI("setANativeWindow nativeWindow: %p, surface: %p", nativeWindow, surface);
+        ret = AmTsPlayer_setSurface(mPlayer, surface);
+    } else {
+        ret = AmlPlayerBase::setANativeWindow(nativeWindow);
     }
-    return 0;
+#endif
+    return ret;
 }
 
 int AmlTsPlayer::setVideoParams(const Aml_MP_VideoParams* params) {
@@ -231,7 +241,7 @@ int AmlTsPlayer::setVideoParams(const Aml_MP_VideoParams* params) {
 
 int AmlTsPlayer::setAudioParams(const Aml_MP_AudioParams* params) {
     am_tsplayer_result ret;
-    am_tsplayer_audio_params audio_params = {audioCodecConvert(params->audioCodec), params->pid};
+    am_tsplayer_audio_params audio_params = {audioCodecConvert(params->audioCodec), params->pid, 0};
 
     ALOGI("amtsplayer handle:%#x, audio codec:%d, pid:%d", mPlayer, audio_params.codectype, audio_params.pid);
     ret = AmTsPlayer_setAudioParams(mPlayer, &audio_params);
@@ -391,7 +401,7 @@ int AmlTsPlayer::setVideoWindow(int x, int y, int width, int height) {
 
 int AmlTsPlayer::setVolume(float volume) {
     am_tsplayer_result ret;
-    int32_t tsplayer_volume = volume * VOLUME_MULTIPLE;
+    int32_t tsplayer_volume = volume;
 
     ALOGI("setVolume, tsplayer_volume: %d", tsplayer_volume);
     ret = AmTsPlayer_setAudioVolume(mPlayer, tsplayer_volume);
@@ -410,7 +420,7 @@ int AmlTsPlayer::getVolume(float* volume) {
     if (ret != AM_TSPLAYER_OK) {
         return -1;
     }
-    *volume = tsplayer_volume / VOLUME_MULTIPLE;
+    *volume = tsplayer_volume;
     return 0;
 }
 
@@ -438,7 +448,7 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
     Aml_MP_ADVolume* ADVolume;
 
-    ALOGI("Call setParameter, key is %d", key);
+    ALOGI("Call setParameter, key is 0x%x", key);
     switch (key) {
         case AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE:
             //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE, value is %d", *(am_tsplayer_video_match_mode*)parameter);
@@ -475,11 +485,9 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL, AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE, value is master %d, slave %d", ADVolume->masterVolume, ADVolume->slaveVolume);
             ret = AmTsPlayer_setADMixLevel(mPlayer, ADVolume->masterVolume, ADVolume->slaveVolume);
             break;
-        //case AML_MP_PLAYER_PARAMETER_SET_SURFACE:
-            //ret = AmTsPlayer_setSurface(mPlayer, parameter);
-            //break;
 
         case AML_MP_PLAYER_PARAMETER_WORK_MODE:
+            ALOGI("Call AmTsPlayer_setWorkMode, set workmode: %d", *(am_tsplayer_work_mode*)(parameter));
             ret = AmTsPlayer_setWorkMode(mPlayer, *(am_tsplayer_work_mode*)(parameter));
             break;
         default:
@@ -753,4 +761,3 @@ void AmlTsPlayer::eventCallback(am_tsplayer_event* event)
 }
 
 }
-

@@ -14,12 +14,43 @@
 #include <utils/RefBase.h>
 #include <utils/AmlMpHandle.h>
 #include <system/window.h>
+#include <mutex>
+#include <condition_variable>
 #include "cas/AmlCasBase.h"
+#ifndef __ANDROID_VNDK__
+#include <gui/Surface.h>
+#include <gui/SurfaceComposerClient.h>
+#endif
 
 namespace aml_mp {
 using android::RefBase;
 class AmlPlayerBase;
 class AmlMpConfig;
+
+struct AmlMpPlayerRoster final : public RefBase
+{
+    static constexpr int kPlayerInstanceMax = 9;
+
+    static AmlMpPlayerRoster& instance();
+    int registerPlayer(void* player);
+    void unregisterPlayer(int id);
+    void signalAmTsPlayerId(int id);
+    bool isAmTsPlayerExist() const;
+
+private:
+    static AmlMpPlayerRoster* sAmlPlayerRoster;
+    mutable std::mutex mLock;
+    std::condition_variable mcond;
+    void* mPlayers[kPlayerInstanceMax];
+    int mPlayerNum = 0;
+    int mAmtsPlayerId = -1;
+
+    AmlMpPlayerRoster();
+    ~AmlMpPlayerRoster();
+
+    AmlMpPlayerRoster(const AmlMpPlayerRoster&) = delete;
+    AmlMpPlayerRoster& operator= (const AmlMpPlayerRoster&) = delete;
+};
 
 class AmlMpPlayerImpl final : public AmlMpHandle
 {
@@ -130,6 +161,16 @@ private:
     sp<AmlPlayerBase> mPlayer;
 
     sp<AmlCasBase> mCasHandle;
+
+    Aml_MP_PlayerWorkMode mWorkmode;
+
+    int mZorder = -2;
+
+#ifndef __ANDROID_VNDK__
+    sp<android::SurfaceComposerClient> mComposerClient;
+    sp<android::SurfaceControl> mSurfaceControl;
+    sp<android::Surface> mSurface;
+#endif
 
 private:
     AmlMpPlayerImpl(const AmlMpPlayerImpl&) = delete;

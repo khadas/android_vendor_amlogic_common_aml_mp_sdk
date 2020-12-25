@@ -14,6 +14,10 @@
 #include <utils/AmlMpUtils.h>
 #define KEEP_ALOGX
 #include <utils/AmlMpLog.h>
+#ifndef __ANDROID_VNDK__
+#include <gui/Surface.h>
+#endif
+#include <amlogic/am_gralloc_ext.h>
 
 namespace aml_mp {
 
@@ -108,6 +112,29 @@ int AmlDVRPlayer::start(bool initialPaused)
     ALOGI("TsPlayer set Workmode NORMAL %s, result(%d)", (ret)? "FAIL" : "OK", ret);
     ret = AmTsPlayer_setSyncMode(tsPlayerHandle, TS_SYNC_PCRMASTER );
     ALOGI(" TsPlayer set Syncmode PCRMASTER %s, result(%d)", (ret)? "FAIL" : "OK", ret);
+
+#ifndef __ANDROID_VNDK__
+    if (AmlMpConfig::instance().mTsPlayerNonTunnel) {
+        android::Surface* surface = nullptr;
+        if (mNativeWindow != nullptr) {
+            surface = (android::Surface*)mNativeWindow.get();
+        }
+        ALOGI("setANativeWindow nativeWindow: %p, surface: %p", mNativeWindow.get(), surface);
+        ret = AmTsPlayer_setSurface(tsPlayerHandle, surface);
+    } else {
+        if (mNativeWindow != nullptr) {
+            native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(AM_TV_SIDEBAND, AM_VIDEO_DEFAULT);
+            mSidebandHandle = NativeHandle::create(sidebandHandle, true);
+
+            ALOGI("setAnativeWindow:%p, sidebandHandle:%p", mNativeWindow.get(), sidebandHandle);
+
+            int ret = native_window_set_sideband_stream(mNativeWindow.get(), sidebandHandle);
+            if (ret < 0) {
+                ALOGE("set sideband stream failed!");
+            }
+        }
+    }
+#endif
 
     mPlaybackOpenParams.playback_handle = (Playback_DeviceHandle_t)tsPlayerHandle;
     mPlaybackOpenParams.event_fn = [](DVR_PlaybackEvent_t event, void* params, void* userData) {
@@ -364,6 +391,19 @@ int AmlDVRPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter)
     if (ret != AM_TSPLAYER_OK) {
         return -1;
     }
+    return 0;
+}
+
+int AmlDVRPlayer::setANativeWindow(void* nativeWindow) {
+    MLOG();
+
+    if (nativeWindow == nullptr) {
+        mNativeWindow = nullptr;
+    } else {
+        mNativeWindow = static_cast<ANativeWindow*>(nativeWindow);
+    }
+    ALOGI("PVR setAnativeWindow: %p, mNativewindow: %p", nativeWindow, mNativeWindow.get());
+
     return 0;
 }
 

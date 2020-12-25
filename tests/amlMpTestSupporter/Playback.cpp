@@ -27,7 +27,7 @@ Playback::Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, co
 
     Aml_MP_PlayerCreateParams createParams;
     memset(&createParams, 0, sizeof(createParams));
-    createParams.userId = 0;
+    createParams.channelId = AML_MP_CHANNEL_ID_AUTO;
     createParams.demuxId = demuxId;
     createParams.sourceType = sourceType;
     createParams.drmMode = programInfo->scrambled ? AML_MP_INPUT_STREAM_ENCRYPTED : AML_MP_INPUT_STREAM_NORMAL;

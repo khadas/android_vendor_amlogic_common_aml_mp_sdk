@@ -26,6 +26,12 @@ typedef void* AML_MP_SECMEM;
 
 ///////////////////////////////////////////////////////////////////////////////
 typedef enum {
+    AML_MP_CHANNEL_ID_AUTO             = 0,
+    AML_MP_CHANNEL_ID_MAIN,
+    AML_MP_CHANNEL_ID_PIP,
+} Aml_MP_ChannelId;
+
+typedef enum {
     AML_MP_DEMUX_ID_DEFAULT         = -1,
     AML_MP_HW_DEMUX_ID_0            = 0,
     AML_MP_HW_DEMUX_ID_1,
@@ -210,8 +216,8 @@ typedef enum {
     AML_MP_PLAYER_PARAMETER_AD_STATE,                       //setADState(int)
     AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL,                   //setADMixLevel(Aml_MP_ADVolume)
 
-    //AML_MP_PLAYER_PARAMETER_SET_SURFACE,                  //setSurface(void*)
     AML_MP_PLAYER_PARAMETER_WORK_MODE,                      //setWorkMode(Aml_MP_PlayerWorkMode)
+    AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER,            //transcation.setLayer(xxx, int)
 
     //get only
     AML_MP_PLAYER_PARAMETER_GET_BASE        = 0x2000,

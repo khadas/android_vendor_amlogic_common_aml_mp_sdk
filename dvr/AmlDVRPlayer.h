@@ -10,15 +10,20 @@
 #ifndef _AML_DVR_PLAYER_H_
 #define _AML_DVR_PLAYER_H_
 
+#include <system/window.h>
 #include <Aml_MP/Dvr.h>
 #include <utils/RefBase.h>
 #include <utils/AmlMpHandle.h>
 #include <utils/AmlMpUtils.h>
 #include "AmTsPlayer.h"
+namespace android {
+class NativeHandle;
+}
 
 extern "C" int dvr_wrapper_set_playback_secure_buffer (DVR_WrapperPlayback_t playback,  uint8_t *p_secure_buf, uint32_t len);
 
 namespace aml_mp {
+using android::NativeHandle;
 
 class AmlDVRPlayer final : public AmlMpHandle
 {
@@ -40,6 +45,7 @@ public:
     int getVolume(float* volume);
     int setParameter(Aml_MP_PlayerParameterKey key, void* parameter);
     int getParameter(Aml_MP_PlayerParameterKey key, void* parameter);
+    int setANativeWindow(void* nativeWindow);
 
 private:
     char mName[50];
@@ -58,6 +64,8 @@ private:
     int setBasicParams(Aml_MP_DVRPlayerBasicParams* basicParams);
     int setDecryptParams(Aml_MP_DVRPlayerDecryptParams* decryptParams);
     DVR_Result_t eventHandler(DVR_PlaybackEvent_t event, void* params);
+    sp<ANativeWindow> mNativeWindow = nullptr;
+    sp<NativeHandle> mSidebandHandle;
 
 private:
     AmlDVRPlayer(const AmlDVRPlayer&) = delete;

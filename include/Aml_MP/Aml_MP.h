@@ -37,7 +37,7 @@ int Aml_MP_GetDemuxSource(Aml_MP_DemuxId demuxId, Aml_MP_DemuxSource *source);
 //                                  Player                                   //
 ///////////////////////////////////////////////////////////////////////////////
 typedef struct {
-    int                     userId;
+    Aml_MP_ChannelId        channelId;
     Aml_MP_DemuxId          demuxId;
     Aml_MP_InputSourceType  sourceType;
     Aml_MP_InputStreamType  drmMode;

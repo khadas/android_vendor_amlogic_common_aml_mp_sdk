@@ -196,6 +196,8 @@ int Aml_MP_DVRPlayer_GetVolume(AML_MP_DVRPLAYER handle, float* volume);
 int Aml_MP_DVRPlayer_SetParameter(AML_MP_DVRPLAYER handle, Aml_MP_PlayerParameterKey key, void* parameter);
 
 int Aml_MP_DVRPlayer_GetParameter(AML_MP_DVRPLAYER handle, Aml_MP_PlayerParameterKey key, void* parameter);
+
+int Aml_MP_DVRPlayer_SetANativeWindow(AML_MP_DVRPLAYER handle, void* nativeWindow);
 #ifdef __cplusplus
 }
 #endif
