@@ -65,7 +65,7 @@ private:
     size_t mSecureBufferSize = 0;
 
     Aml_MP_PlayerEventCallback mEventCb = nullptr;
-    void* mEventUserData;
+    void* mEventUserData = nullptr;
 
     int setBasicParams(Aml_MP_DVRPlayerBasicParams* basicParams);
     int setDecryptParams(Aml_MP_DVRPlayerDecryptParams* decryptParams);

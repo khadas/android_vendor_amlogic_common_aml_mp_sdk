@@ -331,6 +331,7 @@ int Playback::startIPTVDescrambling()
     Aml_MP_CASParams casParams;
     int ret = 0;
 
+    casParams.type = AML_MP_CAS_UNKNOWN;
     switch (mProgramInfo->caSystemId) {
     case 0x5601:
     {

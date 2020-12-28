@@ -39,6 +39,8 @@ AmlDVRRecorder::AmlDVRRecorder(Aml_MP_DVRRecorderBasicParams* basicParams, Aml_M
     if (encryptParams != nullptr) {
         setEncryptParams(encryptParams);
     }
+
+    memset(&mRecordPids, 0, sizeof(mRecordPids));
 }
 
 AmlDVRRecorder::~AmlDVRRecorder()

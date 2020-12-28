@@ -125,7 +125,7 @@ int Aml_MP_CAS_IsSystemIdSupported(int caSystemId)
     bool ret = false;
 
 #if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
-    return AM_CA_IsSystemIdSupported(caSystemId);
+    ret = AM_CA_IsSystemIdSupported(caSystemId);
 #else
     AML_MP_UNUSED(caSystemId);
 #endif

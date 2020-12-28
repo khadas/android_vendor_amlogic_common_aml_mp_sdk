@@ -116,6 +116,13 @@ aml::ABALANCE_E ctcAudioBalanceConvert(Aml_MP_AudioBalance balance)
 AmlCTCPlayer::AmlCTCPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId)
 : aml_mp::AmlPlayerBase(instanceId)
 {
+    memset(mVideoPara, 0, sizeof(mVideoPara));
+    mVideoPara[0].pid = AML_MP_INVALID_PID;
+    memset(mAudioPara, 0, sizeof(mAudioPara));
+    mAudioPara[0].pid = AML_MP_INVALID_PID;
+    mVideoParaSeted = false;
+    mAudioParaSeted = false;
+    mIsPause = false;
     RETURN_VOID_IF(createParams == nullptr);
 
     aml::CTC_InitialParameter params;
@@ -125,13 +132,7 @@ AmlCTCPlayer::AmlCTCPlayer(Aml_MP_PlayerCreateParams* createParams, int instance
     params.isEsSource = 0; //0:TS source 1:ES source
     params.flags = 0;
     params.extensionSize = 0;
-    memset(mVideoPara, 0, sizeof(mVideoPara));
-    mVideoPara[0].pid = AML_MP_INVALID_PID;
-    memset(mAudioPara, 0, sizeof(mAudioPara));
-    mAudioPara[0].pid = AML_MP_INVALID_PID;
     mCtcPlayer = aml::GetMediaProcessor(&params);
-    mVideoParaSeted = false;
-    mAudioParaSeted = false;
 
     mCtcPlayer->playerback_register_evt_cb([](void* user_data, aml::IPTV_PLAYER_EVT_E event, uint32_t param1, uint32_t param2) {
         static_cast<AmlCTCPlayer*>(user_data)->eventCtcCallback(event,param1,param2);

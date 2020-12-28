@@ -46,7 +46,7 @@ private:
     DVR_WrapperPidsInfo_t mRecordPids;
 
     Aml_MP_DVRRecorderEventCallback mEventCb = nullptr;
-    void* mEventUserData;
+    void* mEventUserData = nullptr;
 
 private:
     AmlDVRRecorder(const AmlDVRRecorder&) = delete;

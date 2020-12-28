@@ -205,7 +205,7 @@ private:
 #ifndef __ANDROID_VNDK__
     android::sp<android::SurfaceComposerClient> mComposerClient;
     android::sp<android::SurfaceControl> mSurfaceControl;
-    android::sp<android::Surface> mSurface;
+    android::sp<android::Surface> mSurface = nullptr;
 #endif
 
 private:

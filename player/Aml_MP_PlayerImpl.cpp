@@ -44,10 +44,12 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
     memset(&mSubtitleParams, 0, sizeof(mSubtitleParams));
     mSubtitleParams.pid = AML_MP_INVALID_PID;
     mSubtitleParams.subtitleCodec = AML_MP_CODEC_UNKNOWN;
+    memset(&mCASParams, 0, sizeof(mCASParams));
     memset(&mADParams, 0, sizeof(mADParams));
     mADParams.pid = AML_MP_INVALID_PID;
 
     mWorkMode = AML_MP_PLAYER_MODE_NORMAL;
+    mAudioBalance = AML_MP_AUDIO_BALANCE_STEREO;
 
     AmlMpConfig::instance().init();
 
@@ -439,13 +441,13 @@ int AmlMpPlayerImpl::setVideoWindow(int x, int y, int width, int height)
         mComposerClient->initCheck();
 
         mSurfaceControl = mComposerClient->createSurface(android::String8("AmlMpPlayer"), width, height, android::PIXEL_FORMAT_RGB_565, 0);
-        mSurfaceControl->isValid();
-        mSurface = mSurfaceControl->getSurface();
-        android::SurfaceComposerClient::Transaction()
-            .setFlags(mSurfaceControl, android::layer_state_t::eLayerOpaque, android::layer_state_t::eLayerOpaque)
-            .show(mSurfaceControl)
-            .apply();
-
+        if (mSurfaceControl->isValid()) {
+            mSurface = mSurfaceControl->getSurface();
+            android::SurfaceComposerClient::Transaction()
+                .setFlags(mSurfaceControl, android::layer_state_t::eLayerOpaque, android::layer_state_t::eLayerOpaque)
+                .show(mSurfaceControl)
+                .apply();
+        }
         mNativeWindow = mSurface;
     }
 

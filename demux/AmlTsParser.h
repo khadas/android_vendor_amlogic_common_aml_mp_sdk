@@ -207,8 +207,8 @@ private:
         }
 
         int mPid;
-        void* channel;
-        void* filter;
+        void* channel = nullptr;
+        void* filter = nullptr;
     };
 
     struct PATSection {
