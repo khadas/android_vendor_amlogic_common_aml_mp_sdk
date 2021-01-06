@@ -36,6 +36,11 @@ typedef enum {
     AML_MP_HW_DEMUX_ID_0            = 0,
     AML_MP_HW_DEMUX_ID_1,
     AML_MP_HW_DEMUX_ID_2,
+    AML_MP_HW_DEMUX_ID_3,
+    AML_MP_HW_DEMUX_ID_4,
+    AML_MP_HW_DEMUX_ID_5,
+    AML_MP_HW_DEMUX_ID_6,
+    AML_MP_HW_DEMUX_ID_7,
     AML_MP_HW_DEMUX_ID_MAX,
     AML_MP_HW_DEMUX_NB              = (AML_MP_HW_DEMUX_ID_MAX - AML_MP_HW_DEMUX_ID_0),
 } Aml_MP_DemuxId;

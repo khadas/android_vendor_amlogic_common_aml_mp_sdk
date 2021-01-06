@@ -99,7 +99,7 @@ public:
 class Parser : public ISourceReceiver
 {
 public:
-    Parser(int programNumber, bool isHardwareSource);
+    Parser(Aml_MP_DemuxId demuxId, int programNumber, bool isHardwareSource);
     ~Parser();
     int open();
     int close();

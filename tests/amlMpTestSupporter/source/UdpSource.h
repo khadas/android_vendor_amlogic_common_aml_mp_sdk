@@ -25,7 +25,7 @@ namespace aml_mp {
 class UdpSource : public Source
 {
 public:
-    UdpSource(const char* address, int programNumber, uint32_t flags);
+    UdpSource(const char* address, Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags);
     ~UdpSource();
 
     virtual int initCheck() override;

@@ -614,7 +614,7 @@ int AmlMpPlayerImpl::startDescrambling()
 
     ALOGI("encrypted stream!");
     if (mCASParams.type == AML_MP_CAS_UNKNOWN) {
-        ALOGE("cas params is invalid!");
+        ALOGE("unknown cas type!");
         return -1;
     }
 

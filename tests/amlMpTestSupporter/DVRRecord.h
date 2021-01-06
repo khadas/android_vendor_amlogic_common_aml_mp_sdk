@@ -15,15 +15,31 @@ namespace aml_mp {
 class DVRRecord : public TestModule, public ISourceReceiver
 {
 public:
-    DVRRecord();
+    DVRRecord(bool cryptoMode, Aml_MP_DemuxId demuxId, const sptr<ProgramInfo>& programInfo);
     ~DVRRecord();
 
     int start();
     int stop();
+    void signalQuit();
 
 protected:
     virtual const Command* getCommandTable() const override;
     virtual void* getCommandHandle() const override;
+
+private:
+    int initDVREncryptRecord(Aml_MP_DVRRecorderEncryptParams& encryptParams);
+    int uninitDVREncryptRecord();
+
+private:
+    const bool mCryptoMode;
+    const Aml_MP_DemuxId mDemuxId;
+    const sptr<ProgramInfo> mProgramInfo;
+    AML_MP_DVRRECORDER mRecorder = AML_MP_INVALID_HANDLE;
+    Aml_MP_DVRRecorderEventCallback mEventCallback = nullptr;
+    void* mUserData = nullptr;
+
+    AML_MP_CASSESSION mCasSession = nullptr;
+    AML_MP_SECMEM mSecMem = nullptr;
 
 private:
     DVRRecord(const DVRRecord&) = delete;

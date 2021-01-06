@@ -21,6 +21,7 @@ sptr<Source> Source::create(const char* url)
 {
     char proto[10]{};
     char address[100]{};
+    Aml_MP_DemuxId demuxId = AML_MP_HW_DEMUX_ID_0;
     int programNumber = -1;
 
     const char* p = nullptr;
@@ -34,23 +35,51 @@ sptr<Source> Source::create(const char* url)
 
     const char* p2 = strrchr(p, '?');
     if (p2 != nullptr) {
-        programNumber = strtol(p2+1, nullptr, 0);
         strncpy(address, p, p2 - p);
+
+        std::string arguments(p2+1);
+        std::string::size_type pos = 0, prev = 0, equal = 0;
+        std::string key, value;
+        while (pos != std::string::npos) {
+            pos = arguments.find_first_of('&', prev);
+            if (pos != std::string::npos) {
+                equal = arguments.find_first_of('=', prev);
+                //ALOGI("pos:%d, equal:%d prev:%d", pos, equal, prev);
+                key = arguments.substr(prev, equal-prev);
+                value = arguments.substr(equal+1, pos-equal-1);
+
+                prev = pos+1;
+            } else {
+                equal = arguments.find_first_of('=', prev);
+                key = arguments.substr(prev, equal-prev);
+                value = arguments.substr(equal+1);
+            }
+
+            ALOGI("key[%s], value[%s]", key.c_str(), value.c_str());
+            if (key == "demuxid") {
+                demuxId = (Aml_MP_DemuxId)std::stoi(value);
+            } else if (key == "program") {
+                programNumber = std::stoi(value);
+            }
+        }
     } else {
         strncpy(address, p, sizeof(address)-1);
     }
 
-    ALOGV("proto:%s, address:%s, programNumber:%d", proto, address, programNumber);
+    ALOGV("proto:%s, address:%s, programNumber:%d, demuxId:%d", proto, address, programNumber, demuxId);
 
     bool isUdpSource = false;
     bool isDvbSource = false;
     bool isFileSource = false;
+    bool isDVRSource = false;
     if (!strcmp(proto, "udp") || !strcmp(proto, "igmp")) {
         isUdpSource = true;
     } else if (!strncmp(proto, "dvb", 3)) {
         isDvbSource = true;
     } else if (!strncmp(proto, "file", 4)) {
         isFileSource = true;
+    } else if (!strncmp(proto, "dvr", 3)) {
+        isDVRSource = true;
     } else {
         ALOGE("unsupported proto:%s\n", proto);
         return nullptr;
@@ -60,20 +89,24 @@ sptr<Source> Source::create(const char* url)
     sptr<Source> source = nullptr;
     if (isUdpSource) {
         flags |= Source::kIsMemorySource;
-        source = new UdpSource(address, programNumber, flags);
+        source = new UdpSource(address, demuxId, programNumber, flags);
     } else if (isDvbSource) {
         flags |= Source::kIsHardwareSource;
-        source = new DvbSource(proto, address, programNumber, flags);
+        source = new DvbSource(proto, address, demuxId, programNumber, flags);
     } else if (isFileSource) {
         flags |= Source::kIsMemorySource;
-        source = new FileSource(address, programNumber, flags);
+        source = new FileSource(address, demuxId, programNumber, flags);
+    } else if (isDVRSource) {
+        flags |= Source::kIsDVRSource;
+        source = new DVRSource(demuxId, programNumber, flags);
     }
 
     return  source;
 }
 
-Source::Source(int programNumber, uint32_t flags)
-: mProgramNumber(programNumber)
+Source::Source(Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags)
+: mDemuxId(demuxId)
+, mProgramNumber(programNumber)
 , mFlags(flags)
 {
 

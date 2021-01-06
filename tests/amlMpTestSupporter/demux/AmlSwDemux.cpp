@@ -7,7 +7,7 @@
  * Description:
  */
 
-#define LOG_TAG "AmlSwDemux"
+#define LOG_TAG "AmlMpPlayerDemo_AmlSwDemux"
 #include <utils/Log.h>
 #include "AmlSwDemux.h"
 #include <utils/AmlMpUtils.h>
@@ -150,8 +150,6 @@ int AmlSwDemux::open(bool isHardwareSource, Aml_MP_DemuxId demuxId)
     if (isHardwareSource) {
         ALOGE("swdemux don't support hw source!!!");
         return -1;
-    } else {
-        Aml_MP_SetDemuxSource(demuxId, AML_MP_DEMUX_SOURCE_DMA0);
     }
 
     if (mTsParser == nullptr) {

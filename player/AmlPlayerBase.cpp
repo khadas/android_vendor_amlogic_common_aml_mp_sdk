@@ -28,7 +28,6 @@ namespace aml_mp {
 sptr<AmlPlayerBase> AmlPlayerBase::create(Aml_MP_PlayerCreateParams* createParams, int instanceId)
 {
     sptr<AmlPlayerBase> player;
-    int mUseCtc = AmlMpConfig::instance().mCtcDebug;
 
     if (createParams->channelId == AML_MP_CHANNEL_ID_MAIN ||
         !AmlMpPlayerRoster::instance().isAmTsPlayerExist() ||

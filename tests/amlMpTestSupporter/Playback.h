@@ -34,6 +34,8 @@ public:
     void signalQuit();
     virtual int writeData(const uint8_t* buffer, size_t size) override;
     int setSubtitleDisplayWindow(int x, int y, int width, int height);
+    int setVideoWindow(int x, int y, int width, int height);
+    int setParameter(Aml_MP_PlayerParameterKey key, void* parameter);
 
 protected:
     const Command* getCommandTable() const override;
@@ -60,6 +62,7 @@ private:
     bool mIsDVBSource = false;
 
     AML_MP_CASSESSION mCasSession = nullptr;
+    AML_MP_SECMEM mSecMem = nullptr;
 
     PlayMode mPlayMode = PlayMode::START_ALL_STOP_ALL;
 

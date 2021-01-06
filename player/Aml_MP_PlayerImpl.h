@@ -149,7 +149,7 @@ private:
     Aml_MP_AudioParams mAudioParams;
     Aml_MP_SubtitleParams mSubtitleParams;
     WindowSize mSubtitleWindow;
-    Aml_MP_CASParams mCASParams;
+    Aml_MP_CASParams mCASParams{};
     Aml_MP_AudioParams mADParams;
 
     Aml_MP_AudioBalance mAudioBalance;

@@ -11,6 +11,7 @@
 #include "TestModule.h"
 #include <system/window.h>
 #include <Aml_MP/Aml_MP.h>
+#include <utils/RefBase.h>
 
 namespace aml_mp {
 
@@ -18,18 +19,34 @@ namespace aml_mp {
 class DVRPlayback : public TestModule, public ISourceReceiver
 {
 public:
-    DVRPlayback(Aml_MP_DemuxId demuxId, const sptr<ProgramInfo>& programInfo);
+    DVRPlayback(const std::string& url, bool cryptoMode, Aml_MP_DemuxId demuxId);
     ~DVRPlayback();
-    void setANativeWindow(const sptr<ANativeWindow>& window);
+
+    void setANativeWindow(const android::sp<ANativeWindow>& window);
     void registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData);
     int start();
     int stop();
     void signalQuit();
-    virtual int writeData(const uint8_t* buffer, size_t size) override;
 
 protected:
     virtual const Command* getCommandTable() const override;
     virtual void* getCommandHandle() const override;
+
+private:
+    std::string stripUrlIfNeeded(const std::string& url) const;
+    int initDVRDecryptPlayback(Aml_MP_DVRPlayerDecryptParams& decryptParams);
+    int uninitDVRDecryptPlayback();
+
+private:
+    const std::string mUrl;
+    const bool mCryptoMode;
+    Aml_MP_DemuxId mDemuxId;
+    AML_MP_DVRPLAYER mPlayer = AML_MP_INVALID_HANDLE;
+    Aml_MP_PlayerEventCallback mEventCallback = nullptr;
+    void* mUserData = nullptr;
+
+    AML_MP_CASSESSION mCasSession = nullptr;
+    AML_MP_SECMEM mSecMem = nullptr;
 
 private:
     DVRPlayback(const DVRPlayback&) = delete;

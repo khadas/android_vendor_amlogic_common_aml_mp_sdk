@@ -53,14 +53,14 @@ static void getDefaultDeliveryConf(dmd_device_type_t type, dmd_delivery_t* deliv
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-DvbSource::DvbSource(const char* proto, const char* address, int programNumber, uint32_t flags)
-: Source(programNumber, flags)
+DvbSource::DvbSource(const char* proto, const char* address, Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags)
+: Source(demuxId, programNumber, flags)
 , mProto(proto)
 , mAddress(address)
 , mDeviceType((dmd_device_type_t)0)
 , mDelivery{}
 {
-    ALOGI("proto:%s, address:%s, programNumber:%d", proto, address, programNumber);
+    ALOGI("proto:%s, address:%s, demuxId:%d, programNumber:%d", proto, address, demuxId, programNumber);
 }
 
 DvbSource::~DvbSource()
@@ -77,15 +77,12 @@ int DvbSource::initCheck()
 
     mDeviceType = getDeviceType(mProto.c_str());
 
-    mDemuxId = std::stoi(mAddress);
-    ALOGI("demuxId = %d\n", mDemuxId);
+    mFreq = std::stod(mAddress);
+    ALOGI("mFreq = %.2f\n", mFreq);
 
-    if (mDemuxId < AML_MP_HW_DEMUX_ID_0 || mDemuxId >= AML_MP_HW_DEMUX_ID_MAX) {
-        ALOGE("invalid demux id!");
-        return -1;
-    }
+    int fendIndex = 0;
 
-    if (openFend(mDemuxId) < 0) {
+    if (openFend(fendIndex) < 0) {
         ALOGE("openFend failed!\n");
         return -1;
     }
@@ -96,6 +93,20 @@ int DvbSource::initCheck()
 int DvbSource::start()
 {
     getDefaultDeliveryConf(mDeviceType, &mDelivery);
+
+    switch (mDeviceType) {
+    case DMD_TERRESTRIAL:
+        mDelivery.delivery.terrestrial.desc.dvbt.frequency = mFreq * 1000;
+        break;
+
+    case DMD_CABLE:
+        mDelivery.delivery.cable.frequency = mFreq*1000;
+        break;
+
+    case DMD_SATELLITE:
+        mDelivery.delivery.satellite.frequency = mFreq*1000;
+        break;
+    }
 
     DvbLockHandler lockHandler = getProtoHandler(mProto.c_str());
     int ret = lockHandler(mFendFd, &mDelivery);

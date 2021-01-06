@@ -71,8 +71,9 @@ static const struct StreamType* getStreamTypeInfo(int esStreamType, const Stream
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Parser::Parser(int programNumber, bool isHardwareSource)
-: mProgramNumber(programNumber)
+Parser::Parser(Aml_MP_DemuxId demuxId, int programNumber, bool isHardwareSource)
+: mDemuxId(demuxId)
+, mProgramNumber(programNumber)
 , mIsHardwareSource(isHardwareSource)
 , mProgramInfo(new ProgramInfo)
 {

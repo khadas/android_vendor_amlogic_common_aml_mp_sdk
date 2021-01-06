@@ -7,7 +7,7 @@
  * Description:
  */
 
-#define LOG_TAG "TestUtils"
+#define LOG_TAG "AmlMpPlayerDemo_TestUtils"
 #include <utils/Log.h>
 #include "TestUtils.h"
 #include <signal.h>
@@ -136,11 +136,13 @@ void NativeUI::controlSurface(int left, int top, int right, int bottom)
 #endif
 }
 
-int NativeUI::getSurfaceWidth() {
+int NativeUI::getDefaultSurfaceWidth() const
+{
     return mSurfaceWidth;
 }
 
-int NativeUI::getSurfaceHeight() {
+int NativeUI::getDefaultSurfaceHeight() const
+{
     return mSurfaceHeight;
 }
 

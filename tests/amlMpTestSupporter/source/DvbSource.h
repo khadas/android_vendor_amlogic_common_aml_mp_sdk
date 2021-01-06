@@ -22,7 +22,7 @@ namespace aml_mp {
 class DvbSource : public Source
 {
 public:
-    DvbSource(const char* proto, const char* address, int programNumber, uint32_t flags);
+    DvbSource(const char* proto, const char* address, Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags);
     ~DvbSource();
 
     virtual int initCheck() override;
@@ -46,7 +46,7 @@ private:
     std::string mAddress;
     dmd_device_type_t mDeviceType;
     dmd_delivery_t mDelivery;
-    int mDemuxId = -1;
+    double mFreq = 474;
 
 	int mFendFd = -1;
 

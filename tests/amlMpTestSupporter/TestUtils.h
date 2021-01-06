@@ -24,6 +24,8 @@
 namespace aml_mp {
 using android::sp;
 
+#define AML_MP_TEST_SUPPORTER_RECORD_FILE   "/data/amlMpRecordFile"
+
 struct NativeUI : android::RefBase
 {
     NativeUI();
@@ -31,8 +33,8 @@ struct NativeUI : android::RefBase
     sp<ANativeWindow> getNativeWindow() const;
     void controlSurface(int zorder);
     void controlSurface(int left, int top, int right, int bottom);
-    int getSurfaceWidth();
-    int getSurfaceHeight();
+    int getDefaultSurfaceWidth() const;
+    int getDefaultSurfaceHeight() const;
 
 private:
 #ifndef __ANDROID_VNDK__

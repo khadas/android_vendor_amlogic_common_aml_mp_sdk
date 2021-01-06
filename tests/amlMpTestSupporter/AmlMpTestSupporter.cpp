@@ -8,7 +8,7 @@
  */
 
 #define LOG_NDEBUG 0
-#define LOG_TAG "AmlMpTestSupporter"
+#define LOG_TAG "AmlMpPlayerDemo_TestSupporter"
 #include <utils/Log.h>
 #include "AmlMpTestSupporter.h"
 #include "TestUtils.h"
@@ -16,6 +16,10 @@
 #include "source/Source.h"
 #include "Parser.h"
 #include "Playback.h"
+#include "DVRRecord.h"
+#include "DVRPlayback.h"
+
+#define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 
 namespace aml_mp {
 using namespace android;
@@ -43,9 +47,11 @@ int AmlMpTestSupporter::setDataSource(const std::string& url)
     return 0;
 }
 
-int AmlMpTestSupporter::prepare()
+int AmlMpTestSupporter::prepare(bool cryptoMode)
 {
     int ret = 0;
+
+    mCryptoMode = cryptoMode;
 
     mSource = Source::create(mUrl.c_str());
     if (mSource == nullptr) {
@@ -59,8 +65,25 @@ int AmlMpTestSupporter::prepare()
         return -1;
     }
 
+    Aml_MP_DemuxId demuxId = mSource->getDemuxId();
     int programNumber = mSource->getProgramNumber();
-    mParser = new Parser(programNumber, mSource->getFlags()&Source::kIsHardwareSource);
+
+    Aml_MP_Initialize();
+
+    //set default demux source
+    if (mSource->getFlags()&Source::kIsHardwareSource) {
+        Aml_MP_SetDemuxSource(demuxId, AML_MP_DEMUX_SOURCE_TS0);
+    } else {
+        Aml_MP_SetDemuxSource(demuxId, AML_MP_DEMUX_SOURCE_DMA0);
+    }
+
+    if (mSource->getFlags()&Source::kIsDVRSource) {
+        mIsDVRPlayback = true;
+        ALOGI("dvr playback");
+        return 0;
+    }
+
+    mParser = new Parser(demuxId, programNumber, mSource->getFlags()&Source::kIsHardwareSource);
     if (mParser == nullptr) {
         ALOGE("create parser failed!");
         return -1;
@@ -80,6 +103,7 @@ int AmlMpTestSupporter::prepare()
         return -1;
     }
 
+    ALOGI("parsing...");
     ret = mParser->wait();
     if (ret < 0) {
         ALOGE("parser wait failed!");
@@ -97,7 +121,12 @@ int AmlMpTestSupporter::prepare()
 
 int AmlMpTestSupporter::startPlay(PlayMode playMode)
 {
+    int ret = 0;
     mPlayMode = playMode;
+
+    if (mIsDVRPlayback) {
+        return startDVRPlayback();
+    }
 
     mSource->removeSourceReceiver(mParser);
     mSource->restart();
@@ -109,15 +138,6 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
         sourceType = AML_MP_INPUT_SOURCE_TS_DEMOD;
     }
 
-    if (startPlayback(demuxId, sourceType) < 0) {
-        return -1;
-    }
-
-    return 0;
-}
-
-int AmlMpTestSupporter::startPlayback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType)
-{
     mTestModule = mPlayback = new Playback(demuxId, sourceType, mProgramInfo);
 
     if (mEventCallback != nullptr) {
@@ -125,34 +145,118 @@ int AmlMpTestSupporter::startPlayback(Aml_MP_DemuxId demuxId, Aml_MP_InputSource
     }
 
     mNativeUI = new NativeUI();
-    int width = mNativeUI->getSurfaceWidth();
-    int height = mNativeUI->getSurfaceHeight();
-    int ret = mPlayback->setSubtitleDisplayWindow(width, 0, width, height);
-    sp<ANativeWindow> window = mNativeUI->getNativeWindow();
-    if (window == nullptr) {
-        ALOGE("create native window failed!");
-        return -1;
+    if (mDisplayParam.width < 0) {
+        mDisplayParam.width = mNativeUI->getDefaultSurfaceWidth();
     }
 
-    mPlayback->setANativeWindow(window);
+    if (mDisplayParam.height < 0) {
+        mDisplayParam.height = mNativeUI->getDefaultSurfaceHeight();
+    }
+
+    ret = mPlayback->setSubtitleDisplayWindow(mDisplayParam.width, 0, mDisplayParam.width, mDisplayParam.height);
+
+    if (!mDisplayParam.videoMode) {
+        mNativeUI->controlSurface(
+                mDisplayParam.x,
+                mDisplayParam.y,
+                mDisplayParam.x + mDisplayParam.width,
+                mDisplayParam.y + mDisplayParam.height);
+        mNativeUI->controlSurface(mDisplayParam.zorder);
+        sp<ANativeWindow> window = mNativeUI->getNativeWindow();
+        if (window == nullptr) {
+            ALOGE("create native window failed!");
+            return -1;
+        }
+
+        mPlayback->setANativeWindow(window);
+    } else {
+        mPlayback->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER, &mDisplayParam.zorder);
+        mPlayback->setVideoWindow(mDisplayParam.x, mDisplayParam.y, mDisplayParam.width, mDisplayParam.height);
+    }
+
     ret = mPlayback->start(mPlayMode);
     if (ret < 0) {
         ALOGE("playback start failed!");
         return -1;
     }
 
-    //parser->linkNextReceiver(playback);
     mSource->addSourceReceiver(mPlayback);
+    return 0;
+}
+
+int AmlMpTestSupporter::startRecord()
+{
+    mSource->removeSourceReceiver(mParser);
+    mSource->restart();
+
+    Aml_MP_DemuxId demuxId = mParser->getDemuxId();
+    mTestModule = mRecorder = new DVRRecord(mCryptoMode, demuxId, mProgramInfo);
+
+    int ret = mRecorder->start();
+    if (ret < 0) {
+        ALOGE("start recorder failed!");
+        return -1;
+    }
+
+    mSource->addSourceReceiver(mRecorder);
+    return 0;
+}
+
+int AmlMpTestSupporter::startDVRPlayback()
+{
+    MLOG();
+    int ret = 0;
+
+    Aml_MP_DemuxId demuxId = mSource->getDemuxId();
+    mTestModule = mDVRPlayback = new DVRPlayback(mUrl, mCryptoMode, demuxId);
+
+    if (mEventCallback != nullptr) {
+        mDVRPlayback->registerEventCallback(mEventCallback, mUserData);
+    }
+
+    mNativeUI = new NativeUI();
+    if (mDisplayParam.width < 0) {
+        mDisplayParam.width = mNativeUI->getDefaultSurfaceWidth();
+    }
+
+    if (mDisplayParam.height < 0) {
+        mDisplayParam.height = mNativeUI->getDefaultSurfaceHeight();
+    }
+
+    mNativeUI->controlSurface(
+            mDisplayParam.x,
+            mDisplayParam.y,
+            mDisplayParam.x + mDisplayParam.width,
+            mDisplayParam.y + mDisplayParam.height);
+    mNativeUI->controlSurface(mDisplayParam.zorder);
+    sp<ANativeWindow> window = mNativeUI->getNativeWindow();
+    if (window == nullptr) {
+        ALOGE("create native window failed!");
+        return -1;
+    }
+
+    mDVRPlayback->setANativeWindow(window);
+
+    ret = mDVRPlayback->start();
+    if (ret < 0) {
+        ALOGE("DVR playback start failed!");
+        return -1;
+    }
 
     return 0;
 }
 
 int AmlMpTestSupporter::stop()
 {
+    ALOGI("stopping...");
+
     if (mSource != nullptr) mSource->stop();
     if (mParser != nullptr) mParser->close();
     if (mPlayback != nullptr) mPlayback->stop();
+    if (mRecorder != nullptr) mRecorder->stop();
+    if (mDVRPlayback != nullptr) mDVRPlayback->stop();
 
+    ALOGI("stop end!");
     return 0;
 }
 
@@ -262,13 +366,20 @@ bool AmlMpTestSupporter::processCommand(const std::vector<std::string>& args)
 
 void AmlMpTestSupporter::signalQuit()
 {
-    ALOGI("%s", __FUNCTION__);
+    ALOGI("received SIGINT, %s", __FUNCTION__);
 
     mQuitPending = true;
 
     if (mSource) mSource->signalQuit();
     if (mParser) mParser->signalQuit();
     if (mPlayback) mPlayback->signalQuit();
+}
+
+void AmlMpTestSupporter::setDisplayParam(const DisplayParam& param)
+{
+    mDisplayParam = param;
+    ALOGI("x:%d, y:%d, width:%d, height:%d, zorder:%d, videoMode:%d",
+            mDisplayParam.x, mDisplayParam.y, mDisplayParam.width, mDisplayParam.height, mDisplayParam.zorder, mDisplayParam.videoMode);
 }
 
 }

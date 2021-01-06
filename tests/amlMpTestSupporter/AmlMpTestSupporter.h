@@ -23,6 +23,8 @@ class Source;
 class Parser;
 class TestModule;
 class Playback;
+class DVRRecord;
+class DVRPlayback;
 struct ProgramInfo;
 
 struct NativeUI;
@@ -42,23 +44,34 @@ public:
         PLAY_MODE_MAX,
     };
 
+    struct DisplayParam {
+        int x                   = 0;
+        int y                   = 0;
+        int width               = -1;
+        int height              = -1;
+        int zorder              = 0;
+        int videoMode           = 0;
+    };
+
     AmlMpTestSupporter();
     ~AmlMpTestSupporter();
     void registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData);
     int setDataSource(const std::string& url);
-    int prepare();
+    int prepare(bool cryptoMode = false);
+    void setDisplayParam(const DisplayParam& displayParam);
     int startPlay(PlayMode playMode = START_ALL_STOP_ALL);
+    int startRecord();
     int stop();
+
     bool hasVideo() const;
 
     int installSignalHandler();
     int fetchAndProcessCommands();
 
 private:
+    int startDVRPlayback();
     bool processCommand(const std::vector<std::string>& args);
     void signalQuit();
-
-    int startPlayback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType);
 
     std::string mUrl;
     sptr<Source> mSource;
@@ -68,8 +81,13 @@ private:
     sptr<TestModule> mTestModule;
 
     sptr<Playback> mPlayback;
+    sptr<DVRRecord> mRecorder;
+    sptr<DVRPlayback> mDVRPlayback;
     Aml_MP_PlayerEventCallback mEventCallback = nullptr;
     void* mUserData = nullptr;
+
+    bool mIsDVRPlayback = false;
+    bool mCryptoMode = false;
 
     sptr<NativeUI> mNativeUI;
     std::thread mSignalHandleThread;
@@ -78,6 +96,8 @@ private:
     bool mQuitPending = false;
 
     PlayMode mPlayMode = START_ALL_STOP_ALL;
+
+    DisplayParam mDisplayParam;
 
     AmlMpTestSupporter(const AmlMpTestSupporter&) = delete;
     AmlMpTestSupporter& operator=(const AmlMpTestSupporter&) = delete;

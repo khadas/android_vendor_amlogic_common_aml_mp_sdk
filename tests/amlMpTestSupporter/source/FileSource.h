@@ -19,7 +19,7 @@ namespace aml_mp {
 class FileSource : public Source
 {
 public:
-    FileSource(const char* address, int programNumber, uint32_t flags);
+    FileSource(const char* address, Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags);
     ~FileSource();
 
     virtual int initCheck() override;

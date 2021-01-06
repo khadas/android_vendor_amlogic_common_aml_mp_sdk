@@ -44,7 +44,7 @@ protected:
         return ss.str();
     }
 
-    sptr<AmlMpTestSupporter> mpPlayer;
+    sptr<AmlMpTestSupporter> mpTestSupporter;
 
 protected:
     std::mutex mLock;
@@ -57,23 +57,23 @@ void AmlMpPlayerTest::startPlaying(const std::string& url)
 {
     ALOGI("url:%s", url.c_str());
 
-    mpPlayer = new AmlMpTestSupporter;
-    mpPlayer->registerEventCallback([](void* userData, Aml_MP_PlayerEventType event, int64_t param) {
+    mpTestSupporter = new AmlMpTestSupporter;
+    mpTestSupporter->registerEventCallback([](void* userData, Aml_MP_PlayerEventType event, int64_t param) {
         AmlMpPlayerTest* self = (AmlMpPlayerTest*)userData;
         return self->eventCallback(event, param);
     }, this);
-    mpPlayer->setDataSource(url);
-    int ret = mpPlayer->prepare();
+    mpTestSupporter->setDataSource(url);
+    int ret = mpTestSupporter->prepare();
     ASSERT_EQ(ret, 0) << defaultFailureMessage(url);
 
-    mpPlayer->startPlay();
+    mpTestSupporter->startPlay();
 }
 
 void AmlMpPlayerTest::stopPlaying()
 {
-    mpPlayer->stop();
+    mpTestSupporter->stop();
 
-    mpPlayer.clear();
+    mpTestSupporter.clear();
     mFirstVFrameDisplayed = false;
     mPlayingHaveErrors = false;
 }
@@ -113,7 +113,7 @@ TEST_F(AmlMpPlayerTest, BasicPlaying)
 
     for (auto& url : urls) {
         startPlaying(url);
-        if (mpPlayer->hasVideo()) {
+        if (mpTestSupporter->hasVideo()) {
             ASSERT_TRUE(waitFirstVFrameEvent()) << defaultFailureMessage(url);
         }
         ASSERT_FALSE(waitPlayingErrors());

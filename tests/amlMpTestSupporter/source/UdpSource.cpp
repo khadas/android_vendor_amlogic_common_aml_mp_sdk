@@ -23,8 +23,8 @@
 
 namespace aml_mp {
 
-UdpSource::UdpSource(const char* address, int programNumber, uint32_t flags)
-: Source(programNumber, flags)
+UdpSource::UdpSource(const char* address, Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags)
+: Source(demuxId, programNumber, flags)
 , mAddress(address)
 , mFifo(UDP_FIFO_SIZE)
 {
@@ -98,8 +98,8 @@ int UdpSource::start()
         return -1;
     }
 
-#if 0
-    int bufferSize = 65536;
+#if 1
+    int bufferSize = 1 * 1024 * 1024;
     ret = setsockopt(mSocket, SOL_SOCKET, SO_RCVBUF, &bufferSize, sizeof(bufferSize));
     if (ret < 0) {
         ALOGE("set recvbuf failed! %s", strerror(errno));

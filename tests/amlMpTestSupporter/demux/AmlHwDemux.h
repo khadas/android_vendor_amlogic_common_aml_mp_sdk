@@ -42,7 +42,7 @@ private:
     sptr<Looper> mLooper;
     sptr<HwTsParser> mTsParser;
 
-    std::atomic<bool> mStopped;
+    std::atomic<bool> mStopped{};
 
 private:
     AmlHwDemux(const AmlHwDemux&) = delete;

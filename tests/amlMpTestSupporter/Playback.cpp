@@ -33,7 +33,7 @@ Playback::Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, co
     createParams.drmMode = programInfo->scrambled ? AML_MP_INPUT_STREAM_ENCRYPTED : AML_MP_INPUT_STREAM_NORMAL;
     int ret = Aml_MP_Player_Create(&createParams, &mPlayer);
     if (ret < 0) {
-        ALOGE("craete player failed!");
+        ALOGE("create player failed!");
         return;
     }
 }
@@ -56,8 +56,22 @@ int Playback::setSubtitleDisplayWindow(int x, int y, int width, int height) {
     return ret;
 }
 
+int Playback::setVideoWindow(int x, int y, int width, int height)
+{
+    ALOGI("setVideoWindow, x:%d, y: %d, width: %d, height: %d", x, y, width, height);
+    int ret = Aml_MP_Player_SetVideoWindow(mPlayer, x, y,width, height);
+    return ret;
+}
+
+int Playback::setParameter(Aml_MP_PlayerParameterKey key, void* parameter)
+{
+    int ret = Aml_MP_Player_SetParameter(mPlayer, key, parameter);
+    return ret;
+}
+
 void Playback::setANativeWindow(const android::sp<ANativeWindow>& window)
 {
+    ALOGI("setANativeWindow");
     Aml_MP_Player_SetANativeWindow(mPlayer, window.get());
 }
 
@@ -249,12 +263,12 @@ int Playback::startDVBDescrambling()
 
     Aml_MP_CAS_Initialize();
 
+    Aml_MP_CAS_SetEmmPid(mDemuxId, mProgramInfo->emmPid);
+
     if (!Aml_MP_CAS_IsSystemIdSupported(mProgramInfo->caSystemId)) {
         ALOGE("unsupported caSystemId:%#x", mProgramInfo->caSystemId);
         return -1;
     }
-
-    Aml_MP_CAS_SetEmmPid(mDemuxId, mProgramInfo->emmPid);
 
     int ret = Aml_MP_CAS_OpenSession(&mCasSession, AML_MP_CAS_SERVICE_LIVE_PLAY);
     if (ret < 0) {
@@ -283,16 +297,24 @@ int Playback::startDVBDescrambling()
         return ret;
     }
 
+    mSecMem = Aml_MP_CAS_CreateSecmem(mCasSession, AML_MP_CAS_SERVICE_LIVE_PLAY, nullptr, nullptr);
+    if (mSecMem == nullptr) {
+        ALOGE("create secmem failed!");
+    }
+
     return 0;
 }
 
 int Playback::stopDVBDescrambling()
 {
-    MLOG();
+    MLOG("mCasSession:%p", mCasSession);
 
     if (mCasSession == nullptr) {
         return 0;
     }
+
+    Aml_MP_CAS_DestroySecmem(mCasSession, mSecMem);
+    mSecMem = nullptr;
 
     Aml_MP_CAS_StopDescrambling(mCasSession);
 
@@ -425,9 +447,7 @@ static struct TestModule::Command g_commandTable[] = {
             return ret;
         }
     },
-/*
- * TODO: set Volume not work. But can read value with get function
- */
+
     {
         "sVolume", 0, "set volume",
         [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
@@ -486,8 +506,23 @@ static struct TestModule::Command g_commandTable[] = {
             width = stoi(args[3]);
             height = stoi(args[4]);
             int ret = Aml_MP_Player_SetVideoWindow(player, x, y,width, height);
-            //ret += Aml_MP_Player_SetSubtitleWindow(player, x, y,width, height);
             printf("set x: %d, y: %d, width: %d, height: %d, ret: %d\n", x, y, width, height, ret);
+            return ret;
+        }
+    },
+
+    {
+        "sZorder", 0, "set zorder",
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
+            int32_t zorder;
+            if (args.size() != 2) {
+                printf("Input example: sZorder zorder\n");
+                return -1;
+            }
+            printf("String input zorder: %s\n", args[1].data());
+            zorder = stoi(args[1]);
+            int ret = Aml_MP_Player_SetParameter(player, AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER, &zorder);
+            printf("set zorder: %d, ret: %d\n", zorder, ret);
             return ret;
         }
     },
@@ -541,6 +576,24 @@ static struct TestModule::Command g_commandTable[] = {
         [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             int ret = Aml_MP_Player_SetAVSyncSource(player, AML_MP_AVSYNC_SOURCE_PCR);
             printf("set sync mode: %d, ret: %d\n", AML_MP_AVSYNC_SOURCE_PCR, ret);
+            return ret;
+        }
+    },
+
+    {
+        "Stop", 0, "call stop",
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
+            int ret = Aml_MP_Player_Stop(player);
+            printf("call stop ret: %d\n", ret);
+            return ret;
+        }
+    },
+
+    {
+        "Destory", 0, "call destroy",
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
+            int ret = Aml_MP_Player_Destroy(player);
+            printf("call destroy ret: %d\n", ret);
             return ret;
         }
     },

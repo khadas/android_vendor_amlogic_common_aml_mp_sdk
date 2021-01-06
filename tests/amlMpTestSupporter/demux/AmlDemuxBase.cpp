@@ -7,7 +7,7 @@
  * Description:
  */
 
-#define LOG_TAG "AmlDemuxBase"
+#define LOG_TAG "AmlMpPlayerDemo_AmlDemuxBase"
 #include <utils/Log.h>
 #include "AmlDemuxBase.h"
 #include "AmlHwDemux.h"

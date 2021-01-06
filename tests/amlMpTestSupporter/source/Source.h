@@ -12,6 +12,7 @@
 
 #include <utils/AmlMpRefBase.h>
 #include <mutex>
+#include <Aml_MP/Common.h>
 
 namespace aml_mp {
 struct ISourceReceiver : virtual public AmlMpRefBase {
@@ -37,6 +38,7 @@ public:
     enum Flags : uint32_t {
         kIsMemorySource         = 1 << 0,
         kIsHardwareSource       = 1 << 1,
+        kIsDVRSource            = 1 << 2,
     };
 
     static sptr<Source> create(const char* url);
@@ -50,6 +52,10 @@ public:
     }
 
     virtual void signalQuit() = 0;
+
+    Aml_MP_DemuxId getDemuxId() const {
+        return mDemuxId;
+    }
 
     int getProgramNumber() const {
         return mProgramNumber;
@@ -78,16 +84,33 @@ public:
     }
 
 protected:
-    Source(int programNumber, uint32_t flags);
+    Source(Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags);
+    Aml_MP_DemuxId mDemuxId = AML_MP_HW_DEMUX_ID_0;
     int mProgramNumber;
     uint32_t mFlags;
 
 private:
+    void parseArguments(const std::string& argument, int* demuxId, int* programNumber);
     mutable std::mutex mLock;
     sptr<ISourceReceiver> mReceiver;
 
     Source(const Source&) = delete;
     Source& operator=(const Source&) = delete;
+};
+
+class DVRSource : public Source {
+public:
+    DVRSource(Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags)
+    : Source(demuxId, programNumber, flags) {}
+    ~DVRSource() {}
+    int initCheck() {return 0;}
+    int start() {return 0;}
+    int stop() { return 0; }
+    void signalQuit() {}
+
+private:
+    DVRSource(const DVRSource&) = delete;
+    DVRSource& operator=(const DVRSource&) = delete;
 };
 
 

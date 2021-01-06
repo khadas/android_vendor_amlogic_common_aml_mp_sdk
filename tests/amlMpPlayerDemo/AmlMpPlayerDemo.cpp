@@ -13,17 +13,22 @@
 #include <AmlMpTestSupporter.h>
 #include <unistd.h>
 #include <getopt.h>
+#include "TestUtils.h"
 
 using namespace aml_mp;
 
 struct Argument
 {
     std::string url;
-    int x;
-    int y;
-    int viewWidth;
-    int viewHeight;
-    int playMode;
+    int x = 0;
+    int y = 0;
+    int viewWidth = -1;
+    int viewHeight = -1;
+    int playMode = 0;
+    int videoMode = 0;
+    int zorder = 0;
+    int record = 0;
+    int crypto = 0;
 };
 
 static int parseCommandArgs(int argc, char* argv[], Argument* argument)
@@ -33,6 +38,10 @@ static int parseCommandArgs(int argc, char* argv[], Argument* argument)
         {"size",        required_argument,  nullptr, 's'},
         {"pos",         required_argument,  nullptr, 'p'},
         {"playmode",    required_argument,  nullptr, 'm'},
+        {"zorder",      required_argument,  nullptr, 'z'},
+        {"videomode",   required_argument,  nullptr, 'v'},
+        {"record",      no_argument,        nullptr, 'r'},
+        {"crypto",      no_argument,        nullptr, 'c'},
         {nullptr,       no_argument,        nullptr, 0},
     };
 
@@ -77,13 +86,43 @@ static int parseCommandArgs(int argc, char* argv[], Argument* argument)
             }
             break;
 
+        case 'z':
+        {
+            int zorder = strtol(optarg, nullptr, 0);
+            printf("zorder:%d\n", zorder);
+            argument->zorder = zorder;
+        }
+        break;
+
+        case 'v':
+        {
+            int videoMode = strtol(optarg, nullptr, 0);
+            printf("videoMode:%d\n", videoMode);
+            argument->videoMode = videoMode;
+        }
+        break;
+
+        case 'r':
+        {
+            printf("record mode!\n");
+            argument->record = true;
+        }
+        break;
+
+        case 'c':
+        {
+            printf("crypto mode!\n");
+            argument->crypto = true;
+        }
+        break;
+
         case 'h':
         default:
             return -1;
         }
     }
 
-    printf("optind:%d, argc:%d\n", optind, argc);
+    //printf("optind:%d, argc:%d\n", optind, argc);
     if (optind < argc) {
         argument->url = argv[argc-1];
         printf("url:%s\n", argument->url.c_str());
@@ -94,19 +133,28 @@ static int parseCommandArgs(int argc, char* argv[], Argument* argument)
 
 static void showUsage()
 {
-    printf("Usage: AmlMpPlayerDemo <options> <url>\n"
+    printf("Usage: amlMpPlayerDemo <options> <url>\n"
             "options:\n"
-            "    size: eg: 1920x1080\n"
-            "    pos:  eg: 0x0 \n"
-            "    playmode: [0, 4] set all params before start\n"
-            "              5: set audio param, start audio decoding; set video param, start video decoding\n"
-            "              6: set video param, start video decoding; set audio param, start audio decoding\n"
+            "    --size:      eg: 1920x1080\n"
+            "    --pos:       eg: 0x0\n"
+            "    --zorder:    eg: 0\n"
+            "    --videomode: 0: set ANativeWindow\n"
+            "                 1: set video window\n"
+            "    --playmode:  0: set audio param, set video param, start --> stop\n"
+            "                 1: set audio param, set video param, start --> stop audio, stop video\n"
+            "                 2: set audio param, set video param, start audio, start video --> stop\n"
+            "                 3: set audio param, set video param, start audio, start video --> stop audio, stop video\n"
+            "                 4: set audio param, set video param, start video, start audio --> stop audio, stop video\n"
+            "                 5: set audio param, start audio, set video param, start video --> stop audio, stop video\n"
+            "                 6: set video param, start video, set audio param, start audio --> stop video, stop audio\n"
+            "   --record:     record mode, record file name is \"" AML_MP_TEST_SUPPORTER_RECORD_FILE "\"\n"
+            "   --crypto      crypto mode\n"
             "\n"
-            "url format:\n"
-            "    local filepath?<program number>\n"
-            "    udp://ip:port?<program number>\n"
-            "    dvbc://demux id>?<program number>\n"
-            "    dvbt://demux id>?<program number>\n"
+            "url format: url?program=xx&demuxid=xx\n"
+            "    DVB-T dvbt://<freq>, eg: dvbt://474\n"
+            "    local file, eg: /data/a.ts\n"
+            "    dvr replay, eg: dvr:/" AML_MP_TEST_SUPPORTER_RECORD_FILE "\n"
+            "    udp source, eg: udp://224.0.0.1:8000\n"
             "\n"
             );
 }
@@ -115,27 +163,42 @@ static void showUsage()
 int main(int argc, char *argv[])
 {
     Argument argument{};
+
     if (parseCommandArgs(argc, argv, &argument) < 0 || argument.url.empty()) {
         showUsage();
         return 0;
     }
 
-    sptr<AmlMpTestSupporter> mpPlayer = new AmlMpTestSupporter;
-    mpPlayer->installSignalHandler();
+    sptr<AmlMpTestSupporter> mpTestSupporter = new AmlMpTestSupporter;
+    mpTestSupporter->installSignalHandler();
 
-    mpPlayer->setDataSource(argument.url);
-    int ret = mpPlayer->prepare();
+    mpTestSupporter->setDataSource(argument.url);
+    int ret = mpTestSupporter->prepare(argument.crypto);
     if (ret < 0) {
         printf("prepare failed!\n");
         return -1;
     }
 
-    mpPlayer->startPlay((AmlMpTestSupporter::PlayMode)argument.playMode);
-    mpPlayer->fetchAndProcessCommands();
-    mpPlayer->stop();
-    mpPlayer.clear();
+    if (!argument.record) {
+        AmlMpTestSupporter::DisplayParam displayParam;
+        displayParam.x = argument.x;
+        displayParam.y = argument.y;
+        displayParam.width = argument.viewWidth;
+        displayParam.height = argument.viewHeight;
+        displayParam.zorder = argument.zorder;
+        displayParam.videoMode = argument.videoMode;
+        mpTestSupporter->setDisplayParam(displayParam);
+
+        mpTestSupporter->startPlay((AmlMpTestSupporter::PlayMode)argument.playMode);
+
+    } else {
+        mpTestSupporter->startRecord();
+    }
+
+    mpTestSupporter->fetchAndProcessCommands();
+    mpTestSupporter->stop();
+    mpTestSupporter.clear();
 
     ALOGI("exited!");
     return 0;
 }
-

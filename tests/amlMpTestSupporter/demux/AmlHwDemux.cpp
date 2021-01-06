@@ -8,7 +8,7 @@
  */
 
 #define LOG_NDEBUG 0
-#define LOG_TAG "AmlHwDemux"
+#define LOG_TAG "AmlMpPlayerDemo_AmlHwDemux"
 #include <utils/Log.h>
 #include <Aml_MP/Aml_MP.h>
 #include "AmlHwDemux.h"
@@ -51,7 +51,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 AmlHwDemux::AmlHwDemux()
 {
-    MLOG();
+    MLOG("mstopped = %d", mStopped.load());
 }
 
 AmlHwDemux::~AmlHwDemux()
@@ -62,29 +62,6 @@ AmlHwDemux::~AmlHwDemux()
 int AmlHwDemux::open(bool isHardwareSource, Aml_MP_DemuxId demuxId)
 {
     mDemuxId = demuxId;
-
-    Aml_MP_DemuxSource demuxSource = AML_MP_DEMUX_SOURCE_DMA0;
-    if (isHardwareSource) {
-        switch (mDemuxId) {
-        case AML_MP_HW_DEMUX_ID_0:
-            demuxSource = AML_MP_DEMUX_SOURCE_TS0;
-            break;
-
-        case AML_MP_HW_DEMUX_ID_1:
-            demuxSource = AML_MP_DEMUX_SOURCE_TS1;
-            break;
-
-        case AML_MP_HW_DEMUX_ID_2:
-            demuxSource = AML_MP_DEMUX_SOURCE_TS2;
-            break;
-
-        default:
-            break;
-        }
-    }
-
-    ALOGI("demuxSource:%d", demuxSource);
-    Aml_MP_SetDemuxSource(mDemuxId, demuxSource);
 
     std::stringstream s;
     s << "/dev/dvb0.demux" << mDemuxId;
@@ -128,6 +105,8 @@ int AmlHwDemux::start()
 
 int AmlHwDemux::stop()
 {
+    MLOG();
+
     {
         std::lock_guard<std::mutex> _l(mLock);
         mStopped = true;

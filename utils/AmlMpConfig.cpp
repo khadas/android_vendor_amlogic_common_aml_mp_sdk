@@ -37,14 +37,12 @@ void AmlMpConfig::initProperty(const char* propertyName, std::string& value)
 void AmlMpConfig::reset()
 {
     mLogDebug = 0;
-    mCtcDebug = 0;
     mTsPlayerNonTunnel = 0;
 }
 
 void AmlMpConfig::init()
 {
     initProperty("vendor.amlmp.log-debug", mLogDebug);
-    initProperty("vendor.amlmp.use-ctc", mCtcDebug);
     initProperty("vendor.amtsplayer.pipeline", mTsPlayerNonTunnel);
 }
 

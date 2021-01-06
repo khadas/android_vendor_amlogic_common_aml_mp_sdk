@@ -26,7 +26,6 @@ public:
 
 public:
     int mLogDebug;
-    int mCtcDebug;
     int mTsPlayerNonTunnel;
 
 private:
