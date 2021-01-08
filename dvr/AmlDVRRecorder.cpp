@@ -242,6 +242,7 @@ int AmlDVRRecorder::getStatus(Aml_MP_DVRRecorderStatus* status)
 ///////////////////////////////////////////////////////////////////////////////
 int AmlDVRRecorder::setBasicParams(Aml_MP_DVRRecorderBasicParams* basicParams)
 {
+    mRecOpenParams.fend_dev_id = basicParams->fend_dev_id;
     mRecOpenParams.dmx_dev_id = basicParams->demuxId;
     memcpy(&(mRecOpenParams.location), &(basicParams->location), DVR_MAX_LOCATION_SIZE);
     mRecOpenParams.segment_size = basicParams->segmentSize;

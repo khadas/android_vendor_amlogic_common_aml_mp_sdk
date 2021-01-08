@@ -23,6 +23,7 @@ typedef enum {
 } Aml_MP_DVRRecorderFlag;
 
 typedef struct {
+    int                         fend_dev_id;
     int                         userId;
     Aml_MP_DemuxId              demuxId;
     char                        location[AML_MP_MAX_PATH_SIZE];
