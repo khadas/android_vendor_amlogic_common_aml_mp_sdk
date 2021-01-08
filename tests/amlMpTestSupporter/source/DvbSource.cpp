@@ -12,6 +12,7 @@
 #include <Aml_MP/Common.h>
 #include "DvbSource.h"
 #include <sys/stat.h>
+#include <unistd.h>
 #include <errno.h>
 #include <sys/ioctl.h>
 

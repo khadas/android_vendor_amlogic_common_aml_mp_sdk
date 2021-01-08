@@ -113,14 +113,15 @@ int AmlDVRPlayer::start(bool initialPaused)
     ret = AmTsPlayer_setSyncMode(tsPlayerHandle, TS_SYNC_PCRMASTER );
     ALOGI(" TsPlayer set Syncmode PCRMASTER %s, result(%d)", (ret)? "FAIL" : "OK", ret);
 
-#ifndef __ANDROID_VNDK__
     if (AmlMpConfig::instance().mTsPlayerNonTunnel) {
+#ifndef __ANDROID_VNDK__
         android::Surface* surface = nullptr;
         if (mNativeWindow != nullptr) {
             surface = (android::Surface*)mNativeWindow.get();
         }
         ALOGI("setANativeWindow nativeWindow: %p, surface: %p", mNativeWindow.get(), surface);
         ret = AmTsPlayer_setSurface(tsPlayerHandle, surface);
+#endif
     } else {
         if (mNativeWindow != nullptr) {
             native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(AM_TV_SIDEBAND, AM_VIDEO_DEFAULT);
@@ -134,7 +135,6 @@ int AmlDVRPlayer::start(bool initialPaused)
             }
         }
     }
-#endif
 
     mPlaybackOpenParams.playback_handle = (Playback_DeviceHandle_t)tsPlayerHandle;
     mPlaybackOpenParams.event_fn = [](DVR_PlaybackEvent_t event, void* params, void* userData) {

@@ -98,9 +98,11 @@ vformat_t convertToVFormat(Aml_MP_CodecID videoCodec)
         vFormat = VFORMAT_VP9;
         break;
 
+#if ANDROID_PLATFORM_SDK_VERSION <= 29
     case AML_MP_VIDEO_CODEC_AVS2:
         vFormat = VFORMAT_AVS2;
         break;
+#endif
 
     default:
         ALOGE("unknown videoCodec:%d", videoCodec);

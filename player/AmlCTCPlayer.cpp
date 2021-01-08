@@ -6,7 +6,6 @@
  *
  * Description:
  */
-
 #define LOG_TAG "AmlCTCPlayer"
 #include <utils/Log.h>
 #include "AmlCTCPlayer.h"

@@ -10,6 +10,7 @@
 #define LOG_TAG "AmlMpPlayerDemo_FileSource"
 #include <utils/Log.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include "FileSource.h"
 
 namespace aml_mp {

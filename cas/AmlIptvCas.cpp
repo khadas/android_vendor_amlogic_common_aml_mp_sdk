@@ -222,5 +222,4 @@ int CasLibWrapper::destroy(dvb_ca_t* ca)
     return ca_destory(ca);
 }
 
-
 }

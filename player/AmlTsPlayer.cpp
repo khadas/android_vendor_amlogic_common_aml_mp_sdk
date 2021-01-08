@@ -212,18 +212,18 @@ int AmlTsPlayer::setANativeWindow(ANativeWindow* nativeWindow)
     ALOGI("AmlTsPlayer::setANativeWindow: %p", nativeWindow);
 
     int ret = 0;
-#ifndef __ANDROID_VNDK__
     if (AmlMpConfig::instance().mTsPlayerNonTunnel) {
+#ifndef __ANDROID_VNDK__
         android::Surface* surface = nullptr;
         if (nativeWindow != nullptr) {
             surface = (android::Surface*)nativeWindow;
         }
         ALOGI("setANativeWindow nativeWindow: %p, surface: %p", nativeWindow, surface);
         ret = AmTsPlayer_setSurface(mPlayer, surface);
+#endif
     } else {
         ret = AmlPlayerBase::setANativeWindow(nativeWindow);
     }
-#endif
     return ret;
 }
 

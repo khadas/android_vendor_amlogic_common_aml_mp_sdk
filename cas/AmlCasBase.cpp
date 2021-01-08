@@ -22,8 +22,10 @@ sp<AmlCasBase> AmlCasBase::create(Aml_MP_InputSourceType inputType, const Aml_MP
     switch (inputType) {
     case AML_MP_INPUT_SOURCE_TS_MEMORY:
     {
+#ifdef HAVE_IPTV_CAS
         const Aml_MP_IptvCasParam *iptvCasParam = &casParams->u.iptvCasParam;
         cas = new AmlIptvCas(casParams->type, iptvCasParam);
+#endif
     }
     break;
 

@@ -12,7 +12,9 @@
 
 #include <utils/RefBase.h>
 #include <Aml_MP/Aml_MP.h>
+#ifdef HAVE_SUBTITLE
 #include <SubtitleNativeAPI.h>
+#endif
 
 namespace android {
 class NativeHandle;
@@ -83,8 +85,6 @@ protected:
     void notifyListener(Aml_MP_PlayerEventType eventType, int64_t param = 0);
 
 private:
-    static bool constructAmlSubtitleParam(AmlSubtitleParam* amlSubParam, Aml_MP_SubtitleParams* params);
-
     char mName[50];
     const int mInstanceId;
 
@@ -93,8 +93,11 @@ private:
 
     sp<NativeHandle> mSidebandHandle;
 
-    Aml_MP_SubtitleParams mSubtitleParams;
+#ifdef HAVE_SUBTITLE
+    static bool constructAmlSubtitleParam(AmlSubtitleParam* amlSubParam, Aml_MP_SubtitleParams* params);
     AmlSubtitleHnd mSubtitleHandle = nullptr;
+#endif
+    Aml_MP_SubtitleParams mSubtitleParams;
 
     AmlPlayerBase(const AmlPlayerBase&) = delete;
     AmlPlayerBase& operator= (const AmlPlayerBase&) = delete;

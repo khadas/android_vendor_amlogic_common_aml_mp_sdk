@@ -12,12 +12,20 @@ LOCAL_C_INCLUDES :=
 LOCAL_SHARED_LIBRARIES := libutils \
     libcutils \
     liblog \
-    libaml_mp_sdk \
-	libgui \
 	libui \
 	libstagefright_foundation \
 	libjsoncpp
 
 LOCAL_STATIC_LIBRARIES := libamlMpTestSupporter
 
+ifeq (1, $(shell expr $(PLATFORM_SDK_VERSION) \>= 30))
+LOCAL_VENDOR_MODULE := true
+LOCAL_SHARED_LIBRARIES += \
+    libaml_mp_sdk.vendor
+else
+LOCAL_SHARED_LIBRARIES += \
+    libaml_mp_sdk \
+    libgui
+endif
 include $(BUILD_NATIVE_TEST)
+

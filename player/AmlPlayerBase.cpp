@@ -13,10 +13,14 @@
 #include <utils/AmlMpUtils.h>
 #include "AmlPlayerBase.h"
 #include "AmlTsPlayer.h"
+#ifdef HAVE_CTC
 #include "AmlCTCPlayer.h"
+#endif
 #include <system/window.h>
 #include <amlogic/am_gralloc_ext.h>
+#ifdef HAVE_SUBTITLE
 #include <SubtitleNativeAPI.h>
+#endif
 #include "Aml_MP_PlayerImpl.h"
 
 namespace aml_mp {
@@ -32,7 +36,9 @@ sp<AmlPlayerBase> AmlPlayerBase::create(Aml_MP_PlayerCreateParams* createParams,
         AmlMpConfig::instance().mTsPlayerNonTunnel) {
         player = new AmlTsPlayer(createParams, instanceId);
     } else {
+#ifdef HAVE_CTC
         player = new AmlCTCPlayer(createParams, instanceId);
+#endif
     }
 
     return player;
@@ -42,24 +48,30 @@ AmlPlayerBase::AmlPlayerBase(int instanceId)
 :mInstanceId(instanceId)
 , mEventCb(nullptr)
 , mUserData(nullptr)
+#ifdef HAVE_SUBTITLE
 , mSubtitleParams{}
+#endif
 {
     snprintf(mName, sizeof(mName), "%s_%d", LOG_TAG, instanceId);
 
+#ifdef HAVE_SUBTITLE
     //Set a default size for subtitle window parament.
     mSubWindowX = 0;
     mSubWindowY = 0;
     mSubWindowWidth = 1920;
     mSubWindowHeight = 1080;
+#endif
 }
 
 AmlPlayerBase::~AmlPlayerBase()
 {
 #ifndef __ANDROID_VNDK__
+#ifdef HAVE_SUBTITLE
     if (mSubtitleHandle) {
         amlsub_Destroy(mSubtitleHandle);
         mSubtitleHandle = nullptr;
     }
+#endif
 #endif
 }
 
@@ -74,12 +86,14 @@ int AmlPlayerBase::registerEventCallback(Aml_MP_PlayerEventCallback cb, void* us
 int AmlPlayerBase::setANativeWindow(ANativeWindow* nativeWindow)
 {
     RETURN_IF(-1, nativeWindow == nullptr);
+    int ret = 0;
+
     native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(AM_TV_SIDEBAND, AM_VIDEO_DEFAULT);
     mSidebandHandle = NativeHandle::create(sidebandHandle, true);
 
     ALOGI("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
 
-    int ret = native_window_set_sideband_stream(nativeWindow, sidebandHandle);
+    ret = native_window_set_sideband_stream(nativeWindow, sidebandHandle);
     if (ret < 0) {
         ALOGE("set sideband stream failed!");
     }
@@ -89,14 +103,18 @@ int AmlPlayerBase::setANativeWindow(ANativeWindow* nativeWindow)
 
 int AmlPlayerBase::start()
 {
+#ifdef HAVE_SUBTITLE
     startSubtitleDecoding();
+#endif
 
     return 0;
 }
 
 int AmlPlayerBase::stop()
 {
+#ifdef HAVE_SUBTITLE
     stopSubtitleDecoding();
+#endif
 
     return 0;
 }
@@ -120,6 +138,7 @@ int AmlPlayerBase::showSubtitle()
 {
     ALOGI("showSubtitle");
 
+#ifdef HAVE_SUBTITLE
     RETURN_IF(-1, mSubtitleHandle == nullptr);
 
 #ifndef __ANDROID_VNDK__
@@ -129,7 +148,7 @@ int AmlPlayerBase::showSubtitle()
         return -1;
     }
 #endif
-
+#endif
     return 0;
 }
 
@@ -137,6 +156,7 @@ int AmlPlayerBase::hideSubtitle()
 {
     ALOGI("hideSubtitle");
 
+#ifdef HAVE_SUBTITLE
     RETURN_IF(-1, mSubtitleHandle == nullptr);
 
 #ifndef __ANDROID_VNDK__
@@ -146,10 +166,12 @@ int AmlPlayerBase::hideSubtitle()
         return -1;
     }
 #endif
+#endif
 
     return 0;
 }
 
+#ifdef HAVE_SUBTITLE
 bool AmlPlayerBase::constructAmlSubtitleParam(AmlSubtitleParam* amlSubParam, Aml_MP_SubtitleParams* params)
 {
     bool ret = true;
@@ -183,11 +205,13 @@ bool AmlPlayerBase::constructAmlSubtitleParam(AmlSubtitleParam* amlSubParam, Aml
     amlSubParam->compositionPageId = params->compositionPageId;
     return ret;
 }
+#endif
 
 int AmlPlayerBase::startSubtitleDecoding()
 {
     ALOGI("startSubtitleDecoding");
 
+#ifdef HAVE_SUBTITLE
     AmlSubtitleParam subParam{};
     subParam.ioSource = AmlSubtitleIOType::E_SUBTITLE_DEMUX;
     if (!constructAmlSubtitleParam(&subParam, &mSubtitleParams)) {
@@ -225,7 +249,7 @@ int AmlPlayerBase::startSubtitleDecoding()
 #endif
 
     showSubtitle();
-
+#endif
     return 0;
 }
 
@@ -233,6 +257,7 @@ int AmlPlayerBase::stopSubtitleDecoding()
 {
     ALOGI("stopSubtitleDecoding");
 
+#ifdef HAVE_SUBTITLE
     RETURN_IF(-1, mSubtitleHandle == nullptr);
 
     hideSubtitle();
@@ -244,11 +269,13 @@ int AmlPlayerBase::stopSubtitleDecoding()
         return -1;
     }
 #endif
+#endif
 
     return 0;
 }
 
-int AmlPlayerBase::setSubtitleWindow(int x, int y, int width, int height) {
+int AmlPlayerBase::setSubtitleWindow(int x, int y, int width, int height)
+{
     ALOGI("setSubtitleWindow");
     ALOGI("param x: %d, y: %d, width: %d, height: %d", x, y, width, height);
     mSubWindowX = x;
@@ -256,6 +283,7 @@ int AmlPlayerBase::setSubtitleWindow(int x, int y, int width, int height) {
     mSubWindowWidth = width;
     mSubWindowHeight = height;
 
+#ifdef HAVE_SUBTITLE
     RETURN_IF(-1, mSubtitleHandle == nullptr);
 #ifndef __ANDROID_VNDK__
 
@@ -265,6 +293,7 @@ int AmlPlayerBase::setSubtitleWindow(int x, int y, int width, int height) {
         ALOGE("amlsub_UiSetSurfaceViewRect failed!");
         return -1;
     }
+#endif
 #endif
 
     return 0;

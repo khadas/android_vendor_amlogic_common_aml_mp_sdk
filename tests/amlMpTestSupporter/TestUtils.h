@@ -10,10 +10,14 @@
 #ifndef _AML_MP_TEST_UTILS_H_
 #define _AML_MP_TEST_UTILS_H_
 
+#ifndef __ANDROID_VNDK__
 #include <gui/Surface.h>
 #include <gui/SurfaceComposerClient.h>
+#endif
 #include <ui/DisplayInfo.h>
+#include <system/window.h>
 #include <string>
+#include <vector>
 #include <utils/RefBase.h>
 
 namespace aml_mp {
@@ -30,12 +34,14 @@ struct NativeUI : android::RefBase
     int getSurfaceHeight();
 
 private:
+#ifndef __ANDROID_VNDK__
     sp<android::SurfaceComposerClient> mComposerClient;
     sp<android::SurfaceControl> mSurfaceControl;
     sp<android::Surface> mSurface;
 
     sp<android::SurfaceControl> mSurfaceControlUi;
     sp<android::Surface> mSurfaceUi;
+#endif
 
     int mDisplayWidth = 1920;
     int mDisplayHeight = 1080;

@@ -14,12 +14,14 @@
 #include <thread>
 #include <media/stagefright/foundation/ADebug.h>
 #include <poll.h>
+#include <unistd.h>
 
 namespace aml_mp {
 using namespace android;
 
 NativeUI::NativeUI()
 {
+#ifndef __ANDROID_VNDK__
     mComposerClient = new android::SurfaceComposerClient;
     CHECK_EQ(mComposerClient->initCheck(), OK);
 
@@ -29,8 +31,8 @@ NativeUI::NativeUI()
     android::DisplayInfo displayInfo;
     CHECK_EQ(OK, mComposerClient->getDisplayInfo(displayToken, &displayInfo));
 
-    mDisplayWidth = displayInfo.w;
-    mDisplayHeight = displayInfo.h;
+    //mDisplayWidth = displayInfo.w;
+    //mDisplayHeight = displayInfo.h;
 
     mSurfaceWidth = mDisplayWidth >> 1;
     mSurfaceHeight = mDisplayHeight >> 1;
@@ -85,6 +87,7 @@ NativeUI::NativeUI()
     graphicBuffer->unlock();
     graphicBuffer.clear();
     nativeWindow->queueBuffer_DEPRECATED(nativeWindow, buf);
+#endif
 }
 
 NativeUI::~NativeUI()
@@ -94,22 +97,28 @@ NativeUI::~NativeUI()
 
 sp<ANativeWindow> NativeUI::getNativeWindow() const
 {
+#ifndef __ANDROID_VNDK__
     return mSurface;
+#else
+    return nullptr;
+#endif
 }
 
 void NativeUI::controlSurface(int zorder)
 {
+#ifndef __ANDROID_VNDK__
     auto transcation = android::SurfaceComposerClient::Transaction();
 
     transcation.setLayer(mSurfaceControl, zorder);
     transcation.setLayer(mSurfaceControlUi, zorder);
 
     transcation.apply();
-
+#endif
 }
 
 void NativeUI::controlSurface(int left, int top, int right, int bottom)
 {
+#ifndef __ANDROID_VNDK__
     auto transcation = android::SurfaceComposerClient::Transaction();
 
     if (left >= 0 && top >= 0) {
@@ -124,6 +133,7 @@ void NativeUI::controlSurface(int left, int top, int right, int bottom)
     }
 
     transcation.apply();
+#endif
 }
 
 int NativeUI::getSurfaceWidth() {

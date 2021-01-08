@@ -142,15 +142,3 @@ int Aml_MP_CAS_DestroySecmem(AML_MP_CASSESSION casSession, AML_MP_SECMEM secMem)
 
     return dvbCasHal->destroySecmem(secMem);
 }
-
-
-
-
-
-
-
-
-
-
-
-

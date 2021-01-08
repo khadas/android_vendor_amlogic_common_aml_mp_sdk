@@ -12,6 +12,7 @@
 #include <utils/Log.h>
 #include "TestUrlList.h"
 #include <dirent.h>
+#include <unistd.h>
 #include <json/json.h>
 #include <fstream>
 

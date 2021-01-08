@@ -6,12 +6,16 @@ AML_MP_PLAYER_SRC := \
 	player/Aml_MP_PlayerImpl.cpp \
 	player/AmlPlayerBase.cpp \
 	player/AmlTsPlayer.cpp \
+
+AML_MP_PLAYER_SRC_29 := \
 	player/AmlCTCPlayer.cpp \
 
 AML_MP_CAS_SRC := \
 	cas/Aml_MP_CAS.cpp \
 	cas/AmlCasBase.cpp \
 	cas/AmlDvbCasHal.cpp \
+
+AML_MP_CAS_SRC_29 := \
 	cas/AmlIptvCas.cpp \
 
 AML_MP_DVR_SRC := \
@@ -25,13 +29,17 @@ AML_MP_UTILS_SRC := \
 
 AML_MP_SRCS := \
 	$(AML_MP_PLAYER_SRC) \
+	$(AML_MP_PLAYER_SRC_$(PLATFORM_SDK_VERSION)) \
 	$(AML_MP_CAS_SRC) \
+	$(AML_MP_CAS_SRC_$(PLATFORM_SDK_VERSION)) \
 	$(AML_MP_DVR_SRC) \
 	$(AML_MP_UTILS_SRC) \
 
 AML_MP_VENDOR_SRCS := \
 	$(AML_MP_PLAYER_SRC) \
+	$(AML_MP_PLAYER_SRC_$(PLATFORM_SDK_VERSION)) \
 	$(AML_MP_CAS_SRC) \
+	$(AML_MP_CAS_SRC_$(PLATFORM_SDK_VERSION)) \
 	$(AML_MP_DVR_SRC) \
 	$(AML_MP_UTILS_SRC) \
 
@@ -50,6 +58,10 @@ AML_MP_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/include \
 	$(TOP)/vendor/amlogic/common/mediahal_sdk/include \
 
 AML_MP_CFLAGS := -DANDROID_PLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
+
+AML_MP_CFLAGS_29 := -DHAVE_SUBTITLE \
+	-DHAVE_CTC \
+	-DHAVE_IPTV_CAS \
 
 AML_MP_SHARED_LIBS := \
 	libutils \
@@ -73,15 +85,21 @@ AML_MP_SYSTEM_STATIC_LIBS_29 := \
 AML_MP_VENDOR_SHARED_LIBS := \
 	libamdvr \
 	libmediahal_tsplayer \
+
+AML_MP_VENDOR_SHARED_LIBS_29 += \
 	libamgralloc_ext_vendor@2 \
 	libCTC_MediaProcessor.vendor \
 
+AML_MP_VENDOR_SHARED_LIBS_30 += \
+	libamgralloc_ext \
+
 ###############################################################################
+ifeq (1, $(shell expr $(PLATFORM_SDK_VERSION) \<= 29))
 include $(CLEAR_VARS)
 LOCAL_MODULE := libaml_mp_sdk
 LOCAL_MODULE_TAGS := optional
 LOCAL_SRC_FILES := $(AML_MP_SRCS)
-LOCAL_CFLAGS := $(AML_MP_CFLAGS)
+LOCAL_CFLAGS := $(AML_MP_CFLAGS) $(AML_MP_CFLAGS_$(PLATFORM_SDK_VERSION))
 LOCAL_C_INCLUDES := $(AML_MP_INC)
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(AML_MP_EXPORT_C_INCLUDE_DIRS)
 LOCAL_SHARED_LIBRARIES := $(AML_MP_SHARED_LIBS) $(AML_MP_SYSTEM_SHARED_LIBS)
@@ -89,21 +107,24 @@ LOCAL_STATIC_LIBRARIES := $(AML_MP_SYSTEM_STATIC_LIBS_$(PLATFORM_SDK_VERSION))
 #LOCAL_WHOLE_STATIC_LIBRARIES :=
 #LOCAL_LDFLAGS :=
 include $(BUILD_SHARED_LIBRARY)
+endif
 
 ###############################################################################
+ifeq (1, $(shell expr $(PLATFORM_SDK_VERSION) \>= 29))
 include $(CLEAR_VARS)
 LOCAL_MODULE := libaml_mp_sdk.vendor
 LOCAL_VENDOR_MODULE := true
 LOCAL_MODULE_TAGS := optional
 LOCAL_SRC_FILES := $(AML_MP_VENDOR_SRCS)
-LOCAL_CFLAGS := $(AML_MP_CFLAGS)
+LOCAL_CFLAGS := $(AML_MP_CFLAGS) $(AML_MP_CFLAGS_$(PLATFORM_SDK_VERSION))
 LOCAL_C_INCLUDES := $(AML_MP_INC)
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(AML_MP_EXPORT_C_INCLUDE_DIRS)
-LOCAL_SHARED_LIBRARIES := $(AML_MP_SHARED_LIBS) $(AML_MP_VENDOR_SHARED_LIBS)
+LOCAL_SHARED_LIBRARIES := $(AML_MP_SHARED_LIBS) $(AML_MP_VENDOR_SHARED_LIBS) $(AML_MP_VENDOR_SHARED_LIBS_$(PLATFORM_SDK_VERSION))
 #LOCAL_STATIC_LIBRARIES :=
 #LOCAL_WHOLE_STATIC_LIBRARIES :=
 #LOCAL_LDFLAGS :=
 include $(BUILD_SHARED_LIBRARY)
+endif
 
 ###############################################################################
 include $(call all-makefiles-under,$(LOCAL_PATH))

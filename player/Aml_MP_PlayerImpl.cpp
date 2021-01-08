@@ -773,7 +773,6 @@ void AmlMpPlayerImpl::setParams()
     if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
         mPlayer->setSubtitleParams(&mSubtitleParams);
     }
-
 }
 
 int AmlMpPlayerImpl::resetIfNeeded()
