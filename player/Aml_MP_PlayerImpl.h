@@ -162,7 +162,7 @@ private:
 
     sp<AmlCasBase> mCasHandle;
 
-    Aml_MP_PlayerWorkMode mWorkmode;
+    Aml_MP_PlayerWorkMode mWorkMode;
 
     int mZorder = -2;
 

@@ -42,7 +42,7 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
     memset(&mSubtitleParams, 0, sizeof(mSubtitleParams));
     mSubtitleParams.pid = AML_MP_INVALID_PID;
 
-    mWorkmode = AML_MP_PLAYER_MODE_NORMAL;
+    mWorkMode = AML_MP_PLAYER_MODE_NORMAL;
 
     AmlMpConfig::instance().init();
 }
@@ -229,9 +229,12 @@ int AmlMpPlayerImpl::setPlaybackRate(float rate)
 {
     AML_MP_TRACE(10);
     mPlaybackRate = rate;
-    RETURN_IF(-1, mPlayer == nullptr);
+    int ret = 0;
 
-    return mPlayer->setPlaybackRate(rate);
+    if (mPlayer)
+        ret = mPlayer->setPlaybackRate(rate);
+
+    return ret;
 }
 
 int AmlMpPlayerImpl::switchAudioTrack(const Aml_MP_AudioParams* params)
@@ -301,6 +304,10 @@ int AmlMpPlayerImpl::setAnativeWindow(void* nativeWindow)
 int AmlMpPlayerImpl::setVideoWindow(int x, int y, int width, int height)
 {
     AML_MP_TRACE(10);
+    if (width < 0 || height < 0) {
+        ALOGI("Invalid windowsize: %dx%d, return fail", width, height);
+        return -1;
+    }
 #ifndef __ANDROID_VNDK__
     if (mNativeWindow == nullptr) {
         ALOGI("Nativewindow is null, create it");
@@ -333,18 +340,23 @@ int AmlMpPlayerImpl::setVideoWindow(int x, int y, int width, int height)
     }
 #endif
     mVideoWindow = {x, y, width, height};
-    RETURN_IF(-1, mPlayer == nullptr);
-
-    return mPlayer->setVideoWindow(x, y, width, height);
+    return 0;
 }
 
 int AmlMpPlayerImpl::setVolume(float volume)
 {
     AML_MP_TRACE(10);
+    int ret = 0;
+    if (volume < 0) {
+        ALOGI("volume is %f, set to 0.0", volume);
+        volume = 0.0;
+    }
     mVolume = volume;
-    RETURN_IF(-1, mPlayer == nullptr);
 
-    return mPlayer->setVolume(volume);
+    if (mPlayer != nullptr)
+        ret = mPlayer->setVolume(volume);
+
+    return ret;
 }
 
 int AmlMpPlayerImpl::getVolume(float* volume)
@@ -401,8 +413,8 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
 
     case AML_MP_PLAYER_PARAMETER_WORK_MODE:
     {
-        mWorkmode = *(Aml_MP_PlayerWorkMode*)parameter;
-        ALOGI("Set workmode: %d", mWorkmode);
+        mWorkMode = *(Aml_MP_PlayerWorkMode*)parameter;
+        ALOGI("Set work mode: %d", mWorkMode);
     }
     break;
 
@@ -721,8 +733,8 @@ int AmlMpPlayerImpl::prepare()
         return -1;
     }
 
-    ALOGI("mWorkmode: %d", mWorkmode);
-    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_WORK_MODE, &mWorkmode);
+    ALOGI("mWorkMode: %d", mWorkMode);
+    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_WORK_MODE, &mWorkMode);
 
     mPlayer->registerEventCallback(mEventCb, mUserData);
 
@@ -865,7 +877,5 @@ bool AmlMpPlayerRoster::isAmTsPlayerExist() const
     std::lock_guard<std::mutex> _l(mLock);
     return mAmtsPlayerId != -1;
 }
-
-
 
 }
