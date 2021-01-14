@@ -108,6 +108,10 @@ int AmlDVRPlayer::start(bool initialPaused)
         return -1;
     }
 
+    ret = AmTsPlayer_registerCb(tsPlayerHandle,  [](void *user_data, am_tsplayer_event *event) {
+        static_cast<AmlDVRPlayer*>(user_data)->eventHandlerPlayer(event);
+    }, this);
+    ALOGI("TsPlayer set Callback function %s, result(%d)", (ret)? "FAIL" : "OK", ret);
     ret = AmTsPlayer_setWorkMode(tsPlayerHandle, TS_PLAYER_MODE_NORMAL);
     ALOGI("TsPlayer set Workmode NORMAL %s, result(%d)", (ret)? "FAIL" : "OK", ret);
     ret = AmTsPlayer_setSyncMode(tsPlayerHandle, TS_SYNC_PCRMASTER );
@@ -139,7 +143,7 @@ int AmlDVRPlayer::start(bool initialPaused)
     mPlaybackOpenParams.playback_handle = (Playback_DeviceHandle_t)tsPlayerHandle;
     mPlaybackOpenParams.event_fn = [](DVR_PlaybackEvent_t event, void* params, void* userData) {
         AmlDVRPlayer* player = static_cast<AmlDVRPlayer*>(userData);
-        return player->eventHandler(event, params);
+        return player->eventHandlerLibDVR(event, params);
     };
     mPlaybackOpenParams.event_userdata = this;
 
@@ -431,7 +435,7 @@ int AmlDVRPlayer::setDecryptParams(Aml_MP_DVRPlayerDecryptParams * decryptParams
     return 0;
 }
 
-DVR_Result_t AmlDVRPlayer::eventHandler(DVR_PlaybackEvent_t event, void* params)
+DVR_Result_t AmlDVRPlayer::eventHandlerLibDVR(DVR_PlaybackEvent_t event, void* params)
 {
     DVR_Result_t ret = DVR_SUCCESS;
 
@@ -479,6 +483,88 @@ DVR_Result_t AmlDVRPlayer::eventHandler(DVR_PlaybackEvent_t event, void* params)
 
     return ret;
 }
+
+DVR_Result_t AmlDVRPlayer::eventHandlerPlayer(am_tsplayer_event* event) {
+    if (mEventCb == NULL) {
+        return DVR_FAILURE;
+    }
+    switch (event->type) {
+    case AM_TSPLAYER_EVENT_TYPE_VIDEO_CHANGED:
+    {
+        ALOGE("[evt] AML_MP_PLAYER_EVENT_VIDEO_CHANGED");
+
+        Aml_MP_PlayerEventVideoFormat videoFormatEvent;
+        videoFormatEvent.frame_width = event->event.video_format.frame_width;
+        videoFormatEvent.frame_height = event->event.video_format.frame_height;
+        videoFormatEvent.frame_rate = event->event.video_format.frame_rate;
+        videoFormatEvent.frame_aspectratio = event->event.video_format.frame_aspectratio;
+
+        mEventCb(mEventUserData, AML_MP_PLAYER_EVENT_VIDEO_CHANGED, (int64_t)&videoFormatEvent);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_AUDIO_CHANGED:
+        mEventCb(mEventUserData, AML_MP_PLAYER_EVENT_AUDIO_CHANGED, 0);
+        break;
+
+    case AM_TSPLAYER_EVENT_TYPE_FIRST_FRAME:
+        ALOGE("[evt] AM_TSPLAYER_EVENT_TYPE_FIRST_FRAME\n");
+
+        mEventCb(mEventUserData, AML_MP_PLAYER_EVENT_FIRST_FRAME, 0);
+        break;
+
+    case AM_TSPLAYER_EVENT_TYPE_AV_SYNC_DONE:
+        ALOGE("[evt] AML_MP_PLAYER_EVENT_AV_SYNC_DONE");
+
+        mEventCb(mEventUserData, AML_MP_PLAYER_EVENT_AV_SYNC_DONE, 0);
+        break;
+
+    case AM_TSPLAYER_EVENT_TYPE_DATA_LOSS:
+        mEventCb(mEventUserData, AML_MP_PLAYER_EVENT_DATA_LOSS, 0);
+        break;
+
+    case AM_TSPLAYER_EVENT_TYPE_DATA_RESUME:
+        mEventCb(mEventUserData, AML_MP_PLAYER_EVENT_DATA_RESUME, 0);
+        break;
+
+    case AM_TSPLAYER_EVENT_TYPE_SCRAMBLING:
+    {
+        Aml_MP_PlayerEventScrambling scrambling;
+        scrambling.scramling = 1;
+        scrambling.type = convertToAmlMPStreamType(event->event.scramling.stream_type);
+
+        mEventCb(mEventUserData, AML_MP_PLAYER_EVENT_SCRAMBLING, (int64_t)&scrambling);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_USERDATA_AFD:
+    {
+        Aml_MP_PlayerEventMpegUserData userData;
+        userData.data = event->event.mpeg_user_data.data;
+        userData.len = event->event.mpeg_user_data.len;
+
+        mEventCb(mEventUserData, AML_MP_PLAYER_EVENT_USERDATA_AFD, (int64_t)&userData);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_USERDATA_CC:
+    {
+        Aml_MP_PlayerEventMpegUserData userData;
+        userData.data = event->event.mpeg_user_data.data;
+        userData.len = event->event.mpeg_user_data.len;
+
+        mEventCb(mEventUserData, AML_MP_PLAYER_EVENT_USERDATA_CC, (int64_t)&userData);
+    }
+    break;
+
+    default:
+        ALOGE("unhandled event:%d", event->type);
+        break;
+    }
+
+    return DVR_SUCCESS;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 Aml_MP_DVRPlayerState convertToMpDVRPlayerState(DVR_PlaybackPlayState_t state)

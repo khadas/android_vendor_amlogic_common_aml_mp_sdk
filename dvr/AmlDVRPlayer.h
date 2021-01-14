@@ -63,7 +63,8 @@ private:
 
     int setBasicParams(Aml_MP_DVRPlayerBasicParams* basicParams);
     int setDecryptParams(Aml_MP_DVRPlayerDecryptParams* decryptParams);
-    DVR_Result_t eventHandler(DVR_PlaybackEvent_t event, void* params);
+    DVR_Result_t eventHandlerLibDVR(DVR_PlaybackEvent_t event, void* params);
+    DVR_Result_t eventHandlerPlayer(am_tsplayer_event* event);
     sp<ANativeWindow> mNativeWindow = nullptr;
     sp<NativeHandle> mSidebandHandle;
 

@@ -63,38 +63,6 @@ am_tsplayer_audio_codec audioCodecConvert(Aml_MP_CodecID aml_MP_AudioCodec) {
     }
 }
 
-am_tsplayer_stream_type streamTypeConvert(Aml_MP_StreamType streamType) {
-    switch (streamType) {
-        case AML_MP_STREAM_TYPE_VIDEO:
-            return TS_STREAM_VIDEO;
-        case AML_MP_STREAM_TYPE_AUDIO:
-            return TS_STREAM_AUDIO;
-        case AML_MP_STREAM_TYPE_AD:
-            return TS_STREAM_AD;
-        case AML_MP_STREAM_TYPE_SUBTITLE:
-            return TS_STREAM_SUB;
-        default:
-            break;
-    }
-
-    return (am_tsplayer_stream_type)-1;
-}
-
-Aml_MP_StreamType streamTypeConvert(am_tsplayer_stream_type streamType) {
-    switch (streamType) {
-        case TS_STREAM_VIDEO:
-            return AML_MP_STREAM_TYPE_VIDEO;
-        case TS_STREAM_AUDIO:
-            return AML_MP_STREAM_TYPE_AUDIO;
-        case TS_STREAM_AD:
-            return AML_MP_STREAM_TYPE_AD;
-        case TS_STREAM_SUB:
-            return AML_MP_STREAM_TYPE_SUBTITLE;
-    }
-
-    return (AML_MP_STREAM_TYPE_UNKNOWN);
-}
-
 am_tsplayer_input_source_type sourceTypeConvert(Aml_MP_InputSourceType sourceType) {
     switch (sourceType) {
     case AML_MP_INPUT_SOURCE_TS_MEMORY:
@@ -357,7 +325,7 @@ int AmlTsPlayer::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size
 int AmlTsPlayer::getCurrentPts(Aml_MP_StreamType type, int64_t* pts) {
     am_tsplayer_result ret;
 
-    ret = AmTsPlayer_getPts(mPlayer, streamTypeConvert(type), (uint64_t*)pts);
+    ret = AmTsPlayer_getPts(mPlayer, convertToTsplayerStreamType(type), (uint64_t*)pts);
     ALOGI("getCurrentPts type: %d, pts: 0x%llx, ret: %d", type, *pts, ret);
     if (ret != AM_TSPLAYER_OK) {
         return -1;
@@ -728,7 +696,7 @@ void AmlTsPlayer::eventCallback(am_tsplayer_event* event)
     {
         Aml_MP_PlayerEventScrambling scrambling;
         scrambling.scramling = 1;
-        scrambling.type = streamTypeConvert(event->event.scramling.stream_type);
+        scrambling.type = convertToAmlMPStreamType(event->event.scramling.stream_type);
 
         notifyListener(AML_MP_PLAYER_EVENT_SCRAMBLING, (int64_t)&scrambling);
     }

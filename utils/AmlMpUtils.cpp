@@ -489,6 +489,38 @@ Aml_MP_DemuxSource convertToMpDemuxSource(DVB_DemuxSource_t source)
     }
 }
 
+am_tsplayer_stream_type convertToTsplayerStreamType(Aml_MP_StreamType streamType) {
+    switch (streamType) {
+        case AML_MP_STREAM_TYPE_VIDEO:
+            return TS_STREAM_VIDEO;
+        case AML_MP_STREAM_TYPE_AUDIO:
+            return TS_STREAM_AUDIO;
+        case AML_MP_STREAM_TYPE_AD:
+            return TS_STREAM_AD;
+        case AML_MP_STREAM_TYPE_SUBTITLE:
+            return TS_STREAM_SUB;
+        default:
+            break;
+    }
+
+    return (am_tsplayer_stream_type)-1;
+}
+
+Aml_MP_StreamType convertToAmlMPStreamType(am_tsplayer_stream_type streamType) {
+    switch (streamType) {
+        case TS_STREAM_VIDEO:
+            return AML_MP_STREAM_TYPE_VIDEO;
+        case TS_STREAM_AUDIO:
+            return AML_MP_STREAM_TYPE_AUDIO;
+        case TS_STREAM_AD:
+            return AML_MP_STREAM_TYPE_AD;
+        case TS_STREAM_SUB:
+            return AML_MP_STREAM_TYPE_SUBTITLE;
+    }
+
+    return (AML_MP_STREAM_TYPE_UNKNOWN);
+}
+
 bool isSupportMultiHwDemux()
 {
     return access("/sys/module/dvb_demux/", F_OK) == 0;

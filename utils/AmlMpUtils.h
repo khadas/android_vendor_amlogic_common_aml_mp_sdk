@@ -53,9 +53,9 @@ namespace aml_mp {
 struct FunctionLogger
 {
 public:
-	FunctionLogger(const char * tag, const char * file, const char * func, const int line, int threshold, bool verbose)
-	: m_tag(tag), m_file(file), m_func(func), m_line(line), mThreshold(threshold), mVerbose(verbose)
-	{
+    FunctionLogger(const char * tag, const char * file, const char * func, const int line, int threshold, bool verbose)
+    : m_tag(tag), m_file(file), m_func(func), m_line(line), mThreshold(threshold), mVerbose(verbose)
+    {
         (void)m_file;
         (void)m_line;
 
@@ -63,10 +63,10 @@ public:
         if (mVerbose) {
             ALOG(LOG_DEBUG, m_tag, "%s() >> begin", m_func);
         }
-	}
+    }
 
-	~FunctionLogger()
-	{
+    ~FunctionLogger()
+    {
         auto endTime = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - mBeginTime).count();
 
@@ -74,14 +74,14 @@ public:
             ALOG(LOG_DEBUG, m_tag, "%s() << end %lld ms", m_func, duration);
         }
 
-		if(duration >= mThreshold)
-			ALOG(LOG_WARN, m_tag, "%s() takes %lld ms, Seems slow, check!", m_func, duration);
-	}
+        if(duration >= mThreshold)
+            ALOG(LOG_WARN, m_tag, "%s() takes %lld ms, Seems slow, check!", m_func, duration);
+    }
 
 private:
-	const char * m_tag;
+    const char * m_tag;
     const char * m_file;
-	const char * m_func;
+    const char * m_func;
     const int m_line;
     int mThreshold;
     bool mVerbose;
@@ -112,6 +112,8 @@ void convertToMpVideoInfo(Aml_MP_VideoInfo* mpVideoInfo, am_tsplayer_video_info*
 
 DVB_DemuxSource_t convertToDVBDemuxSource(Aml_MP_DemuxSource source);
 Aml_MP_DemuxSource convertToMpDemuxSource(DVB_DemuxSource_t source);
+am_tsplayer_stream_type convertToTsplayerStreamType(Aml_MP_StreamType streamType);
+Aml_MP_StreamType convertToAmlMPStreamType(am_tsplayer_stream_type streamType);
 
 bool isSupportMultiHwDemux();
 
