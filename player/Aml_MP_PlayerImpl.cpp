@@ -40,6 +40,8 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
     mAudioParams.pid = AML_MP_INVALID_PID;
     memset(&mSubtitleParams, 0, sizeof(mSubtitleParams));
     mSubtitleParams.pid = AML_MP_INVALID_PID;
+    memset(&mADParams, 0, sizeof(mADParams));
+    mADParams.pid = AML_MP_INVALID_PID;
 
     mWorkMode = AML_MP_PLAYER_MODE_NORMAL;
 
@@ -162,6 +164,10 @@ int AmlMpPlayerImpl::start()
 
     if (mSubtitleParams.pid != AML_MP_INVALID_PID) {
         mStreamState |= SUBTITLE_STARTED;
+    }
+
+    if (mADParams.pid != AML_MP_INVALID_PID) {
+        mStreamState |= AD_STARTED;
     }
 
     return ret;
@@ -644,7 +650,6 @@ int AmlMpPlayerImpl::stopDescrambling()
 int AmlMpPlayerImpl::setADParams(Aml_MP_AudioParams* params)
 {
     AML_MP_TRACE(10);
-    RETURN_IF(-1, mPlayer == nullptr);
 
     mADParams.pid = params->pid;
     mADParams.audioCodec = params->audioCodec;
@@ -772,6 +777,11 @@ void AmlMpPlayerImpl::setParams()
     if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
         mPlayer->setSubtitleParams(&mSubtitleParams);
     }
+
+    if (mADParams.pid != AML_MP_INVALID_PID) {
+        mPlayer->setADParams(&mADParams);
+    }
+
 }
 
 int AmlMpPlayerImpl::resetIfNeeded()

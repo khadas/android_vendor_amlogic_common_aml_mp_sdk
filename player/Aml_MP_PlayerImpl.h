@@ -120,6 +120,7 @@ private:
         AUDIO_STARTED           = 1 << 0,
         VIDEO_STARTED           = 1 << 1,
         SUBTITLE_STARTED        = 1 << 2,
+        AD_STARTED              = 1 << 3,
     };
 
     struct WindowSize {

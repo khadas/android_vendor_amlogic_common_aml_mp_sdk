@@ -390,6 +390,7 @@ int AmlTsPlayer::hideVideo() {
 int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
     Aml_MP_ADVolume* ADVolume;
+    int isEnable;
 
     ALOGI("Call setParameter, key is 0x%x", key);
     switch (key) {
@@ -433,6 +434,15 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             ALOGI("Call AmTsPlayer_setWorkMode, set workmode: %d", *(am_tsplayer_work_mode*)(parameter));
             ret = AmTsPlayer_setWorkMode(mPlayer, *(am_tsplayer_work_mode*)(parameter));
             break;
+
+        case AML_MP_PLAYER_PARAMETER_AD_STATE:
+            isEnable = *(int*)parameter;
+            if (isEnable)
+                ret = AmTsPlayer_enableADMix(mPlayer);
+            else
+                ret = AmTsPlayer_disableADMix(mPlayer);
+            break;
+
         default:
             ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
     }
