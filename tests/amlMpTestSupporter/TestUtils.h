@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 #include <utils/RefBase.h>
+#include <utils/AmlMpRefBase.h>
 
 namespace aml_mp {
 using android::sp;

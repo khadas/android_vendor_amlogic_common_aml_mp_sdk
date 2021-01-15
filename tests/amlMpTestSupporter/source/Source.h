@@ -10,15 +10,13 @@
 #ifndef _SOURCE_H_
 #define _SOURCE_H_
 
-#include <utils/RefBase.h>
+#include <utils/AmlMpRefBase.h>
 #include <mutex>
 
 namespace aml_mp {
-using namespace android;
-
-struct ISourceReceiver : virtual public RefBase {
+struct ISourceReceiver : virtual public AmlMpRefBase {
     ~ISourceReceiver() {}
-    void linkNextReceiver(const sp<ISourceReceiver>& receiver) {
+    void linkNextReceiver(const sptr<ISourceReceiver>& receiver) {
         mNextReceiver = receiver;
     }
 
@@ -31,17 +29,17 @@ struct ISourceReceiver : virtual public RefBase {
     }
 
 protected:
-    sp<ISourceReceiver> mNextReceiver;
+    sptr<ISourceReceiver> mNextReceiver;
 };
 
-class Source : public RefBase {
+class Source : public AmlMpRefBase {
 public:
     enum Flags : uint32_t {
         kIsMemorySource         = 1 << 0,
         kIsHardwareSource       = 1 << 1,
     };
 
-    static sp<Source> create(const char* url);
+    static sptr<Source> create(const char* url);
     virtual ~Source();
 
     virtual int initCheck() = 0;
@@ -61,12 +59,12 @@ public:
         return mFlags;
     }
 
-    void addSourceReceiver(const sp<ISourceReceiver>& receiver) {
+    void addSourceReceiver(const sptr<ISourceReceiver>& receiver) {
         std::lock_guard<std::mutex> _l(mLock);
         mReceiver = receiver;
     }
 
-    void removeSourceReceiver(const sp<ISourceReceiver>& receiver) {
+    void removeSourceReceiver(const sptr<ISourceReceiver>& receiver) {
         std::lock_guard<std::mutex> _l(mLock);
         mReceiver = receiver;
         if (mReceiver == receiver) {
@@ -74,7 +72,7 @@ public:
         }
     }
 
-    sp<ISourceReceiver> sourceReceiver() const {
+    sptr<ISourceReceiver> sourceReceiver() const {
         std::lock_guard<std::mutex> _l(mLock);
         return mReceiver;
     }
@@ -86,7 +84,7 @@ protected:
 
 private:
     mutable std::mutex mLock;
-    sp<ISourceReceiver> mReceiver;
+    sptr<ISourceReceiver> mReceiver;
 
     Source(const Source&) = delete;
     Source& operator=(const Source&) = delete;

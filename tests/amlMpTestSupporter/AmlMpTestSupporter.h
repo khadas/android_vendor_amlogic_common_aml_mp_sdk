@@ -10,7 +10,7 @@
 #ifndef _AML_MP_TEST_SUPPORTER_H_
 #define _AML_MP_TEST_SUPPORTER_H_
 
-#include <utils/RefBase.h>
+#include <utils/AmlMpRefBase.h>
 #include <string>
 #include <thread>
 #include <vector>
@@ -19,7 +19,6 @@
 struct ANativeWindow;
 
 namespace aml_mp {
-using android::sp;
 class Source;
 class Parser;
 class TestModule;
@@ -29,7 +28,7 @@ struct ProgramInfo;
 struct NativeUI;
 struct CommandProcessor;
 
-class AmlMpTestSupporter : public android::RefBase
+class AmlMpTestSupporter : public AmlMpRefBase
 {
 public:
     enum PlayMode {
@@ -62,19 +61,19 @@ private:
     int startPlayback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType);
 
     std::string mUrl;
-    sp<Source> mSource;
-    sp<Parser> mParser;
-    sp<ProgramInfo> mProgramInfo;
+    sptr<Source> mSource;
+    sptr<Parser> mParser;
+    sptr<ProgramInfo> mProgramInfo;
 
-    sp<TestModule> mTestModule;
+    sptr<TestModule> mTestModule;
 
-    sp<Playback> mPlayback;
+    sptr<Playback> mPlayback;
     Aml_MP_PlayerEventCallback mEventCallback = nullptr;
     void* mUserData = nullptr;
 
-    sp<NativeUI> mNativeUI;
+    sptr<NativeUI> mNativeUI;
     std::thread mSignalHandleThread;
-    sp<CommandProcessor> mCommandProcessor;
+    sptr<CommandProcessor> mCommandProcessor;
 
     bool mQuitPending = false;
 

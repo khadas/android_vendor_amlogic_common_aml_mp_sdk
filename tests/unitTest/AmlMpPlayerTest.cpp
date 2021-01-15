@@ -44,7 +44,7 @@ protected:
         return ss.str();
     }
 
-    sp<AmlMpTestSupporter> mpPlayer;
+    sptr<AmlMpTestSupporter> mpPlayer;
 
 protected:
     std::mutex mLock;

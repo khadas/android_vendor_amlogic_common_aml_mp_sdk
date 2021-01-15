@@ -125,7 +125,8 @@ AmlTsPlayer::AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId
     if (createParams->demuxId == AML_MP_DEMUX_ID_DEFAULT) {
         createParams->demuxId = AML_MP_HW_DEMUX_ID_0;
     }
-/*
+
+    /*
     if (createParams->sourceType == AML_MP_INPUT_SOURCE_TS_MEMORY) {
         ALOGI("set demux source AML_MP_DEMUX_SOURCE_DMA0");
         Aml_MP_SetDemuxSource(createParams->demuxId, AML_MP_DEMUX_SOURCE_DMA0);
@@ -150,7 +151,8 @@ AmlTsPlayer::AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId
 
         Aml_MP_SetDemuxSource(createParams->demuxId, AML_MP_DEMUX_SOURCE_TS0);
     }
-*/
+    */
+
     init_param.source = sourceTypeConvert(createParams->sourceType);
     init_param.drmmode = inputStreamTypeConvert(createParams->drmMode);
     init_param.dmx_dev_id = createParams->demuxId;

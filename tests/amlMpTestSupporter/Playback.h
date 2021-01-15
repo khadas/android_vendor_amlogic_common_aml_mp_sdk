@@ -15,6 +15,7 @@
 #include <Aml_MP/Aml_MP.h>
 #include "TestModule.h"
 #include "AmlMpTestSupporter.h"
+#include <utils/RefBase.h>
 
 namespace aml_mp {
 
@@ -24,9 +25,9 @@ class Playback : public TestModule, public ISourceReceiver
 public:
     using PlayMode = AmlMpTestSupporter::PlayMode;
 
-    Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, const sp<ProgramInfo>& programInfo);
+    Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, const sptr<ProgramInfo>& programInfo);
     ~Playback();
-    void setANativeWindow(const sp<ANativeWindow>& window);
+    void setANativeWindow(const android::sp<ANativeWindow>& window);
     void registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData);
     int start(PlayMode mode);
     int stop();
@@ -50,7 +51,7 @@ private:
     bool setSubtitleParams();
 
 private:
-    const sp<ProgramInfo> mProgramInfo;
+    const sptr<ProgramInfo> mProgramInfo;
     const Aml_MP_DemuxId mDemuxId;
     AML_MP_PLAYER mPlayer = AML_MP_INVALID_HANDLE;
     Aml_MP_PlayerEventCallback mEventCallback = nullptr;

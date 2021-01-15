@@ -13,16 +13,13 @@
 #include "AmlHwDemux.h"
 #include "AmlSwDemux.h"
 #include <utils/AmlMpHandle.h>
-#include <media/stagefright/foundation/ABuffer.h>
+#include <utils/AmlMpBuffer.h>
 #include <sstream>
 #include <set>
 
 #define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 
 namespace aml_mp {
-using android::ABuffer;
-using android::sp;
-using android::wp;
 
 ////////////////////////////////////////////////////////////////////////////////
 struct AmlDemuxBase::Filter : public AmlMpHandle
@@ -30,14 +27,14 @@ struct AmlDemuxBase::Filter : public AmlMpHandle
     Filter(Aml_MP_Demux_SectionFilterCb cb, void* userData, int id);
     ~Filter();
 
-    void notifyListener(const sp<ABuffer>& data, int version);
-    void setOwner(const sp<AmlDemuxBase::Channel>& channel);
+    void notifyListener(const sptr<AmlMpBuffer>& data, int version);
+    void setOwner(const sptr<AmlDemuxBase::Channel>& channel);
     bool hasOwner() const;
     int id() const {
         return mId;
     }
 
-    wp<AmlDemuxBase::Channel> getOwner() const {
+    wptr<AmlDemuxBase::Channel> getOwner() const {
         return mChannel;
     }
 
@@ -46,7 +43,7 @@ private:
     void* pUserData;
     const int mId;
     int mVersion;
-    wp<AmlDemuxBase::Channel> mChannel;
+    wptr<AmlDemuxBase::Channel> mChannel;
 
 private:
     Filter(const Filter&);
@@ -57,10 +54,10 @@ struct AmlDemuxBase::Channel : public AmlMpHandle
 {
     Channel(int pid);
     ~Channel();
-    bool attachFilter(const sp<Filter>& filter);
-    bool detachFilter(const sp<Filter>& filter);
+    bool attachFilter(const sptr<Filter>& filter);
+    bool detachFilter(const sptr<Filter>& filter);
     bool hasFilter() const;
-    void onData(const sp<ABuffer>& data, int version);
+    void onData(const sptr<AmlMpBuffer>& data, int version);
     int pid() const {
         return mPid;
     }
@@ -74,7 +71,7 @@ private:
     std::atomic_bool mEnabled {true};
 
     mutable std::mutex mLock;
-    std::set<sp<Filter>> mFilters;
+    std::set<sptr<Filter>> mFilters;
 
 private:
     Channel(const Channel&);
@@ -96,7 +93,7 @@ AmlDemuxBase::Filter::~Filter()
     MLOG("dtor filter:%d", mId);
 }
 
-void AmlDemuxBase::Filter::notifyListener(const sp<ABuffer>& data, int version)
+void AmlDemuxBase::Filter::notifyListener(const sptr<AmlMpBuffer>& data, int version)
 {
     if (mCb == nullptr) {
         ALOGW("user cb is NULL!");
@@ -115,7 +112,7 @@ void AmlDemuxBase::Filter::notifyListener(const sp<ABuffer>& data, int version)
     mCb(data->size(), data->base(), pUserData);
 }
 
-void AmlDemuxBase::Filter::setOwner(const sp<AmlDemuxBase::Channel>& channel)
+void AmlDemuxBase::Filter::setOwner(const sptr<AmlDemuxBase::Channel>& channel)
 {
     mChannel = channel;
 }
@@ -137,7 +134,7 @@ AmlDemuxBase::Channel::~Channel()
     MLOG("dtor channel, pid:%d", mPid);
 }
 
-bool AmlDemuxBase::Channel::attachFilter(const sp<Filter>& filter)
+bool AmlDemuxBase::Channel::attachFilter(const sptr<Filter>& filter)
 {
     {
         std::lock_guard<std::mutex> _l(mLock);
@@ -151,7 +148,7 @@ bool AmlDemuxBase::Channel::attachFilter(const sp<Filter>& filter)
     return true;
 }
 
-bool AmlDemuxBase::Channel::detachFilter(const sp<Filter>& filter)
+bool AmlDemuxBase::Channel::detachFilter(const sptr<Filter>& filter)
 {
     std::lock_guard<std::mutex> _l(mLock);
 
@@ -171,9 +168,9 @@ bool AmlDemuxBase::Channel::hasFilter() const
     return !mFilters.empty();
 }
 
-void AmlDemuxBase::Channel::onData(const sp<ABuffer>& data, int version)
+void AmlDemuxBase::Channel::onData(const sptr<AmlMpBuffer>& data, int version)
 {
-    std::set<sp<Filter>> filters;
+    std::set<sptr<Filter>> filters;
 
     {
         std::lock_guard<std::mutex> _l(mLock);
@@ -200,9 +197,9 @@ void AmlDemuxBase::Channel::setEnable(bool enable)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-sp<AmlDemuxBase> AmlDemuxBase::create(bool isHardwareDemux)
+sptr<AmlDemuxBase> AmlDemuxBase::create(bool isHardwareDemux)
 {
-    sp<AmlDemuxBase> demux;
+    sptr<AmlDemuxBase> demux;
 
     if (isHardwareDemux) {
         demux = new AmlHwDemux();
@@ -225,7 +222,7 @@ AmlDemuxBase::~AmlDemuxBase()
 
 AmlDemuxBase::CHANNEL AmlDemuxBase::createChannel(int pid)
 {
-    sp<Channel> channel;
+    sptr<Channel> channel;
 
     {
         std::lock_guard<std::mutex> _l(mLock);
@@ -261,7 +258,7 @@ exit:
 
 int AmlDemuxBase::destroyChannel(CHANNEL _channel)
 {
-    sp<Channel> channel = aml_handle_cast<Channel>(_channel);
+    sptr<Channel> channel = aml_handle_cast<Channel>(_channel);
     if (channel == nullptr) {
         return -1;
     }
@@ -288,7 +285,7 @@ int AmlDemuxBase::destroyChannel(CHANNEL _channel)
 
 int AmlDemuxBase::openChannel(CHANNEL _channel)
 {
-    sp<Channel> channel = aml_handle_cast<Channel>(_channel);
+    sptr<Channel> channel = aml_handle_cast<Channel>(_channel);
     if (channel == nullptr) {
         return -1;
     }
@@ -299,7 +296,7 @@ int AmlDemuxBase::openChannel(CHANNEL _channel)
 
 int AmlDemuxBase::closeChannel(CHANNEL _channel)
 {
-    sp<Channel> channel = aml_handle_cast<Channel>(_channel);
+    sptr<Channel> channel = aml_handle_cast<Channel>(_channel);
     if (channel == nullptr) {
         return -1;
     }
@@ -311,7 +308,7 @@ int AmlDemuxBase::closeChannel(CHANNEL _channel)
 
 AmlDemuxBase::FILTER AmlDemuxBase::createFilter(Aml_MP_Demux_SectionFilterCb cb, void* userData)
 {
-    sp<Filter> filter = new Filter(cb, userData, mFilterId++);
+    sptr<Filter> filter(new Filter(cb, userData, mFilterId++));
 
     filter->incStrong(this);
     return aml_handle_cast(filter);
@@ -319,14 +316,14 @@ AmlDemuxBase::FILTER AmlDemuxBase::createFilter(Aml_MP_Demux_SectionFilterCb cb,
 
 int AmlDemuxBase::destroyFilter(FILTER _filter)
 {
-    sp<Filter> filter = aml_handle_cast<Filter>(_filter);
+    sptr<Filter> filter = aml_handle_cast<Filter>(_filter);
     if (filter == nullptr) {
         return -1;
     }
 
     if (filter->hasOwner()) {
         ALOGW("filter has not been detached before!!!");
-        sp<Channel> channel = filter->getOwner().promote();
+        sptr<Channel> channel = filter->getOwner().promote();
         if (channel != nullptr) {
             channel->detachFilter(filter);
         }
@@ -338,8 +335,8 @@ int AmlDemuxBase::destroyFilter(FILTER _filter)
 
 int AmlDemuxBase::attachFilter(FILTER _filter, CHANNEL _channel)
 {
-    sp<Filter> filter = aml_handle_cast<Filter>(_filter);
-    sp<Channel> channel = aml_handle_cast<Channel>(_channel);
+    sptr<Filter> filter = aml_handle_cast<Filter>(_filter);
+    sptr<Channel> channel = aml_handle_cast<Channel>(_channel);
 
     if (filter == nullptr || channel == nullptr) {
         return -1;
@@ -352,8 +349,8 @@ int AmlDemuxBase::attachFilter(FILTER _filter, CHANNEL _channel)
 
 int AmlDemuxBase::detachFilter(FILTER _filter, CHANNEL _channel)
 {
-    sp<Filter> filter = aml_handle_cast<Filter>(_filter);
-    sp<Channel> channel = aml_handle_cast<Channel>(_channel);
+    sptr<Filter> filter = aml_handle_cast<Filter>(_filter);
+    sptr<Channel> channel = aml_handle_cast<Channel>(_channel);
 
     if (filter == nullptr || channel == nullptr) {
         return -1;
@@ -369,9 +366,9 @@ int AmlDemuxBase::detachFilter(FILTER _filter, CHANNEL _channel)
     return 0;
 }
 
-void AmlDemuxBase::notifyData(int pid, const sp<ABuffer>& data, int version)
+void AmlDemuxBase::notifyData(int pid, const sptr<AmlMpBuffer>& data, int version)
 {
-    sp<Channel> channel;
+    sptr<Channel> channel;
 
     {
         std::unique_lock<std::mutex> _l(mLock);

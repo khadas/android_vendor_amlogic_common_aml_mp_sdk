@@ -14,7 +14,6 @@
 #include <unistd.h>
 #include <getopt.h>
 
-using namespace android;
 using namespace aml_mp;
 
 struct Argument
@@ -121,7 +120,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    sp<AmlMpTestSupporter> mpPlayer = new AmlMpTestSupporter;
+    sptr<AmlMpTestSupporter> mpPlayer = new AmlMpTestSupporter;
     mpPlayer->installSignalHandler();
 
     mpPlayer->setDataSource(argument.url);

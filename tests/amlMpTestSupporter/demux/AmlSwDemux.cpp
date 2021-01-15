@@ -11,17 +11,19 @@
 #include <utils/Log.h>
 #include "AmlSwDemux.h"
 #include <utils/AmlMpUtils.h>
-#include <utils/KeyedVector.h>
-#include <media/stagefright/foundation/ALooper.h>
-#include <media/stagefright/foundation/ABuffer.h>
-#include <media/stagefright/foundation/AMessage.h>
+#include <map>
+#include <utils/AmlMpEventLooper.h>
+#include <utils/AmlMpBuffer.h>
+#include <utils/AmlMpMessage.h>
+#ifdef ANDROID
 #include <media/stagefright/foundation/ADebug.h>
-#include <media/stagefright/foundation/AHandlerReflector.h>
-#include <media/stagefright/foundation/ABitReader.h>
+#endif
+#include <utils/AmlMpEventHandlerReflector.h>
+#include <utils/AmlMpBitReader.h>
 #include <inttypes.h>
+#include <Aml_MP/Aml_MP.h>
 
 namespace aml_mp {
-using namespace android;
 
 #define ERROR_SIZE (-1)
 #define ERROR_CRC  (-2)
@@ -46,21 +48,21 @@ private:
     struct PSISection;
     struct Program;
 
-    void parseAdaptationField(ABitReader *br, unsigned PID);
-    int parseTS(ABitReader *br);
-    void parseProgramAssociationTable(ABitReader *br);
-    int parsePID(ABitReader* br, unsigned PID, unsigned continuity_counter, unsigned payload_unit_start_indicator);
+    void parseAdaptationField(AmlMpBitReader *br, unsigned PID);
+    int parseTS(AmlMpBitReader *br);
+    void parseProgramAssociationTable(AmlMpBitReader *br);
+    int parsePID(AmlMpBitReader* br, unsigned PID, unsigned continuity_counter, unsigned payload_unit_start_indicator);
     int programMapPID() const {return mProgramMapPID;}
 
     void initCrcTable();
     uint32_t crc32(const uint8_t *p_start, size_t length);
 
-    Vector<sp<Program> > mPrograms;
+    std::vector<sptr<Program> > mPrograms;
     int mPcrPid = 0x1FFF;
     size_t mNumTSPacketsParsed;
 
     uint32_t mCrcTable[256];
-    KeyedVector<unsigned, sp<PSISection> > mPSISections;
+    std::map<unsigned, sptr<PSISection> > mPSISections;
     unsigned mProgramMapPID = 0x1FFF;
 
 private:
@@ -68,10 +70,10 @@ private:
     SwTsParser& operator= (const SwTsParser&) = delete;
 };
 
-struct SwTsParser::PSISection : public RefBase {
+struct SwTsParser::PSISection : public AmlMpRefBase {
     PSISection(int pid, SwTsParser* tsParser);
 
-    status_t append(const void *data, size_t size);
+    int append(const void *data, size_t size);
     void clear();
 
     bool isComplete() const;
@@ -81,34 +83,34 @@ struct SwTsParser::PSISection : public RefBase {
     size_t size() const;
     void setRange(size_t offset, size_t length);
     size_t sectionLength() const;
-    const sp<ABuffer> rawBuffer() const {return mBuffer;}
+    const sptr<AmlMpBuffer> rawBuffer() const {return mBuffer;}
     bool isChanged() const {return mChanged;}
     bool needCheckVersionChange();
     int sectionVersion() const;
 
     bool parse(int PID, unsigned continuity_counter,
                    unsigned payload_unit_start_indicator,
-                   ABitReader *br);
-    status_t parseSection(ABitReader* br);
+                   AmlMpBitReader *br);
+    int parseSection(AmlMpBitReader* br);
 
 protected:
     virtual ~PSISection();
 
 private:
-    sp<ABuffer> mBuffer;
+    sptr<AmlMpBuffer> mBuffer;
     int mPid = 0x1FFF;
     SwTsParser* mTsParser = nullptr;
     int32_t mExpectedContinuityCounter = -1;
     bool mPayloadStarted = false;
 
     mutable bool mGuessed = false;
-    KeyedVector<int, int> mSectionVersions;
+    std::map<int, int> mSectionVersions;
     bool mChanged = false;
 
     DISALLOW_EVIL_CONSTRUCTORS(PSISection);
 };
 
-struct SwTsParser::Program : public RefBase {
+struct SwTsParser::Program : public AmlMpRefBase {
     Program(SwTsParser *parser, unsigned programNumber, unsigned programMapPID)
     : mParser(parser)
     , mProgramNumber(programNumber)
@@ -134,7 +136,7 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////
 AmlSwDemux::AmlSwDemux()
-: mRemainingBytesBuffer(new ABuffer(kTSPacketSize))
+: mRemainingBytesBuffer(new AmlMpBuffer(kTSPacketSize))
 {
 }
 
@@ -143,15 +145,17 @@ AmlSwDemux::~AmlSwDemux()
     close();
 }
 
-int AmlSwDemux::open(bool isHardwareSource, Aml_MP_DemuxId demuxId __unused)
+int AmlSwDemux::open(bool isHardwareSource, Aml_MP_DemuxId demuxId)
 {
     if (isHardwareSource) {
         ALOGE("swdemux don't support hw source!!!");
         return -1;
+    } else {
+        Aml_MP_SetDemuxSource(demuxId, AML_MP_DEMUX_SOURCE_DMA0);
     }
 
     if (mTsParser == nullptr) {
-        mTsParser = new SwTsParser([this](int pid, const sp<ABuffer>& data, int version) {
+        mTsParser = new SwTsParser([this](int pid, const sptr<AmlMpBuffer>& data, int version) {
             return notifyData(pid, data, version);
         });
     }
@@ -166,6 +170,7 @@ int AmlSwDemux::close()
     if (mLooper != nullptr) {
         mLooper->unregisterHandler(mHandler->id());
         mLooper->stop();
+        mLooper.clear();
     }
 
     return 0;
@@ -174,14 +179,15 @@ int AmlSwDemux::close()
 int AmlSwDemux::start()
 {
     if (mHandler == nullptr) {
-        mHandler = new android::AHandlerReflector<AmlSwDemux>(this);
+        mHandler = new AmlMpEventHandlerReflector<AmlSwDemux>(this);
     }
 
     if (mLooper == nullptr) {
-        mLooper = new android::ALooper;
+        mLooper = new AmlMpEventLooper;
         mLooper->setName("swDemux");
         mLooper->registerHandler(mHandler);
-        mLooper->start();
+        int ret = mLooper->start();
+        ALOGI("start swDemux looper, ret = %d", ret);
     }
 
     return 0;
@@ -202,10 +208,11 @@ int AmlSwDemux::flush()
 {
     ++mBufferGeneration;
 
-    sp<AMessage> msg = new AMessage(kWhatFlush, mHandler);
+    sptr<AmlMpMessage> msg = new AmlMpMessage(kWhatFlush, mHandler);
 
-    sp<AMessage> response;
+    sptr<AmlMpMessage> response;
     msg->postAndAwaitResponse(&response);
+    MLOG();
 
     return 0;
 }
@@ -216,11 +223,11 @@ int AmlSwDemux::feedTs(const uint8_t* buffer, size_t size)
         return 0;
     }
 
-    sp<ABuffer> data = new ABuffer(size);
+    sptr<AmlMpBuffer> data = new AmlMpBuffer(size);
     memcpy(data->base(), buffer, size);
     data->setRange(0, size);
 
-    sp<AMessage> msg = new AMessage(kWhatFeedData, mHandler);
+    sptr<AmlMpMessage> msg = new AmlMpMessage(kWhatFeedData, mHandler);
     msg->setBuffer("buffer", data);
     msg->setInt32("generation", mBufferGeneration);
     msg->post();
@@ -230,7 +237,7 @@ int AmlSwDemux::feedTs(const uint8_t* buffer, size_t size)
 
 int AmlSwDemux::addPSISection(int pid)
 {
-    sp<AMessage> msg = new AMessage(kWhatAddPid, mHandler);
+    sptr<AmlMpMessage> msg = new AmlMpMessage(kWhatAddPid, mHandler);
     msg->setInt32("pid", pid);
     msg->post();
 
@@ -239,7 +246,7 @@ int AmlSwDemux::addPSISection(int pid)
 
 int AmlSwDemux::removePSISection(int pid)
 {
-    sp<AMessage> msg = new AMessage(kWhatRemovePid, mHandler);
+    sptr<AmlMpMessage> msg = new AmlMpMessage(kWhatRemovePid, mHandler);
     msg->setInt32("pid", pid);
     msg->post();
 
@@ -251,12 +258,12 @@ bool AmlSwDemux::isStopped() const
     return mStopped.load(std::memory_order_relaxed);
 }
 
-void AmlSwDemux::onMessageReceived(const sp<AMessage>& msg)
+void AmlSwDemux::onMessageReceived(const sptr<AmlMpMessage>& msg)
 {
     switch (msg->what()) {
     case kWhatFeedData:
     {
-        sp<ABuffer> data;
+        sptr<AmlMpBuffer> data;
         int32_t generation;
         CHECK(msg->findBuffer("buffer", &data));
         CHECK(msg->findInt32("generation", &generation));
@@ -289,25 +296,27 @@ void AmlSwDemux::onMessageReceived(const sp<AMessage>& msg)
     {
         onFlush();
 
-        sp<AReplyToken> replyID;
+        sptr<AReplyToken> replyID;
         CHECK(msg->senderAwaitsResponse(&replyID));
-        sp<AMessage> response = new AMessage;
+        sptr<AmlMpMessage> response = new AmlMpMessage;
         response->postReply(replyID);
     }
     break;
 
     default:
+#ifdef ANDROID
         TRESPASS();
+#endif
         break;
     }
 }
 
-void AmlSwDemux::onFeedData(const sp<ABuffer>& entry)
+void AmlSwDemux::onFeedData(const sptr<AmlMpBuffer>& entry)
 {
-    status_t err = OK;
+    int err = 0;
 
     if (mRemainingBytesBuffer->size() > 0) {
-        CHECK_LE(mRemainingBytesBuffer->size(), kTSPacketSize);
+        //CHECK_LE(mRemainingBytesBuffer->size(), kTSPacketSize);
         size_t paddingSize = kTSPacketSize - mRemainingBytesBuffer->size();
         size_t copySize = paddingSize < entry->size() ? paddingSize : entry->size();
 
@@ -317,7 +326,7 @@ void AmlSwDemux::onFeedData(const sp<ABuffer>& entry)
 
         if (mRemainingBytesBuffer->size() == kTSPacketSize) {
             err = mTsParser->feedTs(mRemainingBytesBuffer->data(), kTSPacketSize);
-            if (err != OK) {
+            if (err != 0) {
                 const uint8_t* p = mRemainingBytesBuffer->data();
                 ALOGI("%d %lld, feedTSPacket err:%d, %#x, %#x, %#x, %#x, %#x", __LINE__, mOutBufferCount.load(), err,
                         p[0], p[1], p[2], p[3], p[4]);
@@ -354,14 +363,14 @@ void AmlSwDemux::onFeedData(const sp<ABuffer>& entry)
         }
 
         err = mTsParser->feedTs(entry->data(), kTSPacketSize);
-        if (err != OK) {
+        if (err != 0) {
             ALOGE("%d feedTSPacket failed, err:%d", __LINE__, err);
         }
         entry->setRange(entry->offset() + kTSPacketSize, entry->size() - kTSPacketSize);
     }
 }
 
-int AmlSwDemux::resync(const sp<ABuffer>& buffer)
+int AmlSwDemux::resync(const sptr<AmlMpBuffer>& buffer)
 {
     const uint8_t* p = buffer->data();
     size_t size = buffer->size();
@@ -430,8 +439,8 @@ SwTsParser::SwTsParser(const std::function<SectionCallback>& cb)
 {
     MLOG();
 
-    mPSISections.add(0 /* PID */, new PSISection(0, this));
-    mPSISections.add(1 /* PID */, new PSISection(1, this));
+    mPSISections.emplace(0 /* PID */, new PSISection(0, this));
+    mPSISections.emplace(1 /* PID */, new PSISection(1, this));
     initCrcTable();
 }
 
@@ -490,9 +499,9 @@ uint32_t SwTsParser::crc32(const uint8_t *p_start, size_t length)
 
 int SwTsParser::feedTs(const uint8_t* buffer, size_t size)
 {
-    CHECK_EQ(size, kTSPacketSize);
+    //CHECK_EQ(size, kTSPacketSize);
 
-    ABitReader br(buffer, kTSPacketSize);
+    AmlMpBitReader br(buffer, kTSPacketSize);
     return parseTS(&br);
 }
 
@@ -500,9 +509,13 @@ void SwTsParser::reset()
 {
     MLOG();
 
-    for (size_t i = 0; i < mPSISections.size(); ++i) {
-        sp<PSISection> &p = mPSISections.editValueAt(i);
-        p->clear();
+    //for (size_t i = 0; i < mPSISections.size(); ++i) {
+        //sptr<PSISection> &p = mPSISections.editValueAt(i);
+        //p->clear();
+    //}
+
+    for (auto& p : mPSISections) {
+        p.second->clear();
     }
 }
 
@@ -511,9 +524,9 @@ int SwTsParser::addPSISection(int pid)
     if (pid == 0x1FFF)
         return -1;
 
-    if (mPSISections.indexOfKey(pid) < 0) {
+    if (mPSISections.find(pid) == mPSISections.end()) {
         ALOGW("add section pid:%d(%#x)", pid, pid);
-        mPSISections.add(pid, new PSISection(pid, this));
+        mPSISections.emplace(pid, new PSISection(pid, this));
     }
 
     return 0;
@@ -529,15 +542,15 @@ void SwTsParser::removePSISection(int pid)
     if (pid == 0x1FFF)
         return;
 
-    if (mPSISections.indexOfKey(pid) < 0) {
+    if (mPSISections.find(pid) == mPSISections.end()) {
         return;
     }
 
     ALOGW("remove section pid:%d(%#x)", pid, pid);
-    mPSISections.removeItem(pid);
+    mPSISections.erase(pid);
 }
 
-void SwTsParser::parseAdaptationField(ABitReader *br, unsigned PID)
+void SwTsParser::parseAdaptationField(AmlMpBitReader *br, unsigned PID)
 {
     unsigned adaptation_field_length = br->getBits(8);
 
@@ -586,25 +599,25 @@ void SwTsParser::parseAdaptationField(ABitReader *br, unsigned PID)
             numBitsRead += 52;
         }
 
-        CHECK_GE(adaptation_field_length * 8, numBitsRead);
+        //CHECK_GE(adaptation_field_length * 8, numBitsRead);
 
         br->skipBits(adaptation_field_length * 8 - numBitsRead);
     }
 }
 
-int SwTsParser::parseTS(ABitReader *br)
+int SwTsParser::parseTS(AmlMpBitReader *br)
 {
     ALOGV("---");
 
     unsigned sync_byte = br->getBits(8);
     if (sync_byte != 0x47u) {
         ALOGE("[error] parseTS: return error as sync_byte=0x%x", sync_byte);
-        return BAD_VALUE;
+        return -EINVAL;
     }
 
     if (br->getBits(1)) {  // transport_error_indicator
         // silently ignore.
-        return OK;
+        return 0;
     }
 
     unsigned payload_unit_start_indicator = br->getBits(1);
@@ -629,7 +642,7 @@ int SwTsParser::parseTS(ABitReader *br)
         parseAdaptationField(br, PID);
     }
 
-    status_t err = OK;
+    int err = 0;
 
     if (adaptation_field_control == 1 || adaptation_field_control == 3) {
         err = parsePID(
@@ -641,7 +654,7 @@ int SwTsParser::parseTS(ABitReader *br)
     return err;
 }
 
-void SwTsParser::parseProgramAssociationTable(ABitReader *br)
+void SwTsParser::parseProgramAssociationTable(AmlMpBitReader *br)
 {
     unsigned table_id = br->getBits(8);
     ALOGV("  table_id = %u", table_id);
@@ -651,14 +664,15 @@ void SwTsParser::parseProgramAssociationTable(ABitReader *br)
     }
     unsigned section_syntax_indictor = br->getBits(1);
     ALOGV("  section_syntax_indictor = %u", section_syntax_indictor);
-    CHECK_EQ(section_syntax_indictor, 1u);
+    //CHECK_EQ(section_syntax_indictor, 1u);
 
-    CHECK_EQ(br->getBits(1), 0u);
+    //CHECK_EQ(br->getBits(1), 0u);
+    (br->getBits(1), 0u);
     MY_LOGV("  reserved = %u", br->getBits(2));
 
     unsigned section_length = br->getBits(12);
     ALOGV("  section_length = %u", section_length);
-    CHECK_EQ(section_length & 0xc00, 0u);
+    //CHECK_EQ(section_length & 0xc00, 0u);
 
     MY_LOGV("  transport_stream_id = %u", br->getBits(16));
     MY_LOGV("  reserved = %u", br->getBits(2));
@@ -668,7 +682,7 @@ void SwTsParser::parseProgramAssociationTable(ABitReader *br)
     MY_LOGV("  last_section_number = %u", br->getBits(8));
 
     size_t numProgramBytes = (section_length - 5 /* header */ - 4 /* crc */);
-    CHECK_EQ((numProgramBytes % 4), 0u);
+    //CHECK_EQ((numProgramBytes % 4), 0u);
 
     for (size_t i = 0; i < numProgramBytes / 4; ++i) {
         unsigned program_number = br->getBits(16);
@@ -681,7 +695,7 @@ void SwTsParser::parseProgramAssociationTable(ABitReader *br)
         } else {
             unsigned programMapPID = br->getBits(13);
 
-            ALOGI("    program_map_PID = 0x%04x, %d", programMapPID, programMapPID);
+            ALOGV("    program_map_PID = 0x%04x, %d", programMapPID, programMapPID);
 
             if (mProgramMapPID == 0x1FFF) {
                 ALOGE("first update programMapPID:%d", programMapPID);
@@ -690,7 +704,7 @@ void SwTsParser::parseProgramAssociationTable(ABitReader *br)
 
             bool found = false;
             for (size_t index = 0; index < mPrograms.size(); ++index) {
-                const sp<Program> &program = mPrograms.itemAt(index);
+                const sptr<Program> &program = mPrograms.at(index);
 
                 if (program->number() == program_number) {
                     program->updateProgramMapPID(programMapPID);
@@ -700,12 +714,12 @@ void SwTsParser::parseProgramAssociationTable(ABitReader *br)
             }
 
             if (!found) {
-                mPrograms.push(
+                mPrograms.push_back(
                         new Program(this, program_number, programMapPID));
             }
 
-            if (mPSISections.indexOfKey(programMapPID) < 0) {
-                mPSISections.add(programMapPID, new PSISection(programMapPID, this));
+            if (mPSISections.find(programMapPID) == mPSISections.end()) {
+                mPSISections.emplace(programMapPID, new PSISection(programMapPID, this));
             }
         }
     }
@@ -714,32 +728,32 @@ void SwTsParser::parseProgramAssociationTable(ABitReader *br)
 }
 
 int SwTsParser::parsePID(
-        ABitReader *br, unsigned PID,
+        AmlMpBitReader *br, unsigned PID,
         unsigned continuity_counter,
         unsigned payload_unit_start_indicator) {
-    ssize_t sectionIndex = mPSISections.indexOfKey(PID);
+    auto sectionIndex = mPSISections.find(PID);
 
-    if (sectionIndex >= 0) {
-        sp<PSISection> section = mPSISections.valueAt(sectionIndex);
+    if (sectionIndex != mPSISections.end()) {
+        sptr<PSISection> section = mPSISections.at(PID);
 
         if (!section->parse(PID, continuity_counter, payload_unit_start_indicator, br)) {
             ALOGW("pre parse failed!!!! PID = %d", PID);
-            return OK;
+            return 0;
         }
 
         CHECK((br->numBitsLeft() % 8) == 0);
-        status_t err = section->append(br->data(), br->numBitsLeft() / 8);
+        int err = section->append(br->data(), br->numBitsLeft() / 8);
 
-        if (err != OK) {
+        if (err != 0) {
             ALOGW("section append data %d size failed!", br->numBitsLeft()/8);
             return err;
         }
 
         if (!section->isComplete()) {
-            return OK;
+            return 0;
         }
 
-        ABitReader sectionBits2(section->data(), section->size());
+        AmlMpBitReader sectionBits2(section->data(), section->size());
         bool notifyListener = true;
 
         err = section->parseSection(&sectionBits2);
@@ -747,7 +761,7 @@ int SwTsParser::parsePID(
             section->setRange(0, section->sectionLength());
         }
 
-        if (err != OK) {
+        if (err != 0) {
             notifyListener = false;
 
             ALOGE("parse failed:%d, section pid:%d, buffer size:%d, section length:%d", err, PID,
@@ -783,7 +797,7 @@ int SwTsParser::parsePID(
 #endif
 
         } else {
-            ALOGI("section pid:%d, set range:%d", PID, section->sectionLength());
+            ALOGV("section pid:%d, set range:%d", PID, section->sectionLength());
             //section->setRange(0, section->sectionLength());
         }
 
@@ -797,7 +811,7 @@ int SwTsParser::parsePID(
         }
 
 
-        ABitReader sectionBits(section->data(), section->size());
+        AmlMpBitReader sectionBits(section->data(), section->size());
 
         if (PID == 0) {
             parseProgramAssociationTable(&sectionBits);
@@ -811,7 +825,7 @@ int SwTsParser::parsePID(
                     continue;
                 }
 
-                if (err != OK) {
+                if (err != 0) {
                     return err;
                 }
 
@@ -831,7 +845,7 @@ int SwTsParser::parsePID(
             section->clear();
         }
 
-        return OK;
+        return 0;
     }
 
 //don't parse PES
@@ -842,7 +856,7 @@ int SwTsParser::parsePID(
         if (mPrograms.editItemAt(i)->parsePID(
                     PID, continuity_counter, payload_unit_start_indicator,
                     br, &err)) {
-            if (err != OK) {
+            if (err != 0) {
                 return err;
             }
 
@@ -856,7 +870,7 @@ int SwTsParser::parsePID(
     }
 #endif
 
-    return OK;
+    return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -873,14 +887,14 @@ SwTsParser::PSISection::PSISection(int pid, SwTsParser* tsParser)
 SwTsParser::PSISection::~PSISection() {
 }
 
-status_t SwTsParser::PSISection::append(const void *data, size_t size) {
+int SwTsParser::PSISection::append(const void *data, size_t size) {
     if (mBuffer == NULL || mBuffer->size() + size > mBuffer->capacity()) {
         size_t newCapacity =
             (mBuffer == NULL) ? size : mBuffer->capacity() + size;
 
         newCapacity = (newCapacity + 1023) & ~1023;
 
-        sp<ABuffer> newBuffer = new ABuffer(newCapacity);
+        sptr<AmlMpBuffer> newBuffer = new AmlMpBuffer(newCapacity);
 
         if (mBuffer != NULL) {
             memcpy(newBuffer->data(), mBuffer->data(), mBuffer->size());
@@ -895,7 +909,7 @@ status_t SwTsParser::PSISection::append(const void *data, size_t size) {
     memcpy(mBuffer->data() + mBuffer->size(), data, size);
     mBuffer->setRange(0, mBuffer->size() + size);
 
-    return OK;
+    return 0;
 }
 
 void SwTsParser::PSISection::clear() {
@@ -961,17 +975,17 @@ bool SwTsParser::PSISection::needCheckVersionChange()
 
 int SwTsParser::PSISection::sectionVersion() const
 {
-    int index = mSectionVersions.indexOfKey(0);
-    if (index < 0)
+    auto index = mSectionVersions.find(0);
+    if (index == mSectionVersions.end())
         return -1;
 
-    int version = mSectionVersions.valueAt(index);
+    int version = mSectionVersions.at(0);
     return version;
 }
 
 bool SwTsParser::PSISection::parse(int PID, unsigned continuity_counter,
                    unsigned payload_unit_start_indicator,
-                   ABitReader *br)
+                   AmlMpBitReader *br)
 {
     (void)PID;
     (void)continuity_counter;
@@ -1016,7 +1030,7 @@ bool SwTsParser::PSISection::parse(int PID, unsigned continuity_counter,
     return true;
 }
 
-status_t SwTsParser::PSISection::parseSection(ABitReader* br)
+int SwTsParser::PSISection::parseSection(AmlMpBitReader* br)
 {
     unsigned table_id = br->getBits(8);
     ALOGV("  table_id = %u", table_id);
@@ -1052,13 +1066,13 @@ status_t SwTsParser::PSISection::parseSection(ABitReader* br)
         MY_LOGV("  last_section_number = %u", br->getBits(8));
 
         if (needCheckVersionChange()) {
-            ssize_t index = mSectionVersions.indexOfKey(sectionNumber);
-            if (index < 0) {
+            auto index = mSectionVersions.find(sectionNumber);
+            if (index == mSectionVersions.end()) {
                 mChanged = true;
-                mSectionVersions.add(sectionNumber, versionNumber);
+                mSectionVersions.emplace(sectionNumber, versionNumber);
                 ALOGE("section FIRST changed, PID:%d, sectionNumber:%d, versionNumber:%d", mPid, sectionNumber, versionNumber);
             } else {
-                int &lastVersionNumber = mSectionVersions.editValueAt(index);
+                int &lastVersionNumber = mSectionVersions.at(sectionNumber);
                 if (lastVersionNumber != versionNumber) {
                     ALOGE("section changed, PID:%d, sectionNumber:%d, versionNumber:%d, lastVersionNumber:%d", mPid, sectionNumber, versionNumber, lastVersionNumber);
                     mChanged = true;
@@ -1074,7 +1088,7 @@ status_t SwTsParser::PSISection::parseSection(ABitReader* br)
         }
     }
 
-    return OK;
+    return 0;
 }
 
 

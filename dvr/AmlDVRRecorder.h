@@ -11,7 +11,6 @@
 #define _AML_DVR_RECODER_H_
 
 #include <Aml_MP/Dvr.h>
-#include <utils/RefBase.h>
 #include <utils/AmlMpHandle.h>
 #include <utils/AmlMpUtils.h>
 

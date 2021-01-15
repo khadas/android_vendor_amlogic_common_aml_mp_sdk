@@ -8,7 +8,6 @@
  */
 
 #define LOG_NDEBUG 0
-#define KEEP_ALOGX
 #define LOG_TAG "AmlMpPlayerImpl"
 #include "Aml_MP_PlayerImpl.h"
 #include <utils/AmlMpLog.h>

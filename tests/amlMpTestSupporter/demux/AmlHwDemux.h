@@ -14,16 +14,9 @@
 #include <thread>
 #include <map>
 #include <set>
-#include <utils/Looper.h>
-
-namespace android {
-class Looper;
-struct ABuffer;
-}
+#include <utils/AmlMpLooper.h>
 
 namespace aml_mp {
-using android::sp;
-using android::Looper;
 class HwTsParser;
 
 class AmlHwDemux : public AmlDemuxBase
@@ -46,8 +39,8 @@ private:
     Aml_MP_DemuxId mDemuxId = AML_MP_DEMUX_ID_DEFAULT;
     std::string mDemuxName;
     std::thread mThread;
-    sp<Looper> mLooper;
-    sp<HwTsParser> mTsParser;
+    sptr<Looper> mLooper;
+    sptr<HwTsParser> mTsParser;
 
     std::atomic<bool> mStopped;
 

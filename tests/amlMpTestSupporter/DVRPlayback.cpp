@@ -12,7 +12,7 @@
 #include "DVRPlayback.h"
 
 namespace aml_mp {
-DVRPlayback::DVRPlayback(Aml_MP_DemuxId demuxId, const sp<ProgramInfo>& programInfo)
+DVRPlayback::DVRPlayback(Aml_MP_DemuxId demuxId, const sptr<ProgramInfo>& programInfo)
 {
 
 }
@@ -22,7 +22,7 @@ DVRPlayback::~DVRPlayback()
 
 }
 
-void DVRPlayback::setANativeWindow(const sp<ANativeWindow>& window)
+void DVRPlayback::setANativeWindow(const sptr<ANativeWindow>& window)
 {
 
 }

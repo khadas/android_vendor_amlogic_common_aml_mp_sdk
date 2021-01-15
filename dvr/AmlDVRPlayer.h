@@ -12,10 +12,15 @@
 
 #include <system/window.h>
 #include <Aml_MP/Dvr.h>
-#include <utils/RefBase.h>
+#include <utils/AmlMpRefBase.h>
 #include <utils/AmlMpHandle.h>
 #include <utils/AmlMpUtils.h>
 #include "AmTsPlayer.h"
+#ifdef ANDROID
+#include <utils/RefBase.h>
+#include <utils/StrongPointer.h>
+#endif
+
 namespace android {
 class NativeHandle;
 }
@@ -65,8 +70,10 @@ private:
     int setDecryptParams(Aml_MP_DVRPlayerDecryptParams* decryptParams);
     DVR_Result_t eventHandlerLibDVR(DVR_PlaybackEvent_t event, void* params);
     DVR_Result_t eventHandlerPlayer(am_tsplayer_event* event);
-    sp<ANativeWindow> mNativeWindow = nullptr;
-    sp<NativeHandle> mSidebandHandle;
+#ifdef ANDROID
+    android::sp<ANativeWindow> mNativeWindow = nullptr;
+    android::sp<NativeHandle> mSidebandHandle;
+#endif
 
 private:
     AmlDVRPlayer(const AmlDVRPlayer&) = delete;

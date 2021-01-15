@@ -18,9 +18,9 @@ namespace aml_mp {
 class DVRPlayback : public TestModule, public ISourceReceiver
 {
 public:
-    DVRPlayback(Aml_MP_DemuxId demuxId, const sp<ProgramInfo>& programInfo);
+    DVRPlayback(Aml_MP_DemuxId demuxId, const sptr<ProgramInfo>& programInfo);
     ~DVRPlayback();
-    void setANativeWindow(const sp<ANativeWindow>& window);
+    void setANativeWindow(const sptr<ANativeWindow>& window);
     void registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData);
     int start();
     int stop();

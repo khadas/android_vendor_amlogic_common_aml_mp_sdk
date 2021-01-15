@@ -14,7 +14,7 @@
 
 
 namespace aml_mp {
-class TestModule : virtual public RefBase
+class TestModule : virtual public AmlMpRefBase
 {
 public:
     struct Command {

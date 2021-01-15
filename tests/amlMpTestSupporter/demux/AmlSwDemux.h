@@ -12,15 +12,13 @@
 
 #include "AmlDemuxBase.h"
 
-namespace android {
-struct ALooper;
-struct AMessage;
-struct ABuffer;
-template <class T> struct AHandlerReflector;
-}
-
 namespace aml_mp {
 class SwTsParser;
+struct AmlMpEventLooper;
+struct AmlMpMessage;
+
+template <typename T>
+struct AmlMpEventHandlerReflector;
 
 class AmlSwDemux : public AmlDemuxBase
 {
@@ -35,7 +33,7 @@ public:
     virtual int feedTs(const uint8_t* buffer, size_t size) override;
 
 private:
-    friend struct android::AHandlerReflector<AmlSwDemux>;
+    friend struct AmlMpEventHandlerReflector<AmlSwDemux>;
     enum {
         kWhatFeedData = 'fdta',
         kWhatFlush    = 'flsh',
@@ -48,24 +46,24 @@ private:
     virtual int removePSISection(int pid) override;
     virtual bool isStopped() const override;
 
-    void onMessageReceived(const sp<android::AMessage>& msg);
+    void onMessageReceived(const sptr<AmlMpMessage>& msg);
 
-    void onFeedData(const sp<android::ABuffer>& data);
-    int resync(const sp<android::ABuffer>& buffer);
+    void onFeedData(const sptr<AmlMpBuffer>& data);
+    int resync(const sptr<AmlMpBuffer>& buffer);
     void onFlush();
     void onAddFilterPid(int pid);
     void onRemoveFilterPid(int pid);
 
-    sp<android::ALooper> mLooper;
-    sp<android::AHandlerReflector<AmlSwDemux>> mHandler;
+    sptr<AmlMpEventLooper> mLooper;
+    sptr<AmlMpEventHandlerReflector<AmlSwDemux>> mHandler;
 
     std::atomic<int32_t> mBufferGeneration{0};
     std::atomic<bool> mStopped{false};
     std::atomic<int64_t> mOutBufferCount {0};
 
     std::mutex mLock;
-    sp<SwTsParser> mTsParser;
-    sp<android::ABuffer> mRemainingBytesBuffer;
+    sptr<SwTsParser> mTsParser;
+    sptr<AmlMpBuffer> mRemainingBytesBuffer;
 
 private:
     AmlSwDemux(const AmlSwDemux&) = delete;

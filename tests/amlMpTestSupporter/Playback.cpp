@@ -19,7 +19,7 @@
 
 namespace aml_mp {
 
-Playback::Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, const sp<ProgramInfo>& programInfo)
+Playback::Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, const sptr<ProgramInfo>& programInfo)
 : mProgramInfo(programInfo)
 , mDemuxId(demuxId)
 {
@@ -56,7 +56,7 @@ int Playback::setSubtitleDisplayWindow(int x, int y, int width, int height) {
     return ret;
 }
 
-void Playback::setANativeWindow(const sp<ANativeWindow>& window)
+void Playback::setANativeWindow(const android::sp<ANativeWindow>& window)
 {
     Aml_MP_Player_SetANativeWindow(mPlayer, window.get());
 }

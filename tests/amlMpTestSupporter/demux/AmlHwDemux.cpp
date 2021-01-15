@@ -13,7 +13,8 @@
 #include <Aml_MP/Aml_MP.h>
 #include "AmlHwDemux.h"
 #include <utils/AmlMpHandle.h>
-#include <media/stagefright/foundation/ABuffer.h>
+#include <utils/AmlMpBuffer.h>
+#include <utils/AmlMpEventLooper.h>
 #include <sys/ioctl.h>
 #include <sstream>
 extern "C" {
@@ -23,9 +24,7 @@ extern "C" {
 #define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 
 namespace aml_mp {
-using android::ABuffer;
-
-class HwTsParser : public AmlDemuxBase::ITsParser, public android::LooperCallback
+class HwTsParser : public AmlDemuxBase::ITsParser, public LooperCallback
 {
 public:
     HwTsParser(const std::function<SectionCallback>& cb, const std::string& name);
@@ -93,7 +92,7 @@ int AmlHwDemux::open(bool isHardwareSource, Aml_MP_DemuxId demuxId)
     ALOGI("mDemuxName:%s", mDemuxName.c_str());
 
     if (mTsParser == nullptr) {
-        mTsParser = new HwTsParser([this](int pid, const sp<ABuffer>& data, int version) {
+        mTsParser = new HwTsParser([this](int pid, const sptr<AmlMpBuffer>& data, int version) {
             return notifyData(pid, data, version);
         }, mDemuxName);
     }
@@ -321,7 +320,7 @@ void HwTsParser::reset()
 
 int HwTsParser::handleEvent(int fd, int events, void* data)
 {
-    sp<ABuffer> buffer = new ABuffer(1024);
+    sptr<AmlMpBuffer> buffer = new AmlMpBuffer(1024);
     if (events & Looper::EVENT_INPUT) {
         int len = ::read(fd, buffer->base(), buffer->size());
         if (len < 0) {

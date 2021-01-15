@@ -92,7 +92,7 @@ void FileSource::threadLoop()
     int size = 0;
     int ret = 0;
     int written = 0;
-    sp<ISourceReceiver> receiver = nullptr;
+    sptr<ISourceReceiver> receiver = nullptr;
     uint32_t work = 0;
     for (;;) {
         {

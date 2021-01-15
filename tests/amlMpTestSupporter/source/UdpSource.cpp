@@ -17,7 +17,7 @@
 #include <netinet/in.h>
 #include <utils/Looper.h>
 #include <cutils/properties.h>
-#include <media/stagefright/foundation/ALooper.h>
+#include <utils/AmlMpEventLooper.h>
 
 #define UDP_FIFO_SIZE (4 * 1024 * 1024)
 
@@ -281,7 +281,7 @@ void UdpSource::readThreadLoop()
 void UdpSource::feedThreadLoop()
 {
     int len;
-    sp<ISourceReceiver> receiver = nullptr;
+    sptr<ISourceReceiver> receiver = nullptr;
     const int bufferSize = 188 * 1024;
     std::unique_ptr<uint8_t[]> buffer(new uint8_t[bufferSize]);
 
@@ -321,7 +321,7 @@ void UdpSource::feedThreadLoop()
 
 void UdpSource::doStatistic(int size)
 {
-    int64_t nowUs = ALooper::GetNowUs();
+    int64_t nowUs = AmlMpEventLooper::GetNowUs();
     if (mLastBitRateMeasureTime == -1) {
         mLastBitRateMeasureTime = nowUs;
     } else {

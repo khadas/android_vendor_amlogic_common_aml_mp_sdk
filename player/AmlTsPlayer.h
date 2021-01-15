@@ -73,7 +73,7 @@ private:
     const int kRwTimeout = 30000;
 
 private:
-    sp<NativeHandle> mSidebandHandle;
+    android::sp<NativeHandle> mSidebandHandle;
     AmlTsPlayer(const AmlTsPlayer&) = delete;
     AmlTsPlayer& operator= (const AmlTsPlayer&) = delete;
 };

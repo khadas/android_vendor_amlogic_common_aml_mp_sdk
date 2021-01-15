@@ -11,24 +11,19 @@
 #define _AML_MP_HANDLE_H_
 
 #include <utils/Log.h>
-#include <utils/RefBase.h>
+#include "AmlMpRefBase.h"
 #include <Aml_MP/Common.h>
 
 namespace aml_mp {
-using android::sp;
-using android::RefBase;
 
-struct AmlMpHandle;
-
-
-struct AmlMpHandle : public RefBase
+struct AmlMpHandle : AmlMpRefBase
 {
     AmlMpHandle()
     : mMagicID(kMagicID)
     {
     }
 
-    ~AmlMpHandle() {
+    virtual ~AmlMpHandle() {
         mMagicID = ~kMagicID;
     }
 
@@ -44,7 +39,7 @@ private:
     AmlMpHandle& operator= (const AmlMpHandle&) = delete;
 };
 
-static inline void* aml_handle_cast(const sp<AmlMpHandle>& amlMpHandle)
+static inline void* aml_handle_cast(const sptr<AmlMpHandle>& amlMpHandle)
 {
     if (!(amlMpHandle && *amlMpHandle)) {
         if (amlMpHandle) {
@@ -58,7 +53,7 @@ static inline void* aml_handle_cast(const sp<AmlMpHandle>& amlMpHandle)
 }
 
 template <typename T>
-sp<T> aml_handle_cast(void* h)
+sptr<T> aml_handle_cast(void* h)
 {
     AmlMpHandle* amlMpHandle = static_cast<AmlMpHandle*>(h);
     if (!(amlMpHandle && *amlMpHandle)) {
@@ -70,7 +65,7 @@ sp<T> aml_handle_cast(void* h)
     }
 
     T* t = static_cast<T*>(h);
-    return sp<T>(t);
+    return sptr<T>(t);
 }
 
 }

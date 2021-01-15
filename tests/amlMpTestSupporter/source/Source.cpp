@@ -16,9 +16,8 @@
 #include "FileSource.h"
 
 namespace aml_mp {
-using namespace android;
 
-sp<Source> Source::create(const char* url)
+sptr<Source> Source::create(const char* url)
 {
     char proto[10]{};
     char address[100]{};
@@ -58,7 +57,7 @@ sp<Source> Source::create(const char* url)
     }
 
     uint32_t flags = 0;
-    sp<Source> source = nullptr;
+    sptr<Source> source = nullptr;
     if (isUdpSource) {
         flags |= Source::kIsMemorySource;
         source = new UdpSource(address, programNumber, flags);

@@ -12,16 +12,16 @@
 
 #include <Aml_MP/Common.h>
 #include <Aml_MP/Cas.h>
-#include <utils/RefBase.h>
+#include <utils/AmlMpRefBase.h>
 
 namespace aml_mp {
-using android::RefBase;
-using android::sp;
+//using android::RefBase;
+//using android::sp;
 
-class AmlCasBase : public RefBase
+class AmlCasBase : public AmlMpRefBase
 {
 public:
-    static sp<AmlCasBase> create(Aml_MP_InputSourceType inputType, const Aml_MP_CASParams* params);
+    static sptr<AmlCasBase> create(Aml_MP_InputSourceType inputType, const Aml_MP_CASParams* params);
     virtual ~AmlCasBase();
 
     virtual int openSession() = 0;

@@ -16,8 +16,6 @@
 
 
 namespace aml_mp {
-using android::sp;
-
 class FileSource : public Source
 {
 public:

@@ -10,7 +10,7 @@
 #ifndef _PARSER_H_
 #define _PARSER_H_
 
-#include <utils/RefBase.h>
+#include <utils/AmlMpRefBase.h>
 #include <map>
 #include <mutex>
 #include <condition_variable>
@@ -55,7 +55,7 @@ typedef struct SCRAMBLE_INFO_s {
     uint8_t                     iv_value_data[16];
 } SCRAMBLE_INFO_t;
 
-struct ProgramInfo : public RefBase
+struct ProgramInfo : public AmlMpRefBase
 {
     int programNumber               = -1;
     int pmtPid                      = AML_MP_INVALID_PID;
@@ -105,7 +105,7 @@ public:
     int close();
     int wait();
     void signalQuit();
-    sp<ProgramInfo> getProgramInfo() const;
+    sptr<ProgramInfo> getProgramInfo() const;
     Aml_MP_DemuxId getDemuxId() const {
         return mDemuxId;
     }
@@ -144,7 +144,7 @@ private:
         int bufferIndex = 0;
     };
 
-    struct SectionFilterContext : public RefBase {
+    struct SectionFilterContext : public AmlMpRefBase {
     public:
         SectionFilterContext(int pid)
         : mPid(pid)
@@ -212,15 +212,15 @@ private:
     int mProgramNumber = -1;
     int mProgramMapPid = -1;
     bool mIsHardwareSource = false;
-    Aml_MP_DemuxId mDemuxId = AML_MP_DEMUX_ID_DEFAULT;
+    Aml_MP_DemuxId mDemuxId = AML_MP_HW_DEMUX_ID_0;
 
-    sp<AmlDemuxBase> mDemux;
-    sp<ProgramInfo> mProgramInfo;
+    sptr<AmlDemuxBase> mDemux;
+    sptr<ProgramInfo> mProgramInfo;
 
     mutable std::mutex mLock;
     std::condition_variable mCond;
     bool mParseDone = false;
-    std::map<int, sp<SectionFilterContext>> mSectionFilters;  //pid, section
+    std::map<int, sptr<SectionFilterContext>> mSectionFilters;  //pid, section
 
     std::atomic_bool mRequestQuit{false};
 

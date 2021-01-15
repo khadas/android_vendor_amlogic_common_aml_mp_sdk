@@ -24,8 +24,19 @@ AML_MP_DVR_SRC := \
 	dvr/AmlDVRRecorder.cpp
 
 AML_MP_UTILS_SRC := \
-	utils/AmlMpUtils.cpp \
+	utils/AmlMpAtomizer.cpp \
+	utils/AmlMpBitReader.cpp \
+	utils/AmlMpBuffer.cpp \
 	utils/AmlMpConfig.cpp \
+	utils/AmlMpEventHandler.cpp \
+	utils/AmlMpEventLooper.cpp \
+	utils/AmlMpEventLooperRoster.cpp \
+	utils/AmlMpLooper.cpp \
+	utils/AmlMpMessage.cpp \
+	utils/AmlMpRefBase.cpp \
+	utils/AmlMpStrongPointer.cpp \
+	utils/AmlMpThread.cpp \
+	utils/AmlMpUtils.cpp \
 
 AML_MP_SRCS := \
 	$(AML_MP_PLAYER_SRC) \
@@ -53,6 +64,7 @@ AML_MP_INC := $(LOCAL_PATH)/include \
 	$(TOP)/vendor/amlogic/common/frameworks/services/subtiltleserver/client
 
 AML_MP_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/include \
+	$(LOCAL_PATH) \
 	$(TOP)/hardware/amlogic/media/amcodec/include \
 	$(TOP)/vendor/amlogic/common/libdvr_release/include \
 	$(TOP)/vendor/amlogic/common/mediahal_sdk/include \

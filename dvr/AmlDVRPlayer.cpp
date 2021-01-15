@@ -17,7 +17,10 @@
 #ifndef __ANDROID_VNDK__
 #include <gui/Surface.h>
 #endif
+
+#ifdef ANDROID
 #include <amlogic/am_gralloc_ext.h>
+#endif
 
 namespace aml_mp {
 

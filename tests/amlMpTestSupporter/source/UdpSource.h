@@ -14,18 +14,13 @@
 #include <string>
 #include <thread>
 #include <utils/AmlMpFifo.h>
+#include <utils/AmlMpLooper.h>
 #include <mutex>
 #include <condition_variable>
 
 struct addrinfo;
 
-namespace android {
-class Looper;
-}
-
 namespace aml_mp {
-using android::sp;
-using android::Looper;
 
 class UdpSource : public Source
 {
@@ -47,7 +42,7 @@ private:
     struct addrinfo* mAddrInfo = nullptr;
     int mSocket = -1;
     std::thread mReadThread;
-    sp<Looper> mLooper;
+    sptr<Looper> mLooper;
 
     std::thread mFeedThread;
     std::mutex mFeedLock;

@@ -89,7 +89,6 @@ int Parser::open()
     bool isHardwareDemux = false;
     if (mIsHardwareSource) {
         isHardwareDemux = true;
-        mDemuxId = AML_MP_HW_DEMUX_ID_0;
     }
 
     mDemux = AmlDemuxBase::create(isHardwareDemux);
@@ -126,6 +125,7 @@ int Parser::close()
         mDemux.clear();
     }
 
+    ALOGI("%s:%d", __FUNCTION__, __LINE__);
     return 0;
 }
 
@@ -147,10 +147,10 @@ void Parser::signalQuit()
     mCond.notify_all();
 }
 
-sp<ProgramInfo> Parser::getProgramInfo() const
+sptr<ProgramInfo> Parser::getProgramInfo() const
 {
     std::lock_guard<std::mutex> _l(mLock);
-    sp<ProgramInfo> info = mProgramInfo;
+    sptr<ProgramInfo> info = mProgramInfo;
 
     if (info && info->isComplete()) {
         return info;
@@ -164,7 +164,7 @@ int Parser::writeData(const uint8_t* buffer, size_t size)
     int wlen = 0;
     //ALOGV("writeData:%p, size:%d", buffer, size);
 
-    sp<AmlDemuxBase> demux = mDemux;
+    sptr<AmlDemuxBase> demux = mDemux;
     wlen = demux->feedTs(buffer, size);
 
     int ret = ISourceReceiver::writeData(buffer, size);
@@ -484,7 +484,7 @@ void Parser::onPmtParsed(const PMTSection& results)
 
     std::lock_guard<std::mutex> _l(mLock);
 
-    sp<ProgramInfo> programInfo = mProgramInfo;
+    sptr<ProgramInfo> programInfo = mProgramInfo;
     programInfo->programNumber = mProgramNumber;
     programInfo->pmtPid = mProgramMapPid;
     programInfo->caSystemId = results.caSystemId;
@@ -590,7 +590,7 @@ int Parser::addSectionFilter(int pid, Aml_MP_Demux_SectionFilterCb cb)
 {
     int ret = 0;
 
-    sp<SectionFilterContext> context = new SectionFilterContext(pid);
+    sptr<SectionFilterContext> context = new SectionFilterContext(pid);
     if (context == nullptr) {
         return -1;
     }
@@ -630,7 +630,7 @@ int Parser::addSectionFilter(int pid, Aml_MP_Demux_SectionFilterCb cb)
 
 int Parser::removeSectionFilter(int pid)
 {
-    sp<SectionFilterContext> context;
+    sptr<SectionFilterContext> context;
 
     {
         std::lock_guard<std::mutex> _l(mLock);
@@ -663,7 +663,7 @@ void Parser::clearAllSectionFilters()
 {
     std::lock_guard<std::mutex> _l(mLock);
     for (auto p : mSectionFilters) {
-        sp<SectionFilterContext> context = p.second;
+        sptr<SectionFilterContext> context = p.second;
         if (context->filter != AML_MP_INVALID_HANDLE) {
             mDemux->detachFilter(context->filter, context->channel);
             mDemux->destroyFilter(context->filter);

@@ -11,7 +11,7 @@
 #define _AML_MP_PLAYER_IMPL_H_
 
 #include <Aml_MP/Aml_MP.h>
-#include <utils/RefBase.h>
+#include <utils/AmlMpRefBase.h>
 #include <utils/AmlMpHandle.h>
 #include <system/window.h>
 #include <mutex>
@@ -22,12 +22,16 @@
 #include <gui/SurfaceComposerClient.h>
 #endif
 
+#ifdef ANDROID
+#include <utils/RefBase.h>
+#endif
+
 namespace aml_mp {
 using android::RefBase;
 class AmlPlayerBase;
 class AmlMpConfig;
 
-struct AmlMpPlayerRoster final : public RefBase
+struct AmlMpPlayerRoster
 {
     static constexpr int kPlayerInstanceMax = 9;
 
@@ -152,24 +156,24 @@ private:
     float mVolume = 100.0;
 
     float mPlaybackRate = 1.0f;
-    sp<ANativeWindow> mNativeWindow;
+    android::sp<ANativeWindow> mNativeWindow;
     WindowSize mVideoWindow;
 
     Aml_MP_AVSyncSource mSyncSource = AML_MP_AVSYNC_SOURCE_DEFAULT;
     int mPcrPid = AML_MP_INVALID_PID;
 
-    sp<AmlPlayerBase> mPlayer;
+    sptr<AmlPlayerBase> mPlayer;
 
-    sp<AmlCasBase> mCasHandle;
+    sptr<AmlCasBase> mCasHandle;
 
     Aml_MP_PlayerWorkMode mWorkMode;
 
     int mZorder = -2;
 
 #ifndef __ANDROID_VNDK__
-    sp<android::SurfaceComposerClient> mComposerClient;
-    sp<android::SurfaceControl> mSurfaceControl;
-    sp<android::Surface> mSurface;
+    android::sp<android::SurfaceComposerClient> mComposerClient;
+    android::sp<android::SurfaceControl> mSurfaceControl;
+    android::sp<android::Surface> mSurface;
 #endif
 
 private:

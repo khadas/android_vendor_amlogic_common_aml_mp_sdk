@@ -10,13 +10,10 @@
 #ifndef _AML_MP_CONFIG_H_
 #define _AML_MP_CONFIG_H_
 
-#include <utils/RefBase.h>
-
 namespace aml_mp {
-using android::RefBase;
 
 
-class AmlMpConfig final : public RefBase
+class AmlMpConfig
 {
 public:
     static AmlMpConfig& instance() {

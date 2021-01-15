@@ -10,11 +10,12 @@
 #ifndef _AML_PLAYER_BASE_H_
 #define _AML_PLAYER_BASE_H_
 
-#include <utils/RefBase.h>
+#include <utils/AmlMpRefBase.h>
 #include <Aml_MP/Aml_MP.h>
 #ifdef HAVE_SUBTITLE
 #include <SubtitleNativeAPI.h>
 #endif
+#include <utils/RefBase.h>
 
 namespace android {
 class NativeHandle;
@@ -23,13 +24,13 @@ class NativeHandle;
 struct ANativeWindow;
 
 namespace aml_mp {
-using android::sp;
-using android::RefBase;
-using android::NativeHandle;
+//using android::sp;
+//using android::RefBase;
+//using android::NativeHandle;
 
-class AmlPlayerBase : public RefBase {
+class AmlPlayerBase : public AmlMpRefBase {
 public:
-    static sp<AmlPlayerBase> create(Aml_MP_PlayerCreateParams* createParams, int instanceId);
+    static sptr<AmlPlayerBase> create(Aml_MP_PlayerCreateParams* createParams, int instanceId);
     virtual ~AmlPlayerBase();
 
     int registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData);
@@ -91,7 +92,7 @@ private:
     Aml_MP_PlayerEventCallback mEventCb;
     void* mUserData;
 
-    sp<NativeHandle> mSidebandHandle;
+    android::sp<android::NativeHandle> mSidebandHandle;
 
 #ifdef HAVE_SUBTITLE
     static bool constructAmlSubtitleParam(AmlSubtitleParam* amlSubParam, Aml_MP_SubtitleParams* params);

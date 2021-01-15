@@ -15,9 +15,9 @@
 #include <utils/AmlMpUtils.h>
 
 namespace aml_mp {
-sp<AmlCasBase> AmlCasBase::create(Aml_MP_InputSourceType inputType, const Aml_MP_CASParams* casParams)
+sptr<AmlCasBase> AmlCasBase::create(Aml_MP_InputSourceType inputType, const Aml_MP_CASParams* casParams)
 {
-    sp<AmlCasBase> cas;
+    sptr<AmlCasBase> cas;
 
     switch (inputType) {
     case AML_MP_INPUT_SOURCE_TS_MEMORY:
