@@ -15,6 +15,12 @@
 #include <Aml_MP/Common.h>
 
 namespace aml_mp {
+struct InputParameter {
+    int programNumber = -1;
+    Aml_MP_DemuxId demuxId = AML_MP_HW_DEMUX_ID_0;
+    Aml_MP_DemuxSource sourceId = AML_MP_DEMUX_SOURCE_TS0;
+};
+
 struct ISourceReceiver : virtual public AmlMpRefBase {
     ~ISourceReceiver() {}
     void linkNextReceiver(const sptr<ISourceReceiver>& receiver) {
@@ -54,11 +60,15 @@ public:
     virtual void signalQuit() = 0;
 
     Aml_MP_DemuxId getDemuxId() const {
-        return mDemuxId;
+        return mInputParameter.demuxId;
     }
 
     int getProgramNumber() const {
-        return mProgramNumber;
+        return mInputParameter.programNumber;
+    }
+
+    Aml_MP_DemuxSource getSourceId() const {
+        return mInputParameter.sourceId;
     }
 
     uint32_t getFlags() const {
@@ -84,9 +94,8 @@ public:
     }
 
 protected:
-    Source(Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags);
-    Aml_MP_DemuxId mDemuxId = AML_MP_HW_DEMUX_ID_0;
-    int mProgramNumber;
+    Source(const InputParameter& inputParameter, uint32_t flags);
+    InputParameter mInputParameter;
     uint32_t mFlags;
 
 private:
@@ -100,8 +109,8 @@ private:
 
 class DVRSource : public Source {
 public:
-    DVRSource(Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags)
-    : Source(demuxId, programNumber, flags) {}
+    DVRSource(const InputParameter& inputParameter, uint32_t flags)
+    : Source(inputParameter, flags) {}
     ~DVRSource() {}
     int initCheck() {return 0;}
     int start() {return 0;}

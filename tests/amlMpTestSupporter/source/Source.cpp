@@ -23,6 +23,7 @@ sptr<Source> Source::create(const char* url)
     char address[100]{};
     Aml_MP_DemuxId demuxId = AML_MP_HW_DEMUX_ID_0;
     int programNumber = -1;
+    Aml_MP_DemuxSource sourceId = AML_MP_DEMUX_SOURCE_TS0;
 
     const char* p = nullptr;
     if ((p = strstr(url, "://")) == nullptr) {
@@ -60,13 +61,15 @@ sptr<Source> Source::create(const char* url)
                 demuxId = (Aml_MP_DemuxId)std::stoi(value);
             } else if (key == "program") {
                 programNumber = std::stoi(value);
+            } else if (key == "sourceid") {
+                sourceId = (Aml_MP_DemuxSource)std::stoi(value);
             }
         }
     } else {
         strncpy(address, p, sizeof(address)-1);
     }
 
-    ALOGV("proto:%s, address:%s, programNumber:%d, demuxId:%d", proto, address, programNumber, demuxId);
+    ALOGV("proto:%s, address:%s, programNumber:%d, demuxId:%d, sourceid:%d", proto, address, programNumber, demuxId, sourceId);
 
     bool isUdpSource = false;
     bool isDvbSource = false;
@@ -87,26 +90,31 @@ sptr<Source> Source::create(const char* url)
 
     uint32_t flags = 0;
     sptr<Source> source = nullptr;
+
+    InputParameter inputParameter;
+    inputParameter.demuxId = demuxId;
+    inputParameter.programNumber = programNumber;
+    inputParameter.sourceId = sourceId;
+
     if (isUdpSource) {
         flags |= Source::kIsMemorySource;
-        source = new UdpSource(address, demuxId, programNumber, flags);
+        source = new UdpSource(address, inputParameter, flags);
     } else if (isDvbSource) {
         flags |= Source::kIsHardwareSource;
-        source = new DvbSource(proto, address, demuxId, programNumber, flags);
+        source = new DvbSource(proto, address, inputParameter, flags);
     } else if (isFileSource) {
         flags |= Source::kIsMemorySource;
-        source = new FileSource(address, demuxId, programNumber, flags);
+        source = new FileSource(address, inputParameter, flags);
     } else if (isDVRSource) {
         flags |= Source::kIsDVRSource;
-        source = new DVRSource(demuxId, programNumber, flags);
+        source = new DVRSource(inputParameter, flags);
     }
 
     return  source;
 }
 
-Source::Source(Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags)
-: mDemuxId(demuxId)
-, mProgramNumber(programNumber)
+Source::Source(const InputParameter& inputParameter, uint32_t flags)
+: mInputParameter(inputParameter)
 , mFlags(flags)
 {
 

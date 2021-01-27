@@ -150,7 +150,7 @@ static void showUsage()
             "   --record:     record mode, record file name is \"" AML_MP_TEST_SUPPORTER_RECORD_FILE "\"\n"
             "   --crypto      crypto mode\n"
             "\n"
-            "url format: url?program=xx&demuxid=xx\n"
+            "url format: url?program=xx&demuxid=xx&sourceid=xx\n"
             "    DVB-T dvbt://<freq>, eg: dvbt://474\n"
             "    local file, eg: /data/a.ts\n"
             "    dvr replay, eg: dvr:/" AML_MP_TEST_SUPPORTER_RECORD_FILE "\n"

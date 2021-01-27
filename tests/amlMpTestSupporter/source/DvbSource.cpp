@@ -53,14 +53,15 @@ static void getDefaultDeliveryConf(dmd_device_type_t type, dmd_delivery_t* deliv
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-DvbSource::DvbSource(const char* proto, const char* address, Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags)
-: Source(demuxId, programNumber, flags)
+DvbSource::DvbSource(const char* proto, const char* address, const InputParameter& inputParameter, uint32_t flags)
+: Source(inputParameter, flags)
 , mProto(proto)
 , mAddress(address)
 , mDeviceType((dmd_device_type_t)0)
 , mDelivery{}
 {
-    ALOGI("proto:%s, address:%s, demuxId:%d, programNumber:%d", proto, address, demuxId, programNumber);
+    ALOGI("proto:%s, address:%s, demuxId:%d, programNumber:%d, sourceId:%d",
+            proto, address, inputParameter.demuxId, inputParameter.programNumber, inputParameter.sourceId);
 }
 
 DvbSource::~DvbSource()

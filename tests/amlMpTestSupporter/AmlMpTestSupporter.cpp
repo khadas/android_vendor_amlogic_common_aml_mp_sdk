@@ -67,14 +67,19 @@ int AmlMpTestSupporter::prepare(bool cryptoMode)
 
     Aml_MP_DemuxId demuxId = mSource->getDemuxId();
     int programNumber = mSource->getProgramNumber();
+    Aml_MP_DemuxSource sourceId = mSource->getSourceId();
 
     Aml_MP_Initialize();
 
     //set default demux source
     if (mSource->getFlags()&Source::kIsHardwareSource) {
-        Aml_MP_SetDemuxSource(demuxId, AML_MP_DEMUX_SOURCE_TS0);
+        Aml_MP_SetDemuxSource(demuxId, sourceId);
     } else {
-        Aml_MP_SetDemuxSource(demuxId, AML_MP_DEMUX_SOURCE_DMA0);
+        if (sourceId < AML_MP_DEMUX_SOURCE_DMA0) {
+            sourceId = Aml_MP_DemuxSource(sourceId + AML_MP_DEMUX_SOURCE_DMA0);
+            ALOGW("change source id to %d", sourceId);
+        }
+        Aml_MP_SetDemuxSource(demuxId, sourceId);
     }
 
     if (mSource->getFlags()&Source::kIsDVRSource) {

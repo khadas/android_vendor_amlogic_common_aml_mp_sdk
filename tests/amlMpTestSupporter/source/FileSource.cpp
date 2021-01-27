@@ -14,8 +14,8 @@
 #include "FileSource.h"
 
 namespace aml_mp {
-FileSource::FileSource(const char* filepath, Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags)
-: Source(demuxId, programNumber, flags)
+FileSource::FileSource(const char* filepath, const InputParameter& inputParameter, uint32_t flags)
+: Source(inputParameter, flags)
 , mFilePath(filepath)
 {
 

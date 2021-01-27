@@ -23,8 +23,8 @@
 
 namespace aml_mp {
 
-UdpSource::UdpSource(const char* address, Aml_MP_DemuxId demuxId, int programNumber, uint32_t flags)
-: Source(demuxId, programNumber, flags)
+UdpSource::UdpSource(const char* address, const InputParameter& inputParameter, uint32_t flags)
+: Source(inputParameter, flags)
 , mAddress(address)
 , mFifo(UDP_FIFO_SIZE)
 {
