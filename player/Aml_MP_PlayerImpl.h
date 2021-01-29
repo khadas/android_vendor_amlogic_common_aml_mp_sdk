@@ -171,6 +171,9 @@ private:
 
     int mZorder = -2;
 
+    int mEnableAD = 0;
+    bool mADParamSeted = false;
+
 #ifndef __ANDROID_VNDK__
     android::sp<android::SurfaceComposerClient> mComposerClient;
     android::sp<android::SurfaceControl> mSurfaceControl;

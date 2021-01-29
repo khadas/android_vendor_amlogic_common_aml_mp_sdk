@@ -81,6 +81,12 @@ int AmlDVRPlayer::setStreams(Aml_MP_DVRStreamArray* streams)
     mPlayPids.ad.pid = adStream->pid;
     mPlayPids.ad.format = convertToDVRAudioFormat(adStream->codecId);
 
+    //If audio and AD pid is same, set invalid pid for AD
+    if (mPlayPids.ad.pid == mPlayPids.audio.pid) {
+        mPlayPids.ad.pid = AML_MP_INVALID_PID;
+        mPlayPids.ad.format = (DVR_AudioFormat_t)(-1);
+    }
+
     if (mDVRPlayerHandle) {
         ret = dvr_wrapper_update_playback(mDVRPlayerHandle, &mPlayPids);
         if (ret < 0) {

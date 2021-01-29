@@ -439,6 +439,15 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
 #endif
         return 0;
     }
+
+    case AML_MP_PLAYER_PARAMETER_AD_STATE:
+    {
+        mEnableAD = *(int*)parameter;
+        if (!mADParamSeted) {
+            return 0;
+        }
+    }
+
     break;
 
     default:
@@ -780,6 +789,8 @@ void AmlMpPlayerImpl::setParams()
 
     if (mADParams.pid != AML_MP_INVALID_PID) {
         mPlayer->setADParams(&mADParams);
+        mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AD_STATE, &mEnableAD);
+        mADParamSeted = true;
     }
 
 }
