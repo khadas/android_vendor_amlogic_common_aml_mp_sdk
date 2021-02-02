@@ -177,7 +177,7 @@ int Aml_MP_Player_SetANativeWindow(AML_MP_PLAYER handle, void* nativeWindow)
     AmlMpPlayerImpl* player = aml_handle_cast<AmlMpPlayerImpl>(handle);
     RETURN_IF(-1, player == nullptr);
 
-    return player->setAnativeWindow(nativeWindow);
+    return player->setANativeWindow(nativeWindow);
 }
 
 int Aml_MP_Player_SetVideoWindow(AML_MP_PLAYER handle, int32_t x, int32_t y, int32_t width, int32_t height)

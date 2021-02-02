@@ -56,6 +56,7 @@ private:
     char mName[50];
 
     DVR_WrapperPlayback_t mDVRPlayerHandle{0};
+    am_tsplayer_handle mTsPlayerHandle{0};
     DVR_WrapperPlaybackOpenParams_t mPlaybackOpenParams{};
     DVR_PlaybackPids_t mPlayPids{};
 
@@ -68,6 +69,7 @@ private:
 
     int setBasicParams(Aml_MP_DVRPlayerBasicParams* basicParams);
     int setDecryptParams(Aml_MP_DVRPlayerDecryptParams* decryptParams);
+    int createTsPlayerIfNeeded();
     DVR_Result_t eventHandlerLibDVR(DVR_PlaybackEvent_t event, void* params);
     DVR_Result_t eventHandlerPlayer(am_tsplayer_event* event);
 #ifdef ANDROID

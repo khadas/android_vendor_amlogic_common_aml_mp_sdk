@@ -46,6 +46,8 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
     mWorkMode = AML_MP_PLAYER_MODE_NORMAL;
 
     AmlMpConfig::instance().init();
+
+    mPlayer = AmlPlayerBase::create(&mCreateParams, mInstanceId);
 }
 
 AmlMpPlayerImpl::~AmlMpPlayerImpl()
@@ -191,11 +193,12 @@ int AmlMpPlayerImpl::stop()
 int AmlMpPlayerImpl::pause()
 {
     AML_MP_TRACE(10);
-    RETURN_IF(-1, mPlayer == nullptr);
 
     if (mState != STATE_RUNNING) {
         return 0;
     }
+
+    RETURN_IF(-1, mPlayer == nullptr);
 
     if (mPlayer->pause() < 0) {
         return -1;
@@ -208,11 +211,12 @@ int AmlMpPlayerImpl::pause()
 int AmlMpPlayerImpl::resume()
 {
     AML_MP_TRACE(10);
-    RETURN_IF(-1, mPlayer == nullptr);
 
     if (mState != STATE_PAUSED) {
         return 0;
     }
+
+    RETURN_IF(-1, mPlayer == nullptr);
 
     if (mPlayer->resume() < 0) {
         return -1;
@@ -236,8 +240,10 @@ int AmlMpPlayerImpl::setPlaybackRate(float rate)
     mPlaybackRate = rate;
     int ret = 0;
 
-    if (mPlayer)
+    if (mState == STATE_RUNNING || STATE_PAUSED) {
+        RETURN_IF(-1, mPlayer == nullptr);
         ret = mPlayer->setPlaybackRate(rate);
+    }
 
     return ret;
 }
@@ -245,17 +251,27 @@ int AmlMpPlayerImpl::setPlaybackRate(float rate)
 int AmlMpPlayerImpl::switchAudioTrack(const Aml_MP_AudioParams* params)
 {
     AML_MP_TRACE(10);
-    RETURN_IF(-1, mPlayer == nullptr);
+    int ret = 0;
 
-    return mPlayer->switchAudioTrack(params);
+    if (mState == STATE_RUNNING || STATE_PAUSED) {
+        RETURN_IF(-1, mPlayer == nullptr);
+        ret = mPlayer->switchAudioTrack(params);
+    }
+
+    return ret;
 }
 
 int AmlMpPlayerImpl::switchSubtitleTrack(const Aml_MP_SubtitleParams* params)
 {
     AML_MP_TRACE(10);
-    RETURN_IF(-1, mPlayer == nullptr);
+    int ret = 0;
 
-    return mPlayer->switchSubtitleTrack(params);
+    if (mState == STATE_RUNNING || STATE_PAUSED) {
+        RETURN_IF(-1, mPlayer == nullptr);
+        ret = mPlayer->switchSubtitleTrack(params);
+    }
+
+    return ret;
 }
 
 int AmlMpPlayerImpl::writeData(const uint8_t* buffer, size_t size)
@@ -290,7 +306,7 @@ int AmlMpPlayerImpl::getBufferStat(Aml_MP_BufferStat* bufferStat)
     return mPlayer->getBufferStat(bufferStat);
 }
 
-int AmlMpPlayerImpl::setAnativeWindow(void* nativeWindow)
+int AmlMpPlayerImpl::setANativeWindow(void* nativeWindow)
 {
     AML_MP_TRACE(10);
     if (nativeWindow == nullptr) {
@@ -300,9 +316,11 @@ int AmlMpPlayerImpl::setAnativeWindow(void* nativeWindow)
     }
     ALOGI("setAnativeWindow: %p, mNativewindow: %p", nativeWindow, mNativeWindow.get());
 
-    if (mPlayer != nullptr) {
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
+        RETURN_IF(-1, mPlayer == nullptr);
         mPlayer->setANativeWindow(mNativeWindow.get());
     }
+
     return 0;
 }
 
@@ -358,8 +376,10 @@ int AmlMpPlayerImpl::setVolume(float volume)
     }
     mVolume = volume;
 
-    if (mPlayer != nullptr)
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
+        RETURN_IF(-1, mPlayer == nullptr);
         ret = mPlayer->setVolume(volume);
+    }
 
     return ret;
 }
@@ -410,11 +430,65 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
     int ret = 0;
 
     switch (key) {
+    case AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE:
+        RETURN_IF(-1, parameter == nullptr);
+        mVideoDisplayMode = *(Aml_MP_VideoDisplayMode*)parameter;
+        break;
+
+    case AML_MP_PLAYER_PARAMETER_BLACK_OUT:
+        RETURN_IF(-1, parameter == nullptr);
+        mBlackOut = *(bool*)parameter;
+        break;
+
+    case AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE:
+        RETURN_IF(-1, parameter == nullptr);
+        mVideoDecodeMode = *(Aml_MP_VideoDecodeMode*)parameter;
+        break;
+
+    case AML_MP_PLAYER_PARAMETER_VIDEO_PTS_OFFSET:
+        RETURN_IF(-1, parameter == nullptr);
+        mVideoPtsOffset = *(int*)parameter;
+        break;
+
+    case AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE:
+        RETURN_IF(-1, parameter == nullptr);
+        mAudioOutputMode = *(Aml_MP_AudioOutputMode*)parameter;
+        break;
+
+    case AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_DEVICE:
+        RETURN_IF(-1, parameter == nullptr);
+        mAudioOutputDevice = *(Aml_MP_AudioOutputDevice*)parameter;
+        break;
+
+    case AML_MP_PLAYER_PARAMETER_AUDIO_PTS_OFFSET:
+        RETURN_IF(-1, parameter == nullptr);
+        mAudioPtsOffset = *(int*)parameter;
+        break;
+
     case AML_MP_PLAYER_PARAMETER_AUDIO_BALANCE:
-    {
+        RETURN_IF(-1, parameter == nullptr);
         mAudioBalance = *(Aml_MP_AudioBalance*)parameter;
-    }
-    break;
+        break;
+
+    case AML_MP_PLAYER_PARAMETER_AUDIO_MUTE:
+        RETURN_IF(-1, parameter == nullptr);
+        mAudioMute = *(bool*)parameter;
+        break;
+
+    case AML_MP_PLAYER_PARAMETER_NETWORK_JITTER:
+        RETURN_IF(-1, parameter == nullptr);
+        mNetworkJitter = *(int*)parameter;
+        break;
+
+    case AML_MP_PLAYER_PARAMETER_AD_STATE:
+        RETURN_IF(-1, parameter == nullptr);
+        mADState = *(int*)parameter;
+        break;
+
+    case AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL:
+        RETURN_IF(-1, parameter == nullptr);
+        mADMixLevel = *(int*)parameter;
+        break;
 
     case AML_MP_PLAYER_PARAMETER_WORK_MODE:
     {
@@ -437,24 +511,16 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
             transcation.apply();
         }
 #endif
-        return 0;
     }
-
-    case AML_MP_PLAYER_PARAMETER_AD_STATE:
-    {
-        mEnableAD = *(int*)parameter;
-        if (!mADParamSeted) {
-            return 0;
-        }
-    }
-
     break;
 
     default:
+        ALOGW("unhandled key:%#x", key);
         break;
     }
 
-    if (mPlayer != nullptr) {
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
+        RETURN_IF(-1, mPlayer == nullptr);
         ret = mPlayer->setParameter(key, parameter);
     }
 
@@ -618,11 +684,16 @@ int AmlMpPlayerImpl::setSubtitleWindow(int x, int y, int width, int height)
 {
     AML_MP_TRACE(10);
     mSubtitleWindow = {x, y, width, height};
-    RETURN_IF(-1, mPlayer == nullptr);
+    int ret = 0;
 
-    return mPlayer->setSubtitleWindow(x, y, width, height);
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
+        ret = mPlayer->setSubtitleWindow(x, y, width, height);
+    }
+
+    return ret;
 }
 
+//internal function
 int AmlMpPlayerImpl::startDescrambling()
 {
     AML_MP_TRACE(10);
@@ -644,6 +715,7 @@ int AmlMpPlayerImpl::startDescrambling()
     return 0;
 }
 
+//internal function
 int AmlMpPlayerImpl::stopDescrambling()
 {
     AML_MP_TRACE(10);
@@ -768,8 +840,15 @@ int AmlMpPlayerImpl::prepare()
         mPlayer->setPcrPid(mPcrPid);
     }
 
-    setState(STATE_PREPARED);
+    mPlayer->setPlaybackRate(mPlaybackRate);
 
+    if (mVolume >= 0) {
+        mPlayer->setVolume(mVolume);
+    }
+
+    applyParameters();
+
+    setState(STATE_PREPARED);
     return 0;
 }
 
@@ -789,8 +868,6 @@ void AmlMpPlayerImpl::setParams()
 
     if (mADParams.pid != AML_MP_INVALID_PID) {
         mPlayer->setADParams(&mADParams);
-        mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AD_STATE, &mEnableAD);
-        mADParamSeted = true;
     }
 
 }
@@ -825,6 +902,30 @@ int AmlMpPlayerImpl::reset()
     mPlayer.clear();
 
     setState(STATE_IDLE);
+
+    return 0;
+}
+
+int AmlMpPlayerImpl::applyParameters()
+{
+    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE, &mVideoDisplayMode);
+    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_BLACK_OUT, &mBlackOut);
+    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE, &mVideoDecodeMode);
+    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_PTS_OFFSET, &mVideoPtsOffset);
+    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE, &mAudioOutputMode);
+    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_DEVICE, &mAudioOutputDevice);
+    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_PTS_OFFSET, &mAudioPtsOffset);
+    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_BALANCE, &mAudioBalance);
+    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_MUTE, &mAudioMute);
+    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_NETWORK_JITTER, &mNetworkJitter);
+
+    if (mADState != -1) {
+        mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AD_STATE, &mADState);
+    }
+
+    if (mADMixLevel != -1) {
+        mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL, &mADMixLevel);
+    }
 
     return 0;
 }

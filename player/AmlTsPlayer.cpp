@@ -376,14 +376,16 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
     switch (key) {
         case AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE:
             //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE, value is %d", *(am_tsplayer_video_match_mode*)parameter);
-            ret = AmTsPlayer_setVideoMatchMode(mPlayer, *(am_tsplayer_video_match_mode*)parameter);
+            ret = AmTsPlayer_setVideoMatchMode(mPlayer, convertToTsPlayerVideoMatchMode(*(Aml_MP_VideoDisplayMode*)parameter));
             break;
+
         case AML_MP_PLAYER_PARAMETER_BLACK_OUT:
             //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_BLACK_OUT, value is %d", *(bool_t*)parameter);
             ret = AmTsPlayer_setVideoBlackOut(mPlayer, *(bool_t*)parameter);
             break;
 
         case AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE:
+            ret = AmTsPlayer_setTrickMode(mPlayer, convertToTsplayerVideoTrickMode(*(Aml_MP_VideoDecodeMode*)parameter));
             break;
 
         case AML_MP_PLAYER_PARAMETER_VIDEO_PTS_OFFSET:
@@ -404,6 +406,24 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             ret = AmTsPlayer_setAudioStereoMode(mPlayer, convertToTsPlayerAudioStereoMode(*(Aml_MP_AudioBalance*)parameter));
             break;
 
+        case AML_MP_PLAYER_PARAMETER_AUDIO_MUTE:
+        {
+            bool mute = *(bool*)parameter;
+            ret =AmTsPlayer_setAudioMute(mPlayer, mute, mute);
+            break;
+        }
+
+        case AML_MP_PLAYER_PARAMETER_NETWORK_JITTER:
+            break;
+
+        case AML_MP_PLAYER_PARAMETER_AD_STATE:
+            isEnable = *(int*)parameter;
+            if (isEnable)
+                ret = AmTsPlayer_enableADMix(mPlayer);
+            else
+                ret = AmTsPlayer_disableADMix(mPlayer);
+            break;
+
         case AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL:
             ADVolume = (Aml_MP_ADVolume*)parameter;
             //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL, AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE, value is master %d, slave %d", ADVolume->masterVolume, ADVolume->slaveVolume);
@@ -415,12 +435,7 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             ret = AmTsPlayer_setWorkMode(mPlayer, *(am_tsplayer_work_mode*)(parameter));
             break;
 
-        case AML_MP_PLAYER_PARAMETER_AD_STATE:
-            isEnable = *(int*)parameter;
-            if (isEnable)
-                ret = AmTsPlayer_enableADMix(mPlayer);
-            else
-                ret = AmTsPlayer_disableADMix(mPlayer);
+        case AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER:
             break;
 
         default:
@@ -477,10 +492,18 @@ int AmlTsPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             //ad_stat = (am_tsplayer_adec_stat*)parameter;
             //ALOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_AUDIO_DECODE_STAT, frame_count: %d, error_frame_count: %d, drop_frame_count: %d", ad_stat->frame_count, ad_stat->error_frame_count, ad_stat->drop_frame_count);
             break;
+
+        case AML_MP_PLAYER_PARAMETER_INSTANCE_ID:
+            ret = AmTsPlayer_getInstansNo(mPlayer, (uint32_t*)parameter);
+            break;
+
+        case AML_MP_PLAYER_PARAMETER_SYNC_ID:
+            ret = AmTsPlayer_getSyncInstansNo(mPlayer, (int32_t*)parameter);
+            break;
+
         default:
             ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
-    }
-    if (ret != AM_TSPLAYER_OK) {
+    } if (ret != AM_TSPLAYER_OK) {
         return -1;
     }
     return 0;

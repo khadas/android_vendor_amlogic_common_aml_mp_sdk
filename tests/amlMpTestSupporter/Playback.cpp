@@ -567,6 +567,12 @@ static struct TestModule::Command g_commandTable[] = {
             Aml_MP_AdecStat adStat;
             ret = Aml_MP_Player_GetParameter(player, AML_MP_PLAYER_PARAMETER_AD_DECODE_STAT, &adStat);
             printf("AML_MP_PLAYER_PARAMETER_AD_DECODE_STAT get audio decode stat frame_count: %d, error_frame_count: %d, drop_frame_count: %d, ret: %d\n", adStat.frame_count, adStat.error_frame_count, adStat.drop_frame_count, ret);
+            uint32_t instanceId;
+            ret = Aml_MP_Player_GetParameter(player, AML_MP_PLAYER_PARAMETER_INSTANCE_ID, &instanceId);
+            printf("AML_MP_PLAYER_PARAMETER_INSTANCE_ID get instance id: %d\n", instanceId);
+            int32_t syncId;
+            ret = Aml_MP_Player_GetParameter(player, AML_MP_PLAYER_PARAMETER_SYNC_ID, &syncId);
+            printf("AML_MP_PLAYER_PARAMETER_SYNC_ID get sync id: %d\n", syncId);
             return ret;
         }
     },

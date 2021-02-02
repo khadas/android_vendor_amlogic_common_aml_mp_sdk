@@ -234,6 +234,8 @@ typedef enum {
     AML_MP_PLAYER_PARAMETER_SUBTITLE_DECODE_STAT,           //getSubtitleDecStat(Aml_MP_SubDecStat)
     AML_MP_PLAYER_PARAMETER_AD_INFO,                        //getADInfo(Aml_MP_AudioInfo)
     AML_MP_PLAYER_PARAMETER_AD_DECODE_STAT,                 //getADDecodeStat(Aml_MP_AdecStat)
+    AML_MP_PLAYER_PARAMETER_INSTANCE_ID,                    //getInstanceId(uint32_t)
+    AML_MP_PLAYER_PARAMETER_SYNC_ID,                        //getSyncId(int32_t)
 } Aml_MP_PlayerParameterKey;
 
 ////////////////////////////////////////

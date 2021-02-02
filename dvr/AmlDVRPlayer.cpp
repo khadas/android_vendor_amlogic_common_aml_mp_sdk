@@ -42,6 +42,8 @@ AmlDVRPlayer::AmlDVRPlayer(Aml_MP_DVRPlayerBasicParams* basicParams, Aml_MP_DVRP
     if (mIsEncryptStream) {
         setDecryptParams(decryptParams);
     }
+
+    createTsPlayerIfNeeded();
 }
 
 AmlDVRPlayer::~AmlDVRPlayer()
@@ -102,29 +104,18 @@ int AmlDVRPlayer::start(bool initialPaused)
 {
     MLOG();
 
-    am_tsplayer_init_params tsPlayerInitParam{};
-
-    tsPlayerInitParam.source = TS_MEMORY;
-    tsPlayerInitParam.drmmode = (am_tsplayer_input_buffer_type)mIsEncryptStream;
-    ALOGI("drmMode:%d", tsPlayerInitParam.drmmode);
-    tsPlayerInitParam.dmx_dev_id = mPlaybackOpenParams.dmx_dev_id;
-    tsPlayerInitParam.event_mask = 0;
-
-
-    am_tsplayer_handle tsPlayerHandle;
-    am_tsplayer_result ret = AmTsPlayer_create(tsPlayerInitParam, &tsPlayerHandle);
-    if (ret != AM_TSPLAYER_OK) {
-        ALOGI("Create tsplayer fail");
+    int ret = createTsPlayerIfNeeded();
+    if (ret != 0) {
         return -1;
     }
 
-    ret = AmTsPlayer_registerCb(tsPlayerHandle,  [](void *user_data, am_tsplayer_event *event) {
+    ret = AmTsPlayer_registerCb(mTsPlayerHandle,  [](void *user_data, am_tsplayer_event *event) {
         static_cast<AmlDVRPlayer*>(user_data)->eventHandlerPlayer(event);
     }, this);
     ALOGI("TsPlayer set Callback function %s, result(%d)", (ret)? "FAIL" : "OK", ret);
-    ret = AmTsPlayer_setWorkMode(tsPlayerHandle, TS_PLAYER_MODE_NORMAL);
+    ret = AmTsPlayer_setWorkMode(mTsPlayerHandle, TS_PLAYER_MODE_NORMAL);
     ALOGI("TsPlayer set Workmode NORMAL %s, result(%d)", (ret)? "FAIL" : "OK", ret);
-    ret = AmTsPlayer_setSyncMode(tsPlayerHandle, TS_SYNC_PCRMASTER );
+    ret = AmTsPlayer_setSyncMode(mTsPlayerHandle, TS_SYNC_PCRMASTER );
     ALOGI(" TsPlayer set Syncmode PCRMASTER %s, result(%d)", (ret)? "FAIL" : "OK", ret);
 
     if (AmlMpConfig::instance().mTsPlayerNonTunnel) {
@@ -134,7 +125,7 @@ int AmlDVRPlayer::start(bool initialPaused)
             surface = (android::Surface*)mNativeWindow.get();
         }
         ALOGI("setANativeWindow nativeWindow: %p, surface: %p", mNativeWindow.get(), surface);
-        ret = AmTsPlayer_setSurface(tsPlayerHandle, surface);
+        ret = AmTsPlayer_setSurface(mTsPlayerHandle, surface);
 #endif
     } else {
         if (mNativeWindow != nullptr) {
@@ -150,7 +141,7 @@ int AmlDVRPlayer::start(bool initialPaused)
         }
     }
 
-    mPlaybackOpenParams.playback_handle = (Playback_DeviceHandle_t)tsPlayerHandle;
+    mPlaybackOpenParams.playback_handle = (Playback_DeviceHandle_t)mTsPlayerHandle;
     mPlaybackOpenParams.event_fn = [](DVR_PlaybackEvent_t event, void* params, void* userData) {
         AmlDVRPlayer* player = static_cast<AmlDVRPlayer*>(userData);
         return player->eventHandlerLibDVR(event, params);
@@ -408,6 +399,12 @@ int AmlDVRPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter)
             //adec_stat = (am_tsplayer_adec_stat*)parameter;
             //ALOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_AUDIO_DECODE_STAT, frame_count: %d, error_frame_count: %d, drop_frame_count: %d", adec_stat->frame_count, adec_stat->error_frame_count, adec_stat->drop_frame_count);
             break;
+        case AML_MP_PLAYER_PARAMETER_SUBTITLE_INFO:
+            break;
+
+        case AML_MP_PLAYER_PARAMETER_SUBTITLE_DECODE_STAT:
+            break;
+
         case AML_MP_PLAYER_PARAMETER_AD_INFO:
             ret = AmTsPlayer_getADInfo(mPlayer, (am_tsplayer_audio_info*)parameter);
             //am_tsplayer_audio_info* adInfo;
@@ -420,9 +417,18 @@ int AmlDVRPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter)
             //ad_stat = (am_tsplayer_adec_stat*)parameter;
             //ALOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_AUDIO_DECODE_STAT, frame_count: %d, error_frame_count: %d, drop_frame_count: %d", ad_stat->frame_count, ad_stat->error_frame_count, ad_stat->drop_frame_count);
             break;
+        case AML_MP_PLAYER_PARAMETER_INSTANCE_ID:
+            ret = AmTsPlayer_getInstansNo(mPlayer, (uint32_t*)parameter);
+            break;
+
+        case AML_MP_PLAYER_PARAMETER_SYNC_ID:
+            ret = AmTsPlayer_getSyncInstansNo(mPlayer, (int32_t*)parameter);
+            break;
+
         default:
             ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
     }
+
     if (ret != AM_TSPLAYER_OK) {
         return -1;
     }
@@ -464,6 +470,32 @@ int AmlDVRPlayer::setDecryptParams(Aml_MP_DVRPlayerDecryptParams * decryptParams
     ALOGI("mSecureBuffer:%p, mSecureBufferSize:%d", mSecureBuffer, mSecureBufferSize);
 
     return 0;
+}
+
+int AmlDVRPlayer::createTsPlayerIfNeeded()
+{
+    if (mTsPlayerHandle != 0) {
+        return 0;
+    }
+
+    am_tsplayer_init_params tsPlayerInitParam{};
+
+    tsPlayerInitParam.source = TS_MEMORY;
+    tsPlayerInitParam.drmmode = (am_tsplayer_input_buffer_type)mIsEncryptStream;
+    ALOGI("drmMode:%d", tsPlayerInitParam.drmmode);
+    tsPlayerInitParam.dmx_dev_id = mPlaybackOpenParams.dmx_dev_id;
+    tsPlayerInitParam.event_mask = 0;
+
+
+    am_tsplayer_handle tsPlayerHandle;
+    am_tsplayer_result ret = AmTsPlayer_create(tsPlayerInitParam, &tsPlayerHandle);
+    if (ret != AM_TSPLAYER_OK) {
+        ALOGE("Create tsplayer fail");
+    } else {
+       mTsPlayerHandle = tsPlayerHandle;
+    }
+
+    return ret;
 }
 
 DVR_Result_t AmlDVRPlayer::eventHandlerLibDVR(DVR_PlaybackEvent_t event, void* params)
@@ -518,7 +550,8 @@ DVR_Result_t AmlDVRPlayer::eventHandlerLibDVR(DVR_PlaybackEvent_t event, void* p
     return ret;
 }
 
-DVR_Result_t AmlDVRPlayer::eventHandlerPlayer(am_tsplayer_event* event) {
+DVR_Result_t AmlDVRPlayer::eventHandlerPlayer(am_tsplayer_event* event)
+{
     if (mEventCb == NULL) {
         return DVR_FAILURE;
     }

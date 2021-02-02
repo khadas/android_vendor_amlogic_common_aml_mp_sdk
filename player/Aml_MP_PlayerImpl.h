@@ -78,7 +78,7 @@ public:
     int writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size_t size, int64_t pts);
     int getCurrentPts(Aml_MP_StreamType, int64_t* pts);
     int getBufferStat(Aml_MP_BufferStat* bufferStat);
-    int setAnativeWindow(void* nativeWindow);
+    int setANativeWindow(void* nativeWindow);
     int setVideoWindow(int x, int y, int width, int height);
     int setVolume(float volume);
     int getVolume(float* volume);
@@ -137,6 +137,7 @@ private:
     void setParams();
     int resetIfNeeded();
     int reset();
+    int applyParameters();
 
     const int mInstanceId;
     char mName[50];
@@ -153,8 +154,21 @@ private:
     Aml_MP_CASParams mCASParams{};
     Aml_MP_AudioParams mADParams;
 
-    Aml_MP_AudioBalance mAudioBalance;
-    float mVolume = 100.0;
+    Aml_MP_VideoDisplayMode mVideoDisplayMode{AML_MP_VIDEO_DISPLAY_MODE_NORMAL};
+    bool mBlackOut{false};
+    Aml_MP_VideoDecodeMode mVideoDecodeMode{AML_MP_VIDEO_DECODE_MODE_NONE};
+    int mVideoPtsOffset{0};
+    Aml_MP_AudioOutputMode mAudioOutputMode{AML_MP_AUDIO_OUTPUT_PCM};
+    Aml_MP_AudioOutputDevice mAudioOutputDevice{AML_MP_AUDIO_OUTPUT_DEVICE_NORMAL};
+    int mAudioPtsOffset{0};
+    Aml_MP_AudioBalance mAudioBalance{AML_MP_AUDIO_BALANCE_STEREO};
+    bool mAudioMute{false};
+    int mNetworkJitter{0};
+    int mADState{-1};
+    int mADMixLevel{-1};
+    Aml_MP_PlayerWorkMode mWorkMode;
+
+    float mVolume = -1.0;
 
     float mPlaybackRate = 1.0f;
     android::sp<ANativeWindow> mNativeWindow;
@@ -167,12 +181,8 @@ private:
 
     sptr<AmlCasBase> mCasHandle;
 
-    Aml_MP_PlayerWorkMode mWorkMode;
 
     int mZorder = -2;
-
-    int mEnableAD = 0;
-    bool mADParamSeted = false;
 
 #ifndef __ANDROID_VNDK__
     android::sp<android::SurfaceComposerClient> mComposerClient;
