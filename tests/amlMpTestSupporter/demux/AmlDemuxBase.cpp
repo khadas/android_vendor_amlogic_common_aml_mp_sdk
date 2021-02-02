@@ -222,7 +222,7 @@ AmlDemuxBase::~AmlDemuxBase()
 
 AmlDemuxBase::CHANNEL AmlDemuxBase::createChannel(int pid)
 {
-    sptr<Channel> channel;
+    Channel* channel;
 
     {
         std::lock_guard<std::mutex> _l(mLock);
@@ -233,7 +233,7 @@ AmlDemuxBase::CHANNEL AmlDemuxBase::createChannel(int pid)
 
         auto it = mChannels.find(pid);
         if (it != mChannels.end()) {
-            ALOGV("return exist channel:%p", channel.get());
+            ALOGV("return exist channel:%p", channel);
             channel = it->second;
             goto exit;
         }
@@ -258,7 +258,7 @@ exit:
 
 int AmlDemuxBase::destroyChannel(CHANNEL _channel)
 {
-    sptr<Channel> channel = aml_handle_cast<Channel>(_channel);
+    Channel* channel = aml_handle_cast<Channel>(_channel);
     if (channel == nullptr) {
         return -1;
     }
@@ -285,7 +285,7 @@ int AmlDemuxBase::destroyChannel(CHANNEL _channel)
 
 int AmlDemuxBase::openChannel(CHANNEL _channel)
 {
-    sptr<Channel> channel = aml_handle_cast<Channel>(_channel);
+    Channel* channel = aml_handle_cast<Channel>(_channel);
     if (channel == nullptr) {
         return -1;
     }
@@ -296,7 +296,7 @@ int AmlDemuxBase::openChannel(CHANNEL _channel)
 
 int AmlDemuxBase::closeChannel(CHANNEL _channel)
 {
-    sptr<Channel> channel = aml_handle_cast<Channel>(_channel);
+    Channel* channel = aml_handle_cast<Channel>(_channel);
     if (channel == nullptr) {
         return -1;
     }
@@ -308,7 +308,7 @@ int AmlDemuxBase::closeChannel(CHANNEL _channel)
 
 AmlDemuxBase::FILTER AmlDemuxBase::createFilter(Aml_MP_Demux_SectionFilterCb cb, void* userData)
 {
-    sptr<Filter> filter(new Filter(cb, userData, mFilterId++));
+    Filter* filter(new Filter(cb, userData, mFilterId++));
 
     filter->incStrong(this);
     return aml_handle_cast(filter);
@@ -316,7 +316,7 @@ AmlDemuxBase::FILTER AmlDemuxBase::createFilter(Aml_MP_Demux_SectionFilterCb cb,
 
 int AmlDemuxBase::destroyFilter(FILTER _filter)
 {
-    sptr<Filter> filter = aml_handle_cast<Filter>(_filter);
+    Filter* filter = aml_handle_cast<Filter>(_filter);
     if (filter == nullptr) {
         return -1;
     }
@@ -335,8 +335,8 @@ int AmlDemuxBase::destroyFilter(FILTER _filter)
 
 int AmlDemuxBase::attachFilter(FILTER _filter, CHANNEL _channel)
 {
-    sptr<Filter> filter = aml_handle_cast<Filter>(_filter);
-    sptr<Channel> channel = aml_handle_cast<Channel>(_channel);
+    Filter* filter = aml_handle_cast<Filter>(_filter);
+    Channel* channel = aml_handle_cast<Channel>(_channel);
 
     if (filter == nullptr || channel == nullptr) {
         return -1;
@@ -349,8 +349,8 @@ int AmlDemuxBase::attachFilter(FILTER _filter, CHANNEL _channel)
 
 int AmlDemuxBase::detachFilter(FILTER _filter, CHANNEL _channel)
 {
-    sptr<Filter> filter = aml_handle_cast<Filter>(_filter);
-    sptr<Channel> channel = aml_handle_cast<Channel>(_channel);
+    Filter* filter = aml_handle_cast<Filter>(_filter);
+    Channel* channel = aml_handle_cast<Channel>(_channel);
 
     if (filter == nullptr || channel == nullptr) {
         return -1;

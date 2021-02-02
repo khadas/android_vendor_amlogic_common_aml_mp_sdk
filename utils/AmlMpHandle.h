@@ -39,7 +39,7 @@ private:
     AmlMpHandle& operator= (const AmlMpHandle&) = delete;
 };
 
-static inline void* aml_handle_cast(const sptr<AmlMpHandle>& amlMpHandle)
+static inline void* aml_handle_cast(AmlMpHandle* amlMpHandle)
 {
     if (!(amlMpHandle && *amlMpHandle)) {
         if (amlMpHandle) {
@@ -49,11 +49,11 @@ static inline void* aml_handle_cast(const sptr<AmlMpHandle>& amlMpHandle)
         return AML_MP_INVALID_HANDLE;
     }
 
-    return amlMpHandle.get();
+    return amlMpHandle;
 }
 
 template <typename T>
-sptr<T> aml_handle_cast(void* h)
+T* aml_handle_cast(void* h)
 {
     AmlMpHandle* amlMpHandle = static_cast<AmlMpHandle*>(h);
     if (!(amlMpHandle && *amlMpHandle)) {
@@ -65,7 +65,7 @@ sptr<T> aml_handle_cast(void* h)
     }
 
     T* t = static_cast<T*>(h);
-    return sptr<T>(t);
+    return t;
 }
 
 }
