@@ -32,11 +32,11 @@ AmlDVRRecorder::AmlDVRRecorder(Aml_MP_DVRRecorderBasicParams* basicParams, Aml_M
 
     mIsEncryptStream = basicParams->flags & AML_MP_DVRRECORDER_SCRAMBLED;
 
-    if (timeShiftParams != nullptr) {
+    if (basicParams->isTimeShift) {
         setTimeShiftParams(timeShiftParams);
     }
 
-    if (encryptParams != nullptr) {
+    if (mIsEncryptStream) {
         setEncryptParams(encryptParams);
     }
 }
