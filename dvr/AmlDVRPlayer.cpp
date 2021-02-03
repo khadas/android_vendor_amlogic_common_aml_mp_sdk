@@ -26,6 +26,7 @@ namespace aml_mp {
 
 static Aml_MP_DVRPlayerState convertToMpDVRPlayerState(DVR_PlaybackPlayState_t state);
 static Aml_MP_DVRPlayerSegmentFlag convertToMpDVRSegmentFlag(DVR_PlaybackSegmentFlag_t flag);
+static void convertToMpDVRPlayerStatus(Aml_MP_DVRPlayerStatus* mpStatus, DVR_WrapperPlaybackStatus_t* dvrStatus);
 
 ///////////////////////////////////////////////////////////////////////////////
 AmlDVRPlayer::AmlDVRPlayer(Aml_MP_DVRPlayerBasicParams* basicParams, Aml_MP_DVRPlayerDecryptParams* decryptParams)
@@ -250,20 +251,7 @@ int AmlDVRPlayer::getStatus(Aml_MP_DVRPlayerStatus* status)
         return ret;
     }
 
-    status->state = convertToMpDVRPlayerState(dvrStatus.state);
-    convertToMpDVRSourceInfo(&status->infoCur, &dvrStatus.info_cur);
-    convertToMpDVRSourceInfo(&status->infoFull, &dvrStatus.info_full);
-
-    convertToMpDVRStream(&status->pids.streams[AML_MP_DVR_VIDEO_INDEX], &dvrStatus.pids.video);
-    convertToMpDVRStream(&status->pids.streams[AML_MP_DVR_AUDIO_INDEX], &dvrStatus.pids.audio);
-    convertToMpDVRStream(&status->pids.streams[AML_MP_DVR_AD_INDEX], &dvrStatus.pids.ad);
-    convertToMpDVRStream(&status->pids.streams[AML_MP_DVR_SUBTITLE_INDEX], &dvrStatus.pids.subtitle);
-    convertToMpDVRStream(&status->pids.streams[AML_MP_DVR_PCR_INDEX], &dvrStatus.pids.pcr);
-
-    status->pids.nbStreams = AML_MP_DVR_STREAM_NB;
-    status->speed = dvrStatus.speed;
-    status->flags = convertToMpDVRSegmentFlag(dvrStatus.flags);
-    convertToMpDVRSourceInfo(&status->infoObsolete, &dvrStatus.info_obsolete);
+    convertToMpDVRPlayerStatus(status, &dvrStatus);
 
     return 0;
 }
@@ -447,42 +435,45 @@ int AmlDVRPlayer::setDecryptParams(Aml_MP_DVRPlayerDecryptParams * decryptParams
 DVR_Result_t AmlDVRPlayer::eventHandlerLibDVR(DVR_PlaybackEvent_t event, void* params)
 {
     DVR_Result_t ret = DVR_SUCCESS;
+    Aml_MP_DVRPlayerStatus mpStatus;
+
+    convertToMpDVRPlayerStatus(&mpStatus, (DVR_WrapperPlaybackStatus_t*)params);
 
     switch (event) {
     case DVR_PLAYBACK_EVENT_ERROR:
-        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_ERROR, (int64_t)params);
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_ERROR, (int64_t)&mpStatus);
         break;
 
     case DVR_PLAYBACK_EVENT_TRANSITION_OK:
-        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_TRANSITION_OK, (int64_t)params);
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_TRANSITION_OK, (int64_t)&mpStatus);
         break;
 
     case DVR_PLAYBACK_EVENT_TRANSITION_FAILED:
-        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_TRANSITION_FAILED, (int64_t)params);
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_TRANSITION_FAILED, (int64_t)&mpStatus);
         break;
 
     case DVR_PLAYBACK_EVENT_KEY_FAILURE:
-        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_KEY_FAILURE, (int64_t)params);
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_KEY_FAILURE, (int64_t)&mpStatus);
         break;
 
     case DVR_PLAYBACK_EVENT_NO_KEY:
-        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_NO_KEY, (int64_t)params);
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_NO_KEY, (int64_t)&mpStatus);
         break;
 
     case DVR_PLAYBACK_EVENT_REACHED_BEGIN:
-        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_REACHED_BEGIN, (int64_t)params);
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_REACHED_BEGIN, (int64_t)&mpStatus);
         break;
 
     case DVR_PLAYBACK_EVENT_REACHED_END:
-        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_REACHED_END, (int64_t)params);
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_REACHED_END, (int64_t)&mpStatus);
         break;
 
     case DVR_PLAYBACK_EVENT_NOTIFY_PLAYTIME:
-        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_NOTIFY_PLAYTIME, (int64_t)params);
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_DVRPLAYER_EVENT_NOTIFY_PLAYTIME, (int64_t)&mpStatus);
         break;
 
     case DVR_PLAYBACK_EVENT_FIRST_FRAME:
-        if (mEventCb) mEventCb(mEventUserData, AML_MP_PLAYER_EVENT_FIRST_FRAME, (int64_t)params);
+        if (mEventCb) mEventCb(mEventUserData, AML_MP_PLAYER_EVENT_FIRST_FRAME, (int64_t)&mpStatus);
         break;
 
     default:
@@ -618,5 +609,22 @@ Aml_MP_DVRPlayerSegmentFlag convertToMpDVRSegmentFlag(DVR_PlaybackSegmentFlag_t 
     }
 }
 
+static void convertToMpDVRPlayerStatus(Aml_MP_DVRPlayerStatus* mpStatus, DVR_WrapperPlaybackStatus_t* dvrStatus)
+{
+    mpStatus->state = convertToMpDVRPlayerState(dvrStatus->state);
+    convertToMpDVRSourceInfo(&mpStatus->infoCur, &dvrStatus->info_cur);
+    convertToMpDVRSourceInfo(&mpStatus->infoFull, &dvrStatus->info_full);
+
+    convertToMpDVRStream(&mpStatus->pids.streams[AML_MP_DVR_VIDEO_INDEX], &dvrStatus->pids.video);
+    convertToMpDVRStream(&mpStatus->pids.streams[AML_MP_DVR_AUDIO_INDEX], &dvrStatus->pids.audio);
+    convertToMpDVRStream(&mpStatus->pids.streams[AML_MP_DVR_AD_INDEX], &dvrStatus->pids.ad);
+    convertToMpDVRStream(&mpStatus->pids.streams[AML_MP_DVR_SUBTITLE_INDEX], &dvrStatus->pids.subtitle);
+    convertToMpDVRStream(&mpStatus->pids.streams[AML_MP_DVR_PCR_INDEX], &dvrStatus->pids.pcr);
+
+    mpStatus->pids.nbStreams = AML_MP_DVR_STREAM_NB;
+    mpStatus->speed = dvrStatus->speed;
+    mpStatus->flags = convertToMpDVRSegmentFlag(dvrStatus->flags);
+    convertToMpDVRSourceInfo(&mpStatus->infoObsolete, &dvrStatus->info_obsolete);
+}
 
 }

@@ -1,5 +1,4 @@
-/*
- * Copyright (c) 2020 Amlogic, Inc. All rights reserved.
+/* * Copyright (c) 2020 Amlogic, Inc. All rights reserved.
  *
  * This source code is subject to the terms and conditions defined in the
  * file 'LICENSE' which is part of this source code package.
@@ -18,7 +17,7 @@
 #include <utils/AmlMpUtils.h>
 
 namespace aml_mp {
-static Aml_MP_DVRRecorderState convertToMpDVRRecordState(DVR_RecordState_t state);
+static void convertToMpDVRRecorderStatus(Aml_MP_DVRRecorderStatus* mpStatus, DVR_WrapperRecordStatus_t* dvrStatus);
 
 ///////////////////////////////////////////////////////////////////////////////
 AmlDVRRecorder::AmlDVRRecorder(Aml_MP_DVRRecorderBasicParams* basicParams, Aml_MP_DVRRecorderTimeShiftParams* timeShiftParams, Aml_MP_DVRRecorderEncryptParams* encryptParams)
@@ -228,14 +227,7 @@ int AmlDVRRecorder::getStatus(Aml_MP_DVRRecorderStatus* status)
         return -1;
     }
 
-    status->state = convertToMpDVRRecordState(dvrStatus.state);
-    convertToMpDVRSourceInfo(&status->info, &dvrStatus.info);
-    status->streams.nbStreams = dvrStatus.pids.nb_pids;
-    for (int i = 0; i < status->streams.nbStreams; i++) {
-        convertToMpDVRStream(&status->streams.streams[i], &dvrStatus.pids.pids[i]);
-    }
-    convertToMpDVRSourceInfo(&status->infoObsolete, &dvrStatus.info_obsolete);
-
+    convertToMpDVRRecorderStatus(status, &dvrStatus);
     return 0;
 }
 
@@ -278,26 +270,28 @@ int AmlDVRRecorder::setEncryptParams(Aml_MP_DVRRecorderEncryptParams* encryptPar
 DVR_Result_t AmlDVRRecorder::eventHandler(DVR_RecordEvent_t event, void* params)
 {
     DVR_Result_t ret = DVR_SUCCESS;
+    Aml_MP_DVRRecorderStatus mpStatus;
+    convertToMpDVRRecorderStatus(&mpStatus, (DVR_WrapperRecordStatus_t*)params);
 
     switch (event) {
     case DVR_RECORD_EVENT_ERROR:
-        if (mEventCb)  mEventCb(mEventUserData, AML_MP_DVRRECORDER_EVENT_ERROR, (int64_t)params);
+        if (mEventCb)  mEventCb(mEventUserData, AML_MP_DVRRECORDER_EVENT_ERROR, (int64_t)&mpStatus);
         break;
 
     case DVR_RECORD_EVENT_STATUS:
-        if (mEventCb)  mEventCb(mEventUserData, AML_MP_DVRRECORDER_EVENT_STATUS, (int64_t)params);
+        if (mEventCb)  mEventCb(mEventUserData, AML_MP_DVRRECORDER_EVENT_STATUS, (int64_t)&mpStatus);
         break;
 
     case DVR_RECORD_EVENT_SYNC_END:
-        if (mEventCb)  mEventCb(mEventUserData, AML_MP_DVRRECORDER_EVENT_SYNC_END, (int64_t)params);
+        if (mEventCb)  mEventCb(mEventUserData, AML_MP_DVRRECORDER_EVENT_SYNC_END, (int64_t)&mpStatus);
         break;
 
     case DVR_RECORD_EVENT_CRYPTO_STATUS:
-        if (mEventCb)  mEventCb(mEventUserData, AML_MP_DVRRECORDER_EVENT_CRYPTO_STATUS, (int64_t)params);
+        if (mEventCb)  mEventCb(mEventUserData, AML_MP_DVRRECORDER_EVENT_CRYPTO_STATUS, (int64_t)&mpStatus);
         break;
 
     case DVR_RECORD_EVENT_WRITE_ERROR:
-        if (mEventCb)  mEventCb(mEventUserData, AML_MP_DVRRECORDER_EVENT_WRITE_ERROR, (int64_t)params);
+        if (mEventCb)  mEventCb(mEventUserData, AML_MP_DVRRECORDER_EVENT_WRITE_ERROR, (int64_t)&mpStatus);
         break;
 
     default:
@@ -309,7 +303,7 @@ DVR_Result_t AmlDVRRecorder::eventHandler(DVR_RecordEvent_t event, void* params)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Aml_MP_DVRRecorderState convertToMpDVRRecordState(DVR_RecordState_t state)
+static Aml_MP_DVRRecorderState convertToMpDVRRecordState(DVR_RecordState_t state)
 {
     switch (state) {
     case DVR_RECORD_STATE_OPENED:
@@ -325,6 +319,17 @@ Aml_MP_DVRRecorderState convertToMpDVRRecordState(DVR_RecordState_t state)
     default:
         return AML_MP_DVRRECORDER_STATE_CLOSED;
     }
+}
+
+static void convertToMpDVRRecorderStatus(Aml_MP_DVRRecorderStatus* mpStatus, DVR_WrapperRecordStatus_t* dvrStatus)
+{
+    mpStatus->state = convertToMpDVRRecordState(dvrStatus->state);
+    convertToMpDVRSourceInfo(&mpStatus->info, &dvrStatus->info);
+    mpStatus->streams.nbStreams = dvrStatus->pids.nb_pids;
+    for (int i = 0; i < mpStatus->streams.nbStreams; i++) {
+        convertToMpDVRStream(&mpStatus->streams.streams[i], &dvrStatus->pids.pids[i]);
+    }
+    convertToMpDVRSourceInfo(&mpStatus->infoObsolete, &dvrStatus->info_obsolete);
 }
 
 
