@@ -16,6 +16,7 @@
 #include <utils/AmlMpBuffer.h>
 #include <utils/AmlMpEventLooper.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 #include <sstream>
 extern "C" {
 #include <linux/dvb/dmx.h>

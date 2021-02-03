@@ -45,7 +45,7 @@ int Aml_MP_CAS_RegisterEventCallback(AML_MP_CASSESSION casSession, Aml_MP_CAS_Ev
         ret = dvbCasHal->registerEventCallback(cb, userData);
     } else {
         CAS_EventFunction_t eventFn = reinterpret_cast<CAS_EventFunction_t>(cb);
-#if !defined (__ANDROID_VNDK__)
+#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
         ret = AM_CA_RegisterEventCallback((CasSession)nullptr, eventFn);
 #else
         AML_MP_UNUSED(eventFn);
