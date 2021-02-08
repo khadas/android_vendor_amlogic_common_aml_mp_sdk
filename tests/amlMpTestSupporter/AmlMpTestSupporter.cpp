@@ -170,6 +170,7 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
 
         mPlayback->setANativeWindow(window);
     } else {
+        setOsdBlank(1);
         mPlayback->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER, &mDisplayParam.zorder);
         mPlayback->setVideoWindow(mDisplayParam.x, mDisplayParam.y, mDisplayParam.width, mDisplayParam.height);
     }
@@ -255,6 +256,9 @@ int AmlMpTestSupporter::stop()
     if (mPlayback != nullptr) mPlayback->stop();
     if (mRecorder != nullptr) mRecorder->stop();
     if (mDVRPlayback != nullptr) mDVRPlayback->stop();
+    if (mDisplayParam.videoMode) {
+        setOsdBlank(0);
+    }
 
     ALOGI("stop end!");
     return 0;
@@ -380,6 +384,32 @@ void AmlMpTestSupporter::setDisplayParam(const DisplayParam& param)
     mDisplayParam = param;
     ALOGI("x:%d, y:%d, width:%d, height:%d, zorder:%d, videoMode:%d",
             mDisplayParam.x, mDisplayParam.y, mDisplayParam.width, mDisplayParam.height, mDisplayParam.zorder, mDisplayParam.videoMode);
+}
+
+int AmlMpTestSupporter::setOsdBlank(int blank)
+{
+    auto writeNode = [] (const char *path, int value) -> int {
+        int fd;
+        char cmd[128] = {0};
+        fd = open(path, O_CREAT | O_RDWR | O_TRUNC, 0644);
+        if (fd >= 0)
+        {
+            sprintf(cmd,"%d",value);
+            write (fd,cmd,strlen(cmd));
+            close(fd);
+            return 0;
+        }
+        return -1;
+    };
+    ALOGI("setOsdBlank: %d", blank);
+    int ret = 0;
+    #if ANDROID_PLATFORM_SDK_VERSION == 30
+        ret += writeNode("/sys/kernel/debug/dri/0/vpu/blank", blank);
+    #else
+        ret += writeNode("/sys/class/graphics/fb0/osd_display_debug", blank);
+        ret += writeNode("/sys/class/graphics/fb0/blank", blank);
+    #endif
+    return ret;
 }
 
 }

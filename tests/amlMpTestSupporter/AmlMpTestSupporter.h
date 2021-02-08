@@ -67,6 +67,7 @@ public:
 
     int installSignalHandler();
     int fetchAndProcessCommands();
+    int setOsdBlank(int blank);
 
 private:
     int startDVRPlayback();
