@@ -383,6 +383,26 @@ void convertToMpVideoInfo(Aml_MP_VideoInfo* mpVideoInfo, am_tsplayer_video_info*
     mpVideoInfo->ratio64    = tsVideoInfo->ratio64;
 }
 
+am_tsplayer_audio_stereo_mode convertToTsPlayerAudioStereoMode(Aml_MP_AudioBalance audioBalance)
+{
+    switch (audioBalance) {
+    case AML_MP_AUDIO_BALANCE_STEREO:
+        return AV_AUDIO_STEREO;
+
+    case AML_MP_AUDIO_BALANCE_LEFT:
+        return AV_AUDIO_LEFT;
+
+    case AML_MP_AUDIO_BALANCE_RIGHT:
+        return AV_AUDIO_RIGHT;
+
+    case AML_MP_AUDIO_BALANCE_SWAP:
+        return AV_AUDIO_SWAP;
+
+    case AML_MP_AUDIO_BALANCE_LRMIX:
+        return AV_AUDIO_LRMIX;
+    }
+}
+
 DVB_DemuxSource_t convertToDVBDemuxSource(Aml_MP_DemuxSource source)
 {
     switch (source) {

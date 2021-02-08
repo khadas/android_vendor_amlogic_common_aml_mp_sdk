@@ -85,26 +85,6 @@ am_tsplayer_input_buffer_type inputStreamTypeConvert(Aml_MP_InputStreamType stre
     return TS_INPUT_BUFFER_TYPE_NORMAL;
 }
 
-am_tsplayer_audio_stereo_mode audioBalanceConvert(Aml_MP_AudioBalance balance)
-{
-    switch (balance) {
-    case AML_MP_AUDIO_BALANCE_STEREO:
-        return AV_AUDIO_STEREO;
-
-    case AML_MP_AUDIO_BALANCE_LEFT:
-        return AV_AUDIO_LEFT;
-
-    case AML_MP_AUDIO_BALANCE_RIGHT:
-        return AV_AUDIO_RIGHT;
-
-    case AML_MP_AUDIO_BALANCE_SWAP:
-        return AV_AUDIO_SWAP;
-
-    case AML_MP_AUDIO_BALANCE_LRMIX:
-        return AV_AUDIO_LRMIX;
-    }
-}
-
 am_tsplayer_avsync_mode AVSyncSourceTypeConvert(Aml_MP_AVSyncSource avSyncSource) {
     switch (avSyncSource) {
         case AML_MP_AVSYNC_SOURCE_VIDEO:
@@ -421,7 +401,7 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             break;
 
         case AML_MP_PLAYER_PARAMETER_AUDIO_BALANCE:
-            ret = AmTsPlayer_setAudioStereoMode(mPlayer, audioBalanceConvert(*(Aml_MP_AudioBalance*)parameter));
+            ret = AmTsPlayer_setAudioStereoMode(mPlayer, convertToTsPlayerAudioStereoMode(*(Aml_MP_AudioBalance*)parameter));
             break;
 
         case AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL:

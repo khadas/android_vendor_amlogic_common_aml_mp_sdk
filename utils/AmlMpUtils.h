@@ -109,6 +109,7 @@ void convertToMpDVRSourceInfo(Aml_MP_DVRSourceInfo* dest, DVR_WrapperInfo_t* sou
 
 am_tsplayer_audio_out_mode convertToTsPlayerAudioOutMode(Aml_MP_AudioOutputMode audioOutputMode);
 void convertToMpVideoInfo(Aml_MP_VideoInfo* mpVideoInfo, am_tsplayer_video_info* tsVideoInfo);
+am_tsplayer_audio_stereo_mode convertToTsPlayerAudioStereoMode(Aml_MP_AudioBalance audioBalance);
 
 DVB_DemuxSource_t convertToDVBDemuxSource(Aml_MP_DemuxSource source);
 Aml_MP_DemuxSource convertToMpDemuxSource(DVB_DemuxSource_t source);
