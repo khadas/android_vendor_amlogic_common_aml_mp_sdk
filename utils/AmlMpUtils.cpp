@@ -362,6 +362,36 @@ void convertToMpDVRSourceInfo(Aml_MP_DVRSourceInfo* dest, DVR_WrapperInfo_t* sou
     dest->pkts = source->pkts;
 }
 
+am_tsplayer_video_match_mode convertToTsPlayerVideoMatchMode(Aml_MP_VideoDisplayMode videoDisplayMode)
+{
+    switch (videoDisplayMode) {
+    case AML_MP_VIDEO_DISPLAY_MODE_NORMAL:
+        return AV_VIDEO_MATCH_MODE_NONE;
+    case AML_MP_VIDEO_DISPLAY_MODE_FULLSCREEN:
+        return AV_VIDEO_MATCH_MODE_FULLSCREEN;
+    case AML_MP_VIDEO_DISPLAY_MODE_LETTER_BOX:
+        return AV_VIDEO_MATCH_MODE_LETTER_BOX;
+    case AML_MP_VIDEO_DISPLAY_MODE_PAN_SCAN:
+        return AV_VIDEO_MATCH_MODE_PAN_SCAN;
+    case AML_MP_VIDEO_DISPLAY_MODE_COMBINED:
+        return AV_VIDEO_MATCH_MODE_COMBINED;
+    case AML_MP_VIDEO_DISPLAY_MODE_WIDTHFULL:
+        return AV_VIDEO_MATCH_MODE_WIDTHFULL;
+    case AML_MP_VIDEO_DISPLAY_MODE_HEIGHTFULL:
+        return AV_VIDEO_MATCH_MODE_HEIGHFULL;
+    }
+}
+
+am_tsplayer_video_trick_mode convertToTsplayerVideoTrickMode(Aml_MP_VideoDecodeMode videoDecodeMode)
+{
+    switch (videoDecodeMode) {
+    case AML_MP_VIDEO_DECODE_MODE_NONE:
+        return AV_VIDEO_TRICK_MODE_NONE;
+    case AML_MP_VIDEO_DECODE_MODE_IONLY:
+        return AV_VIDEO_TRICK_MODE_IONLY;
+    }
+}
+
 am_tsplayer_audio_out_mode convertToTsPlayerAudioOutMode(Aml_MP_AudioOutputMode audioOutputMode)
 {
     switch (audioOutputMode) {
