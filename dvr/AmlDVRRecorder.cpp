@@ -36,7 +36,7 @@ AmlDVRRecorder::AmlDVRRecorder(Aml_MP_DVRRecorderBasicParams* basicParams, Aml_M
         setTimeShiftParams(timeShiftParams);
     }
 
-    if (mIsEncryptStream) {
+    if (encryptParams != nullptr) {
         setEncryptParams(encryptParams);
     }
 }

@@ -39,7 +39,7 @@ AmlDVRPlayer::AmlDVRPlayer(Aml_MP_DVRPlayerBasicParams* basicParams, Aml_MP_DVRP
 
     mIsEncryptStream = basicParams->drmMode != AML_MP_INPUT_STREAM_NORMAL;
 
-    if (mIsEncryptStream) {
+    if (decryptParams != nullptr) {
         setDecryptParams(decryptParams);
     }
 
