@@ -23,6 +23,12 @@ AML_MP_DVR_SRC := \
 	dvr/AmlDVRPlayer.cpp \
 	dvr/AmlDVRRecorder.cpp
 
+AML_MP_DEMUX_SRC := \
+	demux/AmlDemuxBase.cpp \
+	demux/AmlHwDemux.cpp \
+	demux/AmlSwDemux.cpp \
+	demux/AmlTsParser.cpp
+
 AML_MP_UTILS_SRC := \
 	utils/AmlMpAtomizer.cpp \
 	utils/AmlMpBitReader.cpp \
@@ -44,6 +50,7 @@ AML_MP_SRCS := \
 	$(AML_MP_CAS_SRC) \
 	$(AML_MP_CAS_SRC_$(PLATFORM_SDK_VERSION)) \
 	$(AML_MP_DVR_SRC) \
+	$(AML_MP_DEMUX_SRC) \
 	$(AML_MP_UTILS_SRC) \
 
 AML_MP_VENDOR_SRCS := \
@@ -52,6 +59,7 @@ AML_MP_VENDOR_SRCS := \
 	$(AML_MP_CAS_SRC) \
 	$(AML_MP_CAS_SRC_$(PLATFORM_SDK_VERSION)) \
 	$(AML_MP_DVR_SRC) \
+	$(AML_MP_DEMUX_SRC) \
 	$(AML_MP_UTILS_SRC) \
 
 AML_MP_INC := $(LOCAL_PATH)/include \

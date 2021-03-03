@@ -14,7 +14,8 @@
 #include "TestUtils.h"
 #include <Aml_MP/Aml_MP.h>
 #include "source/Source.h"
-#include "Parser.h"
+#include "demux/AmlTsParser.h"
+#include "ParserReceiver.h"
 #include "Playback.h"
 #include "DVRRecord.h"
 #include "DVRPlayback.h"
@@ -94,7 +95,9 @@ int AmlMpTestSupporter::prepare(bool cryptoMode)
         return -1;
     }
 
-    mSource->addSourceReceiver(mParser);
+    mParserReceiver = new ParserReceiver(mParser);
+
+    mSource->addSourceReceiver(mParserReceiver);
 
     ret = mSource->start();
     if (ret < 0) {
@@ -133,7 +136,7 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
         return startDVRPlayback();
     }
 
-    mSource->removeSourceReceiver(mParser);
+    mSource->removeSourceReceiver(mParserReceiver);
     mSource->restart();
 
     Aml_MP_DemuxId demuxId = mParser->getDemuxId();
@@ -192,7 +195,7 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
 
 int AmlMpTestSupporter::startRecord()
 {
-    mSource->removeSourceReceiver(mParser);
+    mSource->removeSourceReceiver(mParserReceiver);
     mSource->restart();
 
     Aml_MP_DemuxId demuxId = mParser->getDemuxId();

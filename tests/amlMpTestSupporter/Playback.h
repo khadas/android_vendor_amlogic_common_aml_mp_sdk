@@ -10,7 +10,8 @@
 #ifndef _PLAYBACK_H_
 #define _PLAYBACK_H_
 
-#include "Parser.h"
+#include "demux/AmlTsParser.h"
+#include "source/Source.h"
 #include <system/window.h>
 #include <Aml_MP/Aml_MP.h>
 #include "TestModule.h"

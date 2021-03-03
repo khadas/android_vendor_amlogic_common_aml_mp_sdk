@@ -7,7 +7,8 @@
  * Description:
  */
 
-#include "Parser.h"
+#include "demux/AmlTsParser.h"
+#include "source/Source.h"
 #include "TestModule.h"
 #include <Aml_MP/Aml_MP.h>
 

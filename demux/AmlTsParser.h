@@ -7,14 +7,13 @@
  * Description:
  */
 
-#ifndef _PARSER_H_
-#define _PARSER_H_
+#ifndef _AML_TS_PARSER_H_
+#define _AML_TS_PARSER_H_
 
 #include <utils/AmlMpRefBase.h>
 #include <map>
 #include <mutex>
 #include <condition_variable>
-#include "source/Source.h"
 #include <Aml_MP/Common.h>
 #include <demux/AmlDemuxBase.h>
 
@@ -96,7 +95,7 @@ public:
     }
 };
 
-class Parser : public ISourceReceiver
+class Parser : public AmlMpRefBase
 {
 public:
     Parser(Aml_MP_DemuxId demuxId, int programNumber, bool isHardwareSource);

@@ -22,6 +22,7 @@ namespace aml_mp {
 class Source;
 class Parser;
 class TestModule;
+class ParserReceiver;
 class Playback;
 class DVRRecord;
 class DVRPlayback;
@@ -77,6 +78,7 @@ private:
     std::string mUrl;
     sptr<Source> mSource;
     sptr<Parser> mParser;
+    sptr<ParserReceiver> mParserReceiver;
     sptr<ProgramInfo> mProgramInfo;
 
     sptr<TestModule> mTestModule;

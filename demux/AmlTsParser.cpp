@@ -10,7 +10,7 @@
 #define LOG_NDEBUG 0
 #define LOG_TAG "AmlMpPlayerDemo_Parser"
 #include <utils/Log.h>
-#include "Parser.h"
+#include "AmlTsParser.h"
 #include <media/stagefright/foundation/ADebug.h>
 #include <vector>
 #include <utils/AmlMpUtils.h>
@@ -168,9 +168,7 @@ int Parser::writeData(const uint8_t* buffer, size_t size)
     sptr<AmlDemuxBase> demux = mDemux;
     wlen = demux->feedTs(buffer, size);
 
-    int ret = ISourceReceiver::writeData(buffer, size);
-
-    return ret;
+    return wlen;
 }
 
 int Parser::patCb(size_t size, const uint8_t* data, void* userData)

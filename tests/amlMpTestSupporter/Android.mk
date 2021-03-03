@@ -2,7 +2,7 @@ LOCAL_PATH:= $(call my-dir)
 
 AML_MP_TEST_SUPPORTER_SRCS := \
 	AmlMpTestSupporter.cpp \
-	Parser.cpp \
+	ParserReceiver.cpp \
 	TestModule.cpp \
 	DVRPlayback.cpp \
 	DVRRecord.cpp \
@@ -12,9 +12,6 @@ AML_MP_TEST_SUPPORTER_SRCS := \
 	source/DvbSource.cpp \
 	source/UdpSource.cpp \
 	source/FileSource.cpp \
-	demux/AmlDemuxBase.cpp \
-	demux/AmlSwDemux.cpp \
-	demux/AmlHwDemux.cpp \
 
 AML_MP_TEST_SUPPORTER_INC :=
 

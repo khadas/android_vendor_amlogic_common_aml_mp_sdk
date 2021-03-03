@@ -10,7 +10,7 @@
 #ifndef _TEST_MODULE_H_
 #define _TEST_MODULE_H_
 
-#include "Parser.h"
+#include "demux/AmlTsParser.h"
 
 
 namespace aml_mp {

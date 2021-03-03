@@ -17,6 +17,7 @@
 #include <mutex>
 #include <condition_variable>
 #include "cas/AmlCasBase.h"
+#include "demux/AmlTsParser.h"
 #ifndef __ANDROID_VNDK__
 #include <gui/Surface.h>
 #include <gui/SurfaceComposerClient.h>
