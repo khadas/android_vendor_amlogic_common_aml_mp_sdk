@@ -15,6 +15,8 @@
 #include <utils/AmlMpHandle.h>
 #include <system/window.h>
 #include <mutex>
+#include <map>
+#include "utils/AmlMpFifo.h"
 #include <condition_variable>
 #include "cas/AmlCasBase.h"
 #include "demux/AmlTsParser.h"
@@ -139,6 +141,8 @@ private:
     int resetIfNeeded();
     int reset();
     int applyParameters();
+    void programEventCallback(Parser::ProgramEventType event, int param1, int param2, void* data);
+    void writeDataFromBuffer();
 
     const int mInstanceId;
     char mName[50];
@@ -179,6 +183,19 @@ private:
     int mPcrPid = AML_MP_INVALID_PID;
 
     sptr<AmlPlayerBase> mPlayer;
+    sptr<Parser> mParser;
+#define TS_BUFFER_SIZE (188 * 1000 * 10)
+    AmlMpFifo mTsBuffer;
+#define START_ALL_DELAY (1 << 0)
+#define START_VIDEO_DELAY (1 << 1)
+#define START_AUDIO_DELAY (1 << 2)
+#define START_SUBTITLE_DELAY (1 << 3)
+    mutable std::mutex mLock;
+    bool mParserEnable = false;
+    int mStartDelayFlag = 0;
+#define TEMP_BUFFER_SIZE (188 * 100)
+    uint8_t* mTempBuffer;
+    int mTempBufferSize = 0;
 
     sptr<AmlCasBase> mCasHandle;
 

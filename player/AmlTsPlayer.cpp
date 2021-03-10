@@ -264,7 +264,7 @@ int AmlTsPlayer::writeData(const uint8_t* buffer, size_t size) {
     if (ret != AM_TSPLAYER_OK) {
         return -1;
     }
-    return 0;
+    return size;
 }
 
 int AmlTsPlayer::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size_t size, int64_t pts)

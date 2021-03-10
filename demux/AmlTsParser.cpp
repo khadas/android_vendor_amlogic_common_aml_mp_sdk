@@ -71,10 +71,10 @@ static const struct StreamType* getStreamTypeInfo(int esStreamType, const Stream
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Parser::Parser(Aml_MP_DemuxId demuxId, int programNumber, bool isHardwareSource)
+Parser::Parser(Aml_MP_DemuxId demuxId, bool isHardwareSource, bool isHardwareDemux)
 : mDemuxId(demuxId)
-, mProgramNumber(programNumber)
 , mIsHardwareSource(isHardwareSource)
+, mIsHardwareDemux(isHardwareDemux)
 , mProgramInfo(new ProgramInfo)
 {
 
@@ -87,7 +87,7 @@ Parser::~Parser()
 
 int Parser::open()
 {
-    bool isHardwareDemux = false;
+    bool isHardwareDemux = mIsHardwareDemux;
     if (mIsHardwareSource) {
         isHardwareDemux = true;
     }
@@ -114,6 +114,25 @@ int Parser::open()
     addSectionFilter(1, catCb);
 
     return 0;
+}
+
+void Parser::setProgram(int programNumber)
+{
+    std::lock_guard<std::mutex> _l(mLock);
+    mProgramNumber = programNumber;
+}
+
+void Parser::setProgram(int vPid, int aPid)
+{
+    std::lock_guard<std::mutex> _l(mLock);
+    mVPid = vPid;
+    mAPid = aPid;
+}
+
+void Parser::setEventCallback(const std::function<ProgramEventCallback>& cb)
+{
+    std::lock_guard<std::mutex> _l(mLock);
+    mCb = cb;
 }
 
 int Parser::close()
@@ -171,7 +190,7 @@ int Parser::writeData(const uint8_t* buffer, size_t size)
     return wlen;
 }
 
-int Parser::patCb(size_t size, const uint8_t* data, void* userData)
+int Parser::patCb(int pid, size_t size, const uint8_t* data, void* userData)
 {
     Parser* parser = (Parser*)userData;
 
@@ -192,7 +211,7 @@ int Parser::patCb(size_t size, const uint8_t* data, void* userData)
 
     std::vector<PATSection> results;
     for (int i = 0; i < numPrograms; ++i) {
-        int program_number = p[0]<<4 | p[1];
+        int program_number = p[0]<<8 | p[1];
 
         if (program_number != 0) {
             int program_map_PID = (p[2]&0x01F) << 8 | p[3];
@@ -212,7 +231,7 @@ int Parser::patCb(size_t size, const uint8_t* data, void* userData)
     return 0;
 }
 
-int Parser::pmtCb(size_t size, const uint8_t* data, void* userData)
+int Parser::pmtCb(int pid, size_t size, const uint8_t* data, void* userData)
 {
     Parser* parser = (Parser*)userData;
 
@@ -226,13 +245,32 @@ int Parser::pmtCb(size_t size, const uint8_t* data, void* userData)
     CHECK(section_length <= 4093);
     ALOGI("section_length = %d, size:%d", section_length, size);
 
+    PMTSection results;
+    results.pmtPid = pid;
+
     p = section.advance(3);
     int programNumber = p[0]<<8 | p[1];
+    results.programNumber = programNumber;
+    //check version_number and current_next_indicator to skip same pmt
+    results.version_number = p[2] & 0x3E;
+    results.current_next_indicator = p[2] & 0x01;
+    //ALOGI("pmt cb, version_number:%d, current_next_indicator:%d", results.version_number, results.current_next_indicator);
+    if (results.current_next_indicator == 0) {
+        //ALOGI("just skip this pmt, because the current_next_indicator is zero");
+        return 0;
+    }
+    if (parser) {
+        // check version_number is same
+        auto it = parser->mPidPmtMap.find(pid);
+        if (it != parser->mPidPmtMap.end()) {
+            if (results.version_number == it->second.version_number) {
+                //ALOGI("just skip this pmt, because the version_number(%d) is same", results.version_number);
+                return 0;
+            }
+        }
+    }
+
     p = section.advance(5);
-
-    PMTSection results;
-    PMTStream* esStream = nullptr;
-
     int pcr_pid = (p[0]&0x1F)<<8 | p[1];
     results.pcrPid = pcr_pid;
     int program_info_length = (p[2]&0x0F) << 8 | p[3];
@@ -256,6 +294,8 @@ int Parser::pmtCb(size_t size, const uint8_t* data, void* userData)
                 results.scrambled = true;
                 results.caSystemId = ca_system_id;
                 results.ecmPid = ecm_pid;
+                results.privateDataLength = descriptor_length - 4;
+                memcpy(results.privateData, &p2[6], results.privateDataLength);
             }
             break;
 
@@ -289,13 +329,9 @@ int Parser::pmtCb(size_t size, const uint8_t* data, void* userData)
         p = section.advance(5);
         infoBytesRemaining -= 5;
 
-        if (results.streamCount >= kMaxStreamsInPMT) {
-            ALOGI("exceed max stream count:%d", results.streamCount);
-            continue;
-        }
-        esStream = &results.streams[results.streamCount++];
-        esStream->streamType = stream_type;
-        esStream->streamPid = elementary_pid;
+        PMTStream esStream;
+        esStream.streamType = stream_type;
+        esStream.streamPid = elementary_pid;
 
         if (es_info_length > 0) {
             int descriptorsRemaining = es_info_length;
@@ -305,7 +341,7 @@ int Parser::pmtCb(size_t size, const uint8_t* data, void* userData)
                 int descriptor_tag = p2[0];
                 int descriptor_length = p2[1];
 
-                esStream->descriptorTags[esStream->descriptorCount++] = descriptor_tag;
+                esStream.descriptorTags[esStream.descriptorCount++] = descriptor_tag;
 
                 switch (descriptor_tag) {
                 case 0x09:
@@ -339,7 +375,7 @@ int Parser::pmtCb(size_t size, const uint8_t* data, void* userData)
                     results.scrambled = true;
                     results.caSystemId = ca_system_id;
 
-                    esStream->ecmPid = ecm_pid;
+                    esStream.ecmPid = ecm_pid;
                 }
                 break;
 
@@ -347,9 +383,9 @@ int Parser::pmtCb(size_t size, const uint8_t* data, void* userData)
                 {
                     int language_count = descriptor_length / 8;
                     if (language_count > 0) {
-                        esStream->compositionPageId = p2[6] << 8 | p2[7];
-                        esStream->ancillaryPageId = p2[7] << 8 | p2[9];
-                        ALOGI("compositionPageId:%#x, ancillaryPageId:%#x", esStream->compositionPageId, esStream->ancillaryPageId);
+                        esStream.compositionPageId = p2[6] << 8 | p2[7];
+                        esStream.ancillaryPageId = p2[7] << 8 | p2[9];
+                        ALOGI("compositionPageId:%#x, ancillaryPageId:%#x", esStream.compositionPageId, esStream.ancillaryPageId);
                     }
 
                 }
@@ -359,7 +395,7 @@ int Parser::pmtCb(size_t size, const uint8_t* data, void* userData)
                 {
                     int32_t formatIdentifier = MKTAG(p2[2], p2[3], p2[4], p2[5]);
                     ALOGI("formatIdentifier:%#x, %x %x %x %x", formatIdentifier, p2[2], p2[3], p2[4], p2[5]);
-                    esStream->descriptorTags[esStream->descriptorCount-1] = formatIdentifier;
+                    esStream.descriptorTags[esStream.descriptorCount-1] = formatIdentifier;
                 }
                 break;
 
@@ -376,6 +412,8 @@ int Parser::pmtCb(size_t size, const uint8_t* data, void* userData)
             infoBytesRemaining -= es_info_length;
         }
 
+        results.streamCount++;
+        results.streams.push_back(esStream);
         ALOGE("programNumber:%d, stream pid:%d, type:%#x\n", programNumber, elementary_pid, stream_type);
 
     }
@@ -388,7 +426,7 @@ int Parser::pmtCb(size_t size, const uint8_t* data, void* userData)
 }
 
 
-int Parser::catCb(size_t size, const uint8_t* data, void* userData)
+int Parser::catCb(int pid, size_t size, const uint8_t* data, void* userData)
 {
     Parser* parser = (Parser*)userData;
 
@@ -409,6 +447,7 @@ int Parser::catCb(size_t size, const uint8_t* data, void* userData)
     p = section.advance(5);
 
     CATSection results;
+    results.catPid = pid;
 
     int descriptorsRemaining = section.dataSize() - 4;
     int count = 0;
@@ -447,28 +486,48 @@ int Parser::catCb(size_t size, const uint8_t* data, void* userData)
     return 0;
 }
 
+int Parser::ecmCb(int pid, size_t size, const uint8_t* data, void* userData)
+{
+    Parser* parser = (Parser*)userData;
+
+    ALOGI("ecm cb, pid:0x%04X, size:%d", pid, size);
+    ECMSection results;
+    results.ecmPid = pid;
+    results.size = size;
+    results.data = new uint8_t[size];
+    memcpy(results.data, data, size);
+
+    if (parser) {
+        parser->onEcmParsed(results);
+    }
+
+    delete[] results.data;
+
+    return 0;
+}
+
 void Parser::onPatParsed(const std::vector<PATSection>& results)
 {
     if (results.empty()) {
         return;
     }
+    removeSectionFilter(0);
 
+    bool foundProgram = (mProgramNumber == -1);
+
+    mProgramCount = 0;
+    mPidProgramMap.clear();
     for (auto& p : results) {
-        if (mProgramNumber < 0 || mProgramNumber == p.programNumber) {
-            mProgramNumber = p.programNumber;
-            mProgramMapPid = p.pmtPid;
+        mProgramCount++;
+        mPidProgramMap.insert_or_assign(p.pmtPid, p.programNumber);
+        addSectionFilter(p.pmtPid, pmtCb);
 
-            ALOGI("set mProgramNumber:%d, mProgramMapPid:%d", mProgramNumber, mProgramMapPid);
-
-            break;
+        if (!foundProgram && (mProgramNumber == p.programNumber)) {
+            foundProgram = true;
         }
     }
 
-    if (mProgramNumber > 0) {
-        removeSectionFilter(0);
-
-        addSectionFilter(mProgramMapPid, pmtCb);
-    } else {
+    if (!foundProgram) {
         ALOGI("no valid program found!");
         std::lock_guard<std::mutex> _l(mLock);
         notifyParseDone_l();
@@ -481,11 +540,64 @@ void Parser::onPmtParsed(const PMTSection& results)
         return;
     }
 
+    bool isNewEcm = false;
+    bool isKeyProgramParsed = false;
+    bool isNewPmt = false;
+    bool isPidChanged = false;
+    Aml_MP_PlayerEventPidChangeInfo pidChangeInfo;
+    {
+        std::lock_guard<std::mutex> _l(mLock);
+        if (mProgramNumber == -1 && mVPid == -1 && mAPid == -1) {
+            isKeyProgramParsed = true;
+        } else {
+            if (mProgramNumber != -1 && results.programNumber == mProgramNumber) {
+                isKeyProgramParsed = true;
+            } else if (mVPid != -1 || mAPid != -1) {
+                for (PMTStream stream : results.streams) {
+                    if (stream.streamPid == mVPid || stream.streamPid == mAPid) {
+                        isKeyProgramParsed = true;
+                        break;
+                    }
+                }
+            }
+        }
+        //check is newPmt or updatePmt
+        auto it = mPidPmtMap.find(results.pmtPid);
+        if (it == mPidPmtMap.end()) {
+            // is new pmt
+            isNewPmt = true;
+            mPidPmtMap.emplace(results.pmtPid, results);
+        } else {
+            // is pmt updated
+            if (isKeyProgramParsed) {
+                // check pid change
+                isPidChanged = checkPidChange(it->second, results, &pidChangeInfo);
+            }
+            mPidPmtMap.erase(results.pmtPid);
+            mPidPmtMap.emplace(results.pmtPid, results);
+        }
+        //check is newEcm
+        if (isKeyProgramParsed && results.scrambled && mEcmPidSet.find(results.ecmPid) == mEcmPidSet.end()) {
+            isNewEcm = true;
+            mEcmPidSet.emplace(results.ecmPid);
+        }
+    }
+
+    if (!isKeyProgramParsed) {
+        ALOGI("not key program parsed");
+        return;
+    }
+
+    if (isNewEcm && results.scrambled) {
+        // filter ecmData
+        addSectionFilter(results.ecmPid, ecmCb);
+    }
+
     std::lock_guard<std::mutex> _l(mLock);
 
     sptr<ProgramInfo> programInfo = mProgramInfo;
-    programInfo->programNumber = mProgramNumber;
-    programInfo->pmtPid = mProgramMapPid;
+    programInfo->programNumber = results.programNumber;
+    programInfo->pmtPid = results.pmtPid;
     programInfo->caSystemId = results.caSystemId;
     programInfo->scrambled = results.scrambled;
     programInfo->scrambleInfo = results.scrambleInfo;
@@ -494,11 +606,13 @@ void Parser::onPmtParsed(const PMTSection& results)
     programInfo->ecmPid[ECM_INDEX_AUDIO] = results.ecmPid;
     programInfo->ecmPid[ECM_INDEX_VIDEO] = results.ecmPid;
     programInfo->ecmPid[ECM_INDEX_SUB] = results.ecmPid;
+    programInfo->privateDataLength = results.privateDataLength;
+    memcpy(programInfo->privateData, results.privateData, results.privateDataLength);
 
 
     const struct StreamType* typeInfo;
-    for (int i = 0; i < results.streamCount; ++i) {
-        const PMTStream *stream = results.streams + i;
+    for (auto it : results.streams) {
+        PMTStream* stream = &it;
         typeInfo = getStreamTypeInfo(stream->streamType);
         if (typeInfo == nullptr) {
             for (size_t j = 0; j < stream->descriptorCount; ++j) {
@@ -522,41 +636,66 @@ void Parser::onPmtParsed(const PMTSection& results)
 
         switch (typeInfo->mpStreamType) {
         case AML_MP_STREAM_TYPE_AUDIO:
+        {
             if (programInfo->audioPid == AML_MP_INVALID_PID) {
                 programInfo->audioPid = stream->streamPid;
                 programInfo->audioCodec = typeInfo->codecId;
                 if (stream->ecmPid != AML_MP_INVALID_PID) {
                     programInfo->ecmPid[ECM_INDEX_AUDIO] = stream->ecmPid;
                 }
-                ALOGI("audio pid:%d(%#x), codec:%s", programInfo->audioPid, programInfo->audioPid, mpCodecId2Str(programInfo->audioCodec));
             }
+            StreamInfo streamInfo;
+            streamInfo.type = TYPE_AUDIO;
+            streamInfo.pid = stream->streamPid;
+            streamInfo.codecId = typeInfo->codecId;
+            programInfo->audioStreams.push_back(streamInfo);
+            ALOGI("audio pid:%d(%#x), codec:%s", streamInfo.pid, streamInfo.pid, mpCodecId2Str(streamInfo.codecId));
             break;
+        }
 
         case AML_MP_STREAM_TYPE_VIDEO:
+        {
             if (programInfo->videoPid == AML_MP_INVALID_PID) {
                 programInfo->videoPid = stream->streamPid;
                 programInfo->videoCodec = typeInfo->codecId;
                 if (stream->ecmPid != AML_MP_INVALID_PID) {
                     programInfo->ecmPid[ECM_INDEX_VIDEO] = stream->ecmPid;
                 }
-                ALOGI("video pid:%d(%#x), codec:%s", programInfo->videoPid, programInfo->videoPid, mpCodecId2Str(programInfo->videoCodec));
             }
+            StreamInfo streamInfo;
+            streamInfo.type = TYPE_VIDEO;
+            streamInfo.pid = stream->streamPid;
+            streamInfo.codecId = typeInfo->codecId;
+            programInfo->videoStreams.push_back(streamInfo);
+            ALOGI("video pid:%d(%#x), codec:%s", streamInfo.pid, streamInfo.pid, mpCodecId2Str(streamInfo.codecId));
             break;
+        }
 
         case AML_MP_STREAM_TYPE_SUBTITLE:
+        {
             if (programInfo->subtitlePid == AML_MP_INVALID_PID) {
                 programInfo->subtitlePid = stream->streamPid;
                 programInfo->subtitleCodec = typeInfo->codecId;
                 if (stream->ecmPid != AML_MP_INVALID_PID) {
                     programInfo->ecmPid[ECM_INDEX_SUB] = stream->ecmPid;
                 }
-                ALOGI("subtitle pid:%d(%#x), codec:%s", programInfo->subtitlePid, programInfo->subtitlePid, mpCodecId2Str(programInfo->subtitleCodec));
                 if (programInfo->subtitleCodec == AML_MP_SUBTITLE_CODEC_DVB) {
                     programInfo->compositionPageId = stream->compositionPageId;
                     programInfo->ancillaryPageId = stream->ancillaryPageId;
                 }
             }
+            StreamInfo streamInfo;
+            streamInfo.type = TYPE_SUBTITLE;
+            streamInfo.pid = stream->streamPid;
+            streamInfo.codecId = typeInfo->codecId;
+            if (streamInfo.codecId == AML_MP_SUBTITLE_CODEC_DVB) {
+                streamInfo.compositionPageId = stream->compositionPageId;
+                streamInfo.ancillaryPageId = stream->ancillaryPageId;
+            }
+            programInfo->subtitleStreams.push_back(streamInfo);
+            ALOGI("subtitle pid:%d(%#x), codec:%s", streamInfo.pid, streamInfo.pid, mpCodecId2Str(streamInfo.codecId));
             break;
+        }
 
         case AML_MP_STREAM_TYPE_AD:
             break;
@@ -566,7 +705,17 @@ void Parser::onPmtParsed(const PMTSection& results)
         }
     }
 
-    if (programInfo->isComplete()) {
+    if (isNewPmt) {
+        if (mCb && mProgramInfo->isComplete()) {
+            mCb(ProgramEventType::EVENT_PROGRAM_PARSED, mProgramInfo->pmtPid, mProgramInfo->programNumber, mProgramInfo.get());
+        }
+    } else {
+        if (mCb) {
+            mCb(ProgramEventType::EVENT_AV_PID_CHANGED, results.pmtPid, results.programNumber, (void *)&pidChangeInfo);
+        }
+    }
+
+    if (mProgramInfo->isComplete()) {
         notifyParseDone_l();
     }
 }
@@ -579,9 +728,53 @@ void Parser::onCatParsed(const CATSection& results)
     mProgramInfo->caSystemId = results.caSystemId;
     mProgramInfo->emmPid = results.emmPid;
 
+    if (mCb && mProgramInfo->isComplete()) {
+        mCb(ProgramEventType::EVENT_PROGRAM_PARSED, mProgramInfo->pmtPid, mProgramInfo->programNumber, mProgramInfo.get());
+    }
+
     if (mProgramInfo->isComplete()) {
         notifyParseDone_l();
     }
+}
+
+void Parser::onEcmParsed(const ECMSection& results){
+    if (mCb) {
+        mCb(ProgramEventType::EVENT_ECM_DATA_PARSED, results.ecmPid, results.size, results.data);
+    }
+}
+
+bool Parser::checkPidChange(PMTSection oldPmt, PMTSection newPmt, Aml_MP_PlayerEventPidChangeInfo* pidChangeInfo)
+{
+    std::set<int> oldPidSet;
+    std::set<int> newPidSet;
+    std::set<int> unChangedPidSet;
+    for (PMTStream pmtStream : oldPmt.streams) {
+        oldPidSet.insert(pmtStream.streamPid);
+    }
+    for (PMTStream pmtStream : newPmt.streams) {
+        newPidSet.insert(pmtStream.streamPid);
+    }
+    for (int pid : oldPidSet) {
+        if (newPidSet.find(pid) != newPidSet.end()) {
+            unChangedPidSet.insert(pid);
+        }
+    }
+    for (int pid : unChangedPidSet) {
+        oldPidSet.erase(pid);
+        newPidSet.erase(pid);
+    }
+    bool isPidChange =false;
+    if (!oldPidSet.empty()) {
+        pidChangeInfo->oldStreamPid = *oldPidSet.begin();
+        isPidChange = true;
+    }
+    if (!newPidSet.empty()) {
+        pidChangeInfo->newStreamPid = *newPidSet.begin();
+        isPidChange = true;
+    }
+    pidChangeInfo->programPid = oldPmt.pmtPid;
+    pidChangeInfo->programNumber = oldPmt.programNumber;
+    return isPidChange;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

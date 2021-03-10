@@ -11,7 +11,10 @@
 #define _AML_TS_PARSER_H_
 
 #include <utils/AmlMpRefBase.h>
+#include <utils/Log.h>
 #include <map>
+#include <vector>
+#include <set>
 #include <mutex>
 #include <condition_variable>
 #include <Aml_MP/Common.h>
@@ -54,6 +57,15 @@ typedef struct SCRAMBLE_INFO_s {
     uint8_t                     iv_value_data[16];
 } SCRAMBLE_INFO_t;
 
+struct StreamInfo
+{
+    STREAM_TYPE_t type              = TYPE_INVALID;
+    int pid                         = AML_MP_INVALID_PID;
+    Aml_MP_CodecID codecId          = AML_MP_CODEC_UNKNOWN;
+    int compositionPageId           = -1;
+    int ancillaryPageId             = -1;
+};
+
 struct ProgramInfo : public AmlMpRefBase
 {
     int programNumber               = -1;
@@ -62,6 +74,9 @@ struct ProgramInfo : public AmlMpRefBase
     int emmPid                      = AML_MP_INVALID_PID;
     bool scrambled                  = false;
     SCRAMBLE_INFO_t scrambleInfo{};
+#define PRIVATE_DATA_MAX_LENGTH 256
+    int privateDataLength;
+    uint8_t privateData[PRIVATE_DATA_MAX_LENGTH];
     int serviceIndex                = 0;
     int serviceNum                  = 0;
     int ecmPid[3]{AML_MP_INVALID_PID};
@@ -76,6 +91,10 @@ struct ProgramInfo : public AmlMpRefBase
     int subtitlePid                 = AML_MP_INVALID_PID;
     int compositionPageId;
     int ancillaryPageId;
+
+    std::vector<StreamInfo> audioStreams;
+    std::vector<StreamInfo> videoStreams;
+    std::vector<StreamInfo> subtitleStreams;
 
 public:
     bool isComplete() const {
@@ -93,12 +112,35 @@ public:
                videoPid != AML_MP_INVALID_PID) &&
                (!scrambled || (hasEcmPid || hasEmmPid));
     }
+    void debugLog() const {
+        ALOGI("ProgramInfo: programNumber=%d, pid=%d", programNumber, pmtPid);
+        for (auto it : videoStreams) {
+            ALOGI("ProgramInfo: videoStream: pid:%d, codecId:%d", it.pid, it.codecId);
+        }
+        for (auto it : audioStreams) {
+            ALOGI("ProgramInfo: audioStream: pid:%d, codecId:%d", it.pid, it.codecId);
+        }
+        for (auto it : subtitleStreams) {
+            ALOGI("ProgramInfo: subtitleStream: pid:%d, codecId:%d", it.pid, it.codecId);
+        }
+        if(scrambled) {
+            ALOGI("ProgramInfo: is scrambled, caSystemId:0x%04X, ecmPid:0x%04X, privateDataLength:%d", caSystemId, ecmPid[0], privateDataLength);
+            std::string privateDataHex;
+            char hex[3];
+            for(int i = 0; i < privateDataLength; i++){
+                snprintf(hex, sizeof(hex), "%02X", privateData[i]);
+                privateDataHex.append(hex);
+                privateDataHex.append(" ");
+            }
+            ALOGI("ProgramInfo: privateData: %s", privateDataHex.c_str());
+        }
+    }
 };
 
 class Parser : public AmlMpRefBase
 {
 public:
-    Parser(Aml_MP_DemuxId demuxId, int programNumber, bool isHardwareSource);
+    Parser(Aml_MP_DemuxId demuxId, bool isHardwareSource, bool isHardwareDemux);
     ~Parser();
     int open();
     int close();
@@ -109,6 +151,16 @@ public:
         return mDemuxId;
     }
     virtual int writeData(const uint8_t* buffer, size_t size);
+
+    enum ProgramEventType {
+        EVENT_PROGRAM_PARSED,
+        EVENT_AV_PID_CHANGED,
+        EVENT_ECM_DATA_PARSED
+    };
+    using ProgramEventCallback = void(ProgramEventType event, int programPid, int param, void* data);
+    void setProgram(int programNumber);
+    void setProgram(int vPid, int aPid);
+    void setEventCallback(const std::function<ProgramEventCallback>& cb);
 
 private:
     struct Section {
@@ -177,6 +229,11 @@ private:
     };
 
     struct PMTSection {
+        int pmtPid;
+        int programNumber;
+        int version_number;
+        int current_next_indicator;
+
         int pcrPid = 0x1FFF;
 
         bool scrambled = false;
@@ -184,14 +241,24 @@ private:
         int ecmPid = 0x1FFF;
         int scrambleAlgorithm = -1;
         SCRAMBLE_INFO_t scrambleInfo{};
+#define PRIVATE_DATA_LENGTH_MAX 256
+        int privateDataLength;
+        uint8_t privateData[PRIVATE_DATA_LENGTH_MAX];
 
         int streamCount = 0;
-        PMTStream streams[kMaxStreamsInPMT];
+        std::vector<PMTStream> streams;
     };
 
     struct CATSection {
+        int catPid;
         int caSystemId = -1;
         int emmPid= 0x1FFF;
+    };
+
+    struct ECMSection {
+        int ecmPid;
+        int size;
+        uint8_t* data;
     };
 
     int addSectionFilter(int pid, Aml_MP_Demux_SectionFilterCb cb);
@@ -199,22 +266,37 @@ private:
     void clearAllSectionFilters();
     void notifyParseDone_l();
 
-    static int patCb(size_t size, const uint8_t* data, void* userData);
-    static int pmtCb(size_t size, const uint8_t* data, void* userData);
-    static int catCb(size_t size, const uint8_t* data, void* userData);
+    static int patCb(int pid, size_t size, const uint8_t* data, void* userData);
+    static int pmtCb(int pid, size_t size, const uint8_t* data, void* userData);
+    static int catCb(int pid, size_t size, const uint8_t* data, void* userData);
+    static int ecmCb(int pid, size_t size, const uint8_t* data, void* userData);
 
     void onPatParsed(const std::vector<PATSection>& results);
     void onPmtParsed(const PMTSection& results);
     void onCatParsed(const CATSection& results);
+    void onEcmParsed(const ECMSection& results);
+
+    bool checkPidChange(PMTSection oldPmt, PMTSection newPmt, Aml_MP_PlayerEventPidChangeInfo* pidChangeInfo);
+
+    std::function<ProgramEventCallback> mCb = nullptr;
 
 private:
     int mProgramNumber = -1;
+    int mVPid = -1;
+    int mAPid = -1;
+
     int mProgramMapPid = -1;
     bool mIsHardwareSource = false;
+    bool mIsHardwareDemux = false;
     Aml_MP_DemuxId mDemuxId = AML_MP_HW_DEMUX_ID_0;
 
     sptr<AmlDemuxBase> mDemux;
     sptr<ProgramInfo> mProgramInfo;
+
+    int mProgramCount = 0;
+    std::map<int, int> mPidProgramMap; // map: pid--programNumber
+    std::map<int, PMTSection> mPidPmtMap; // map: pid--pmt
+    std::set<int> mEcmPidSet;// ecmPid
 
     mutable std::mutex mLock;
     std::condition_variable mCond;

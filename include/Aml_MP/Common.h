@@ -438,6 +438,8 @@ typedef enum {
     AML_MP_PLAYER_EVENT_USERDATA_AFD,
     AML_MP_PLAYER_EVENT_USERDATA_CC,
 
+    AML_MP_PLAYER_EVENT_PID_CHANGED,
+
     //DVR player
     AML_MP_DVRPLAYER_EVENT_ERROR              = 0x1000,   /**< Signal a critical playback error*/
     AML_MP_DVRPLAYER_EVENT_TRANSITION_OK    ,             /**< transition ok*/
@@ -469,6 +471,14 @@ typedef struct {
     Aml_MP_StreamType type;
     char scramling;
 } Aml_MP_PlayerEventScrambling;
+
+//AML_MP_PLAYER_EVENT_PID_CHANGED
+typedef struct {
+    int programPid;
+    int programNumber;
+    int oldStreamPid;
+    int newStreamPid;
+} Aml_MP_PlayerEventPidChangeInfo;
 
 
 //AML_MP_PLAYER_EVENT_USERDATA_AFD,

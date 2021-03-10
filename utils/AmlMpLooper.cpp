@@ -88,6 +88,7 @@ Looper::Looper(bool allowNonCallbacks)
     : mAllowNonCallbacks(allowNonCallbacks),
       mSendingMessage(false),
       mPolling(false),
+      mEpollFd(-1),
       mEpollRebuildRequired(false),
       mNextRequestSeq(0),
       mResponseIndex(0),

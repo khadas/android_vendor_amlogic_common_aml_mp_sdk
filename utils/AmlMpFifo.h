@@ -68,6 +68,12 @@ public:
         return in - out;
     }
 
+    size_t space() const {
+        std::unique_lock<std::mutex> _l(mLock);
+
+        return mSize - (in - out);
+    }
+
     bool empty() const {
         std::unique_lock<std::mutex> _l(mLock);
 

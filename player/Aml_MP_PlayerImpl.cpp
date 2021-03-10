@@ -29,6 +29,7 @@ namespace aml_mp {
 AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
 : mInstanceId(AmlMpPlayerRoster::instance().registerPlayer(this))
 , mCreateParams(*createParams)
+, mTsBuffer(TS_BUFFER_SIZE)
 {
     snprintf(mName, sizeof(mName), "%s_%d", LOG_TAG, mInstanceId);
 
@@ -36,10 +37,13 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
 
     memset(&mVideoParams, 0, sizeof(mVideoParams));
     mVideoParams.pid = AML_MP_INVALID_PID;
+    mVideoParams.videoCodec = AML_MP_CODEC_UNKNOWN;
     memset(&mAudioParams, 0, sizeof(mAudioParams));
     mAudioParams.pid = AML_MP_INVALID_PID;
+    mAudioParams.audioCodec = AML_MP_CODEC_UNKNOWN;
     memset(&mSubtitleParams, 0, sizeof(mSubtitleParams));
     mSubtitleParams.pid = AML_MP_INVALID_PID;
+    mSubtitleParams.subtitleCodec = AML_MP_CODEC_UNKNOWN;
     memset(&mADParams, 0, sizeof(mADParams));
     mADParams.pid = AML_MP_INVALID_PID;
 
@@ -48,12 +52,17 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
     AmlMpConfig::instance().init();
 
     mPlayer = AmlPlayerBase::create(&mCreateParams, mInstanceId);
+    mParser = new Parser(mCreateParams.demuxId, mCreateParams.sourceType == AML_MP_INPUT_SOURCE_TS_DEMOD, true);
+    mTempBuffer = new uint8_t[TEMP_BUFFER_SIZE];
 }
 
 AmlMpPlayerImpl::~AmlMpPlayerImpl()
 {
     MLOG();
 
+    if (mTempBuffer) {
+        delete[] mTempBuffer;
+    }
     CHECK(mState == STATE_IDLE);
     CHECK(mStreamState == ALL_STREAMS_STOPPED);
 
@@ -85,6 +94,16 @@ int AmlMpPlayerImpl::setVideoParams(const Aml_MP_VideoParams* params)
 
     mVideoParams.pid = params->pid;
     mVideoParams.videoCodec = params->videoCodec;
+    if (mParser && (mVideoParams.videoCodec == AML_MP_CODEC_UNKNOWN)) {
+        sptr<ProgramInfo> programInfo = mParser->getProgramInfo();
+        if (programInfo) {
+            for (auto it : programInfo->videoStreams) {
+                if (it.pid == mVideoParams.pid) {
+                    mVideoParams.videoCodec = it.codecId;
+                }
+            }
+        }
+    }
     mVideoParams.width = params->width;
     mVideoParams.height = params->height;
     mVideoParams.frameRate = params->frameRate;
@@ -105,6 +124,16 @@ int AmlMpPlayerImpl::setAudioParams(const Aml_MP_AudioParams* params)
 
     mAudioParams.pid = params->pid;
     mAudioParams.audioCodec = params->audioCodec;
+    if (mParser && (mAudioParams.audioCodec == AML_MP_CODEC_UNKNOWN)) {
+        sptr<ProgramInfo> programInfo = mParser->getProgramInfo();
+        if (programInfo) {
+            for (auto it : programInfo->audioStreams) {
+                if (it.pid == mAudioParams.pid) {
+                    mAudioParams.audioCodec = it.codecId;
+                }
+            }
+        }
+    }
     mAudioParams.nChannels = params->nChannels;
     mAudioParams.nSampleRate = params->nSampleRate;
     memcpy(mAudioParams.extraData, params->extraData, sizeof(mAudioParams.extraData));
@@ -123,6 +152,16 @@ int AmlMpPlayerImpl::setSubtitleParams(const Aml_MP_SubtitleParams* params)
     }
 
     memcpy(&mSubtitleParams, params, sizeof(Aml_MP_SubtitleParams));
+    if (mParser && (mSubtitleParams.subtitleCodec == AML_MP_CODEC_UNKNOWN)) {
+        sptr<ProgramInfo> programInfo = mParser->getProgramInfo();
+        if (programInfo) {
+            for (auto it : programInfo->subtitleStreams) {
+                if (it.pid == mSubtitleParams.pid) {
+                    mSubtitleParams.subtitleCodec = it.codecId;
+                }
+            }
+        }
+    }
 
     return 0;
 }
@@ -145,6 +184,16 @@ int AmlMpPlayerImpl::start()
             ALOGE("prepare failed!");
             return -1;
         }
+    }
+
+    if ((mVideoParams.videoCodec == AML_MP_CODEC_UNKNOWN && mVideoParams.pid != AML_MP_INVALID_PID) ||
+        (mAudioParams.audioCodec == AML_MP_CODEC_UNKNOWN && mAudioParams.pid != AML_MP_INVALID_PID) ||
+        (mSubtitleParams.subtitleCodec == AML_MP_CODEC_UNKNOWN && mSubtitleParams.pid != AML_MP_INVALID_PID)) {
+        // need parse ts stream and find format info
+        mStartDelayFlag |= START_ALL_DELAY;
+        return 0;
+    } else {
+        mStartDelayFlag &= ~START_ALL_DELAY;
     }
 
     setParams();
@@ -240,7 +289,7 @@ int AmlMpPlayerImpl::setPlaybackRate(float rate)
     mPlaybackRate = rate;
     int ret = 0;
 
-    if (mState == STATE_RUNNING || STATE_PAUSED) {
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         RETURN_IF(-1, mPlayer == nullptr);
         ret = mPlayer->setPlaybackRate(rate);
     }
@@ -253,7 +302,7 @@ int AmlMpPlayerImpl::switchAudioTrack(const Aml_MP_AudioParams* params)
     AML_MP_TRACE(10);
     int ret = 0;
 
-    if (mState == STATE_RUNNING || STATE_PAUSED) {
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         RETURN_IF(-1, mPlayer == nullptr);
         ret = mPlayer->switchAudioTrack(params);
     }
@@ -266,7 +315,7 @@ int AmlMpPlayerImpl::switchSubtitleTrack(const Aml_MP_SubtitleParams* params)
     AML_MP_TRACE(10);
     int ret = 0;
 
-    if (mState == STATE_RUNNING || STATE_PAUSED) {
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         RETURN_IF(-1, mPlayer == nullptr);
         ret = mPlayer->switchSubtitleTrack(params);
     }
@@ -278,11 +327,63 @@ int AmlMpPlayerImpl::writeData(const uint8_t* buffer, size_t size)
 {
     RETURN_IF(-1, mPlayer == nullptr);
 
-    if (mCasHandle != nullptr) {
-        mCasHandle->processEcm(buffer, size);
+    int writeLen = 0;
+    if (mParserEnable) {
+        std::lock_guard<std::mutex> _l(mLock);
+        if (mStartDelayFlag > 0) {
+            //is waiting for start_delay, writeData into mTsBuffer
+            writeLen = mTsBuffer.put(buffer, size);
+            mParser->writeData(buffer, writeLen);
+        } else {
+            //already start, need move data from mTsBuffer to player
+            if (!mTsBuffer.empty()) {
+                writeDataFromBuffer();
+            }
+            if (mTsBuffer.empty() && mTempBufferSize == 0) {
+                //normal write data
+                if (mCasHandle != nullptr) {
+                    mCasHandle->processEcm(buffer, size);
+                }
+                if (mPlayer != nullptr) {
+                    writeLen = mPlayer->writeData(buffer, size);
+                }
+            } else {
+                //mTsBuffer or mTempBuffer still has data left to writeData
+                writeLen = mTsBuffer.put(buffer, size);
+            }
+        }
+    } else {
+        if (mCasHandle != nullptr) {
+            mCasHandle->processEcm(buffer, size);
+        }
+        if (mPlayer != nullptr) {
+            writeLen = mPlayer->writeData(buffer, size);
+        }
     }
+    if (writeLen == 0) {
+        writeLen = -1;
+    }
+    return writeLen;
+}
 
-    return mPlayer->writeData(buffer, size);
+void AmlMpPlayerImpl::writeDataFromBuffer()
+{
+    if (mTempBufferSize != 0) {
+        //if writeData failed lasttime, then writeData again
+        mTempBufferSize -= mPlayer->writeData(mTempBuffer, mTempBufferSize);
+    }
+    while (!mTsBuffer.empty() && mTempBufferSize == 0) {
+        mTempBufferSize = mTsBuffer.get(mTempBuffer, 188 * 100);
+        if (mCasHandle != nullptr) {
+            mCasHandle->processEcm(mTempBuffer, mTempBufferSize);
+        }
+        if (mPlayer != nullptr) {
+            mTempBufferSize -= mPlayer->writeData(mTempBuffer, mTempBufferSize);
+        }
+    }
+    if (mTsBuffer.empty() && mTempBufferSize == 0) {
+        ALOGI("writeData from buffer done");
+    }
 }
 
 int AmlMpPlayerImpl::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size_t size, int64_t pts)
@@ -563,6 +664,14 @@ int AmlMpPlayerImpl::startVideoDecoding()
         }
     }
 
+    if ((mVideoParams.videoCodec == AML_MP_CODEC_UNKNOWN && mVideoParams.pid != AML_MP_INVALID_PID)) {
+        // need parse ts stream and find format info
+        mStartDelayFlag |= START_VIDEO_DELAY;
+        return 0;
+    } else {
+        mStartDelayFlag &= ~START_VIDEO_DELAY;
+    }
+
     setParams();
     int ret = mPlayer->startVideoDecoding();
     if (ret < 0) {
@@ -586,6 +695,7 @@ int AmlMpPlayerImpl::stopVideoDecoding()
     if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         if (mPlayer) {
             mPlayer->stopVideoDecoding();
+            mStartDelayFlag &= ~START_VIDEO_DELAY;
         }
 
         mStreamState &= ~VIDEO_STARTED;
@@ -606,6 +716,13 @@ int AmlMpPlayerImpl::startAudioDecoding()
         }
     }
 
+    if (mAudioParams.audioCodec == AML_MP_CODEC_UNKNOWN && mAudioParams.pid != AML_MP_INVALID_PID) {
+        // need parse ts stream and find format info
+        mStartDelayFlag |= START_AUDIO_DELAY;
+        return 0;
+    } else {
+        mStartDelayFlag &= ~START_AUDIO_DELAY;
+    }
     setParams();
     int ret = mPlayer->startAudioDecoding();
     if (ret < 0) {
@@ -629,6 +746,7 @@ int AmlMpPlayerImpl::stopAudioDecoding()
     if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         if (mPlayer) {
             mPlayer->stopAudioDecoding();
+            mStartDelayFlag &= ~START_AUDIO_DELAY;
         }
 
         mStreamState &= ~AUDIO_STARTED;
@@ -649,6 +767,13 @@ int AmlMpPlayerImpl::startSubtitleDecoding()
         }
     }
 
+    if (mSubtitleParams.subtitleCodec == AML_MP_CODEC_UNKNOWN && mSubtitleParams.pid != AML_MP_INVALID_PID) {
+        // need parse ts stream and find format info
+        mStartDelayFlag |= START_SUBTITLE_DELAY;
+        return 0;
+    } else {
+        mStartDelayFlag &= ~START_SUBTITLE_DELAY;
+    }
     setParams();
     int ret = mPlayer->startSubtitleDecoding();
     if (ret < 0) {
@@ -672,6 +797,7 @@ int AmlMpPlayerImpl::stopSubtitleDecoding()
     if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         if (mPlayer) {
             mPlayer->stopSubtitleDecoding();
+            mStartDelayFlag &= ~START_SUBTITLE_DELAY;
         }
 
         mStreamState &= ~SUBTITLE_STARTED;
@@ -818,6 +944,10 @@ int AmlMpPlayerImpl::prepare()
         return -1;
     }
 
+    if (mParser == nullptr) {
+        mParser = new Parser(mCreateParams.demuxId, mCreateParams.sourceType == AML_MP_INPUT_SOURCE_TS_DEMOD, true);
+    }
+
     ALOGI("mWorkMode: %d", mWorkMode);
     mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_WORK_MODE, &mWorkMode);
 
@@ -829,6 +959,9 @@ int AmlMpPlayerImpl::prepare()
 
     ALOGI("mNativeWindow:%p", mNativeWindow.get());
     mPlayer->setANativeWindow(mNativeWindow.get());
+    if (!mNativeWindow.get() && mVideoWindow.width > 0 && mVideoWindow.height > 0) {
+        mPlayer->setVideoWindow(mVideoWindow.x, mVideoWindow.y, mVideoWindow.width, mVideoWindow.height);
+    }
 
     if (mSyncSource == AML_MP_AVSYNC_SOURCE_DEFAULT) {
         mSyncSource = AML_MP_AVSYNC_SOURCE_PCR;
@@ -847,6 +980,19 @@ int AmlMpPlayerImpl::prepare()
     }
 
     applyParameters();
+
+
+    if ((mVideoParams.videoCodec == AML_MP_CODEC_UNKNOWN && mVideoParams.pid != AML_MP_INVALID_PID) ||
+        (mAudioParams.audioCodec == AML_MP_CODEC_UNKNOWN && mAudioParams.pid != AML_MP_INVALID_PID) ||
+        (mSubtitleParams.subtitleCodec == AML_MP_CODEC_UNKNOWN && mSubtitleParams.pid != AML_MP_INVALID_PID)) {
+        // need parse ts stream and find format info
+        mParser->setProgram(mVideoParams.pid, mAudioParams.pid);
+        mParser->setEventCallback([this] (Parser::ProgramEventType event, int param1, int param2, void* data) {
+                return programEventCallback(event, param1, param2, data);
+        });
+        mParser->open();
+        mParserEnable = true;
+    }
 
     setState(STATE_PREPARED);
     return 0;
@@ -869,7 +1015,71 @@ void AmlMpPlayerImpl::setParams()
     if (mADParams.pid != AML_MP_INVALID_PID) {
         mPlayer->setADParams(&mADParams);
     }
+}
 
+void AmlMpPlayerImpl::programEventCallback(Parser::ProgramEventType event, int param1, int param2, void* data)
+{
+    switch (event)
+    {
+        case Parser::ProgramEventType::EVENT_PROGRAM_PARSED:
+        {
+            ProgramInfo* programInfo = (ProgramInfo*)data;
+            ALOGI("programEventCallback: program(programNumber=%d,pid=%d) parsed", programInfo->programNumber, programInfo->pmtPid);
+            programInfo->debugLog();
+            std::lock_guard<std::mutex> _l(mLock);
+            for (auto it : programInfo->videoStreams) {
+                if (it.pid == mVideoParams.pid) {
+                    mVideoParams.videoCodec = it.codecId;
+                }
+            }
+            for (auto it : programInfo->audioStreams) {
+                if (it.pid == mAudioParams.pid) {
+                    mAudioParams.audioCodec = it.codecId;
+                }
+            }
+            for (auto it : programInfo->subtitleStreams) {
+                if (it.pid == mSubtitleParams.pid) {
+                    mSubtitleParams.subtitleCodec = it.codecId;
+                }
+            }
+            if (mStartDelayFlag & START_ALL_DELAY) {
+                start();
+            }
+            if (mStartDelayFlag & START_VIDEO_DELAY) {
+                startVideoDecoding();
+            }
+            if (mStartDelayFlag & START_AUDIO_DELAY) {
+                startAudioDecoding();
+            }
+            if (mStartDelayFlag & START_SUBTITLE_DELAY) {
+                startSubtitleDecoding();
+            }
+            break;
+        }
+        case Parser::ProgramEventType::EVENT_AV_PID_CHANGED:
+        {
+            Aml_MP_PlayerEventPidChangeInfo* info = (Aml_MP_PlayerEventPidChangeInfo*)data;
+            ALOGI("programEventCallback: program(programNumber=%d,pid=%d) pidchangeInfo: oldPid:%d --> newPid:%d",
+                info->programNumber, info->programPid, info->oldStreamPid, info->newStreamPid);
+            if (mEventCb) {
+                mEventCb(mUserData, AML_MP_PLAYER_EVENT_PID_CHANGED, (uint64_t)data);
+            }
+            break;
+        }
+        case Parser::ProgramEventType::EVENT_ECM_DATA_PARSED:
+        {
+            ALOGI("programEventCallback: ecmData parsed, size:%d", param2);
+            // uint8_t* ecmData = (uint8_t*)data;
+            // std::string ecmDataStr;
+            // char hex[3];
+            // for (int i = 0; i < param2; i++) {
+            //     snprintf(hex, sizeof(hex), "%02X", ecmData[i]);
+            //     ecmDataStr.append(hex);
+            //     ecmDataStr.append(" ");
+            // }
+            // ALOGI("programEventCallback: ecmData: size:%d, hexStr:%s", param2, ecmDataStr.c_str());
+        }
+    }
 }
 
 int AmlMpPlayerImpl::resetIfNeeded()
@@ -899,6 +1109,16 @@ int AmlMpPlayerImpl::reset()
         stopDescrambling();
     }
 
+    if (mParserEnable) {
+        std::lock_guard<std::mutex> _l(mLock);
+        mStartDelayFlag = 0;
+        mTsBuffer.reset();
+        mTempBufferSize = 0;
+        mParser->close();
+        mParserEnable = false;
+    }
+
+    mParser.clear();
     mPlayer.clear();
 
     setState(STATE_IDLE);

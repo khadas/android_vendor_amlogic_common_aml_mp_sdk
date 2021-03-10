@@ -89,7 +89,8 @@ int AmlMpTestSupporter::prepare(bool cryptoMode)
         return 0;
     }
 
-    mParser = new Parser(demuxId, programNumber, mSource->getFlags()&Source::kIsHardwareSource);
+    mParser = new Parser(demuxId, mSource->getFlags()&Source::kIsHardwareSource, mSource->getFlags()&Source::kIsHardwareSource);
+    mParser->setProgram(programNumber);
     if (mParser == nullptr) {
         ALOGE("create parser failed!");
         return -1;

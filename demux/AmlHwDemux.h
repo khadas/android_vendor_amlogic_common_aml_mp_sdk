@@ -29,6 +29,7 @@ public:
     int start() override;
     int stop() override;
     int flush() override;
+    virtual int feedTs(const uint8_t* buffer, size_t size) override;
 
 private:
     void threadLoop();
@@ -41,6 +42,7 @@ private:
     std::thread mThread;
     sptr<Looper> mLooper;
     sptr<HwTsParser> mTsParser;
+    bool mIsHardwareSource;
 
     std::atomic<bool> mStopped{};
 

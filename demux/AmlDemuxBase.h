@@ -19,7 +19,7 @@ namespace aml_mp {
 struct AmlMpBuffer;
 
 ///////////////////////////////////////////////////////////////////////////////
-typedef int (*Aml_MP_Demux_SectionFilterCb)(size_t size, const uint8_t* data, void* userData);
+typedef int (*Aml_MP_Demux_SectionFilterCb)(int pid, size_t size, const uint8_t* data, void* userData);
 
 class AmlDemuxBase : public AmlMpRefBase
 {

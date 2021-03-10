@@ -27,7 +27,7 @@ struct AmlDemuxBase::Filter : public AmlMpHandle
     Filter(Aml_MP_Demux_SectionFilterCb cb, void* userData, int id);
     ~Filter();
 
-    void notifyListener(const sptr<AmlMpBuffer>& data, int version);
+    void notifyListener(int pid, const sptr<AmlMpBuffer>& data, int version);
     void setOwner(const sptr<AmlDemuxBase::Channel>& channel);
     bool hasOwner() const;
     int id() const {
@@ -57,7 +57,7 @@ struct AmlDemuxBase::Channel : public AmlMpHandle
     bool attachFilter(const sptr<Filter>& filter);
     bool detachFilter(const sptr<Filter>& filter);
     bool hasFilter() const;
-    void onData(const sptr<AmlMpBuffer>& data, int version);
+    void onData(int pid, const sptr<AmlMpBuffer>& data, int version);
     int pid() const {
         return mPid;
     }
@@ -93,7 +93,7 @@ AmlDemuxBase::Filter::~Filter()
     MLOG("dtor filter:%d", mId);
 }
 
-void AmlDemuxBase::Filter::notifyListener(const sptr<AmlMpBuffer>& data, int version)
+void AmlDemuxBase::Filter::notifyListener(int pid, const sptr<AmlMpBuffer>& data, int version)
 {
     if (mCb == nullptr) {
         ALOGW("user cb is NULL!");
@@ -109,7 +109,7 @@ void AmlDemuxBase::Filter::notifyListener(const sptr<AmlMpBuffer>& data, int ver
         ALOGI("notify filter:%d, version:%d", mId, mVersion);
     }
 
-    mCb(data->size(), data->base(), pUserData);
+    mCb(pid, data->size(), data->base(), pUserData);
 }
 
 void AmlDemuxBase::Filter::setOwner(const sptr<AmlDemuxBase::Channel>& channel)
@@ -168,7 +168,7 @@ bool AmlDemuxBase::Channel::hasFilter() const
     return !mFilters.empty();
 }
 
-void AmlDemuxBase::Channel::onData(const sptr<AmlMpBuffer>& data, int version)
+void AmlDemuxBase::Channel::onData(int pid, const sptr<AmlMpBuffer>& data, int version)
 {
     std::set<sptr<Filter>> filters;
 
@@ -182,7 +182,7 @@ void AmlDemuxBase::Channel::onData(const sptr<AmlMpBuffer>& data, int version)
     }
 
     for (auto& f : filters) {
-        f->notifyListener(data, version);
+        f->notifyListener(pid, data, version);
     }
 }
 
@@ -379,7 +379,7 @@ void AmlDemuxBase::notifyData(int pid, const sptr<AmlMpBuffer>& data, int versio
     }
 
     if (channel) {
-        channel->onData(data, version);
+        channel->onData(pid, data, version);
     }
 }
 

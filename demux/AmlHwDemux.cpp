@@ -18,8 +18,9 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <sstream>
+#define CONFIG_AMLOGIC_DVB_COMPAT // use for write_ts to demux
 extern "C" {
-#include <linux/dvb/dmx.h>
+#include <dmx.h>
 }
 
 #define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
@@ -30,7 +31,9 @@ class HwTsParser : public AmlDemuxBase::ITsParser, public LooperCallback
 public:
     HwTsParser(const std::function<SectionCallback>& cb, const std::string& name);
     ~HwTsParser();
+    int dvr_open(int demuxId, bool isHardwareSource);
     int feedTs(const uint8_t* buffer, size_t size);
+    int dvr_close();
     void reset();
     int addPSISection(int pid);
     int getPSISectionData(int pid);
@@ -43,6 +46,7 @@ private:
 
     std::mutex mLock;
     std::map<int, int> mChannelFds; //pid, fd
+    int mDvrFd;
 
 private:
     HwTsParser(const HwTsParser&) = delete;
@@ -63,6 +67,7 @@ AmlHwDemux::~AmlHwDemux()
 int AmlHwDemux::open(bool isHardwareSource, Aml_MP_DemuxId demuxId)
 {
     mDemuxId = demuxId;
+    mIsHardwareSource = isHardwareSource;
 
     std::stringstream s;
     s << "/dev/dvb0.demux" << mDemuxId;
@@ -89,6 +94,7 @@ int AmlHwDemux::close()
 
 int AmlHwDemux::start()
 {
+    mTsParser->dvr_open(mDemuxId, mIsHardwareSource);
     if (mLooper == nullptr) {
         mLooper = new Looper(Looper::PREPARE_ALLOW_NON_CALLBACKS);
         if (mLooper == nullptr) {
@@ -122,6 +128,8 @@ int AmlHwDemux::stop()
         mThread.join();
     }
 
+    mTsParser->dvr_close();
+
     ALOGI("stopped!");
     return 0;
 }
@@ -131,6 +139,15 @@ int AmlHwDemux::flush()
     MLOG();
 
     return 0;
+}
+
+int AmlHwDemux::feedTs(const uint8_t* buffer, size_t size)
+{
+    std::lock_guard<std::mutex> _l(mLock);
+    if (mStopped) {
+        return 0;
+    }
+    return mTsParser->feedTs(buffer, size);
 }
 
 int AmlHwDemux::addPSISection(int pid)
@@ -209,12 +226,62 @@ HwTsParser::~HwTsParser()
     MLOG();
 }
 
+
+int HwTsParser::dvr_open(int demuxId, bool isHardwareSource) {
+    int ret = 0;
+    char name[32];
+    snprintf(name, sizeof(name), "/dev/dvb0.dvr%d", demuxId);
+    mDvrFd = open(name, O_WRONLY);
+    if (mDvrFd == -1) {
+        ALOGE("cannot open \"%s\" (%s)", name, strerror(errno));
+        return -1;
+    }
+    ALOGI("open %s  ok \n", name);
+
+    if (!isHardwareSource) {
+        ALOGI("set ---> INPUT_LOCAL \n");
+        ret = ioctl(mDvrFd, DMX_SET_INPUT, INPUT_LOCAL);
+    } else {
+        ALOGI("set ---> INPUT_DEMOD \n" );
+        ret = ioctl(mDvrFd, DMX_SET_INPUT, INPUT_DEMOD);
+    }
+    ALOGI("DMX_SET_INPUT ret:%d\n", ret);
+    if (ret < 0) {
+        ALOGE("dvr_open ioctl failed %s\n", strerror(errno));
+        return -1;
+    }
+    return 0;
+}
+
+int HwTsParser::dvr_close() {
+    if (mDvrFd > 0) {
+        close(mDvrFd);
+    }
+    return 0;
+}
+
 int HwTsParser::feedTs(const uint8_t* buffer, size_t size)
 {
-    (void)buffer;
-    (void)size;
+    int ret;
+    int left = size;
+    int off = 0;
 
-    return 0;
+    if (mDvrFd < 0) {
+        return -1;
+    }
+    while (left > 0) {
+        ret = write(mDvrFd, buffer + off, left);
+        if (ret == -1) {
+            if (errno != EINTR) {
+                ALOGE("Write DVR data failed: %s", strerror(errno));
+                break;
+            }
+            ret = 0;
+        }
+        left -= ret;
+        off += ret;
+    }
+    return (size - left);
 }
 
 int HwTsParser::addPSISection(int pid)
@@ -229,7 +296,8 @@ int HwTsParser::addPSISection(int pid)
     struct dmx_sct_filter_params filter_param;
     memset(&filter_param, 0, sizeof(filter_param));
     filter_param.pid = pid;
-    filter_param.flags = DMX_CHECK_CRC;
+    // comment this line for pes callback(like ecm)
+    // filter_param.flags = DMX_CHECK_CRC;
 
     int ret = ioctl(fd, DMX_SET_FILTER, &filter_param);
     if (ret < 0) {
