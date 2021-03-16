@@ -11,6 +11,9 @@
 #include <utils/Log.h>
 #include "AmlMpUtils.h"
 #include <unistd.h>
+#ifdef HAVE_SUBTITLE
+#include <SubtitleNativeAPI.h>
+#endif
 
 namespace aml_mp {
 #define ENUM_TO_STR(e) case e: return #e; break
@@ -570,6 +573,102 @@ Aml_MP_StreamType convertToAmlMPStreamType(am_tsplayer_stream_type streamType) {
 
     return (AML_MP_STREAM_TYPE_UNKNOWN);
 }
+
+#ifdef HAVE_SUBTITLE
+AmlTeletextCtrlParam convertToTeletextCtrlParam(AML_MP_TeletextCtrlParam* teletextCtrlParam) {
+    AmlTeletextCtrlParam params;
+    params.magazine = teletextCtrlParam->magazine;
+    params.page = teletextCtrlParam->page;
+    params.event = convertToTeletextEvent(teletextCtrlParam->event);
+
+    return params;
+}
+
+AmlTeletextEvent convertToTeletextEvent(Aml_MP_TeletextEvent teletextEvent) {
+    switch (teletextEvent) {
+        case AML_MP_TT_EVENT_QUICK_NAVIGATE_RED:
+            return TT_EVENT_QUICK_NAVIGATE_RED;
+        case AML_MP_TT_EVENT_QUICK_NAVIGATE_GREEN:
+            return TT_EVENT_QUICK_NAVIGATE_GREEN;
+        case AML_MP_TT_EVENT_QUICK_NAVIGATE_YELLOW:
+            return TT_EVENT_QUICK_NAVIGATE_YELLOW;
+        case AML_MP_TT_EVENT_QUICK_NAVIGATE_BLUE:
+            return TT_EVENT_QUICK_NAVIGATE_BLUE;
+        case AML_MP_TT_EVENT_0:
+            return TT_EVENT_0;
+        case AML_MP_TT_EVENT_1:
+            return TT_EVENT_1;
+        case AML_MP_TT_EVENT_2:
+            return TT_EVENT_2;
+        case AML_MP_TT_EVENT_3:
+            return TT_EVENT_3;
+        case AML_MP_TT_EVENT_4:
+            return TT_EVENT_4;
+        case AML_MP_TT_EVENT_5:
+            return TT_EVENT_5;
+        case AML_MP_TT_EVENT_6:
+            return TT_EVENT_6;
+        case AML_MP_TT_EVENT_7:
+            return TT_EVENT_7;
+        case AML_MP_TT_EVENT_8:
+            return TT_EVENT_8;
+        case AML_MP_TT_EVENT_9:
+            return TT_EVENT_9;
+        case AML_MP_TT_EVENT_INDEXPAGE:
+            return TT_EVENT_INDEXPAGE;
+        case AML_MP_TT_EVENT_NEXTPAGE:
+            return TT_EVENT_NEXTPAGE;
+        case AML_MP_TT_EVENT_PREVIOUSPAGE:
+            return TT_EVENT_PREVIOUSPAGE;
+        case AML_MP_TT_EVENT_NEXTSUBPAGE:
+            return TT_EVENT_NEXTSUBPAGE;
+        case AML_MP_TT_EVENT_PREVIOUSSUBPAGE:
+            return TT_EVENT_PREVIOUSSUBPAGE;
+        case AML_MP_TT_EVENT_BACKPAGE:
+            return TT_EVENT_BACKPAGE;
+        case AML_MP_TT_EVENT_FORWARDPAGE:
+            return TT_EVENT_FORWARDPAGE;
+        case AML_MP_TT_EVENT_HOLD:
+            return TT_EVENT_HOLD;
+        case AML_MP_TT_EVENT_REVEAL:
+            return TT_EVENT_REVEAL;
+        case AML_MP_TT_EVENT_CLEAR:
+            return TT_EVENT_CLEAR;
+        case AML_MP_TT_EVENT_CLOCK:
+            return TT_EVENT_CLOCK;
+        case AML_MP_TT_EVENT_MIX_VIDEO:
+            return TT_EVENT_MIX_VIDEO;
+        case AML_MP_TT_EVENT_DOUBLE_HEIGHT:
+            return TT_EVENT_DOUBLE_HEIGHT;
+        case AML_MP_TT_EVENT_DOUBLE_SCROLL_UP:
+            return TT_EVENT_DOUBLE_SCROLL_UP;
+        case AML_MP_TT_EVENT_DOUBLE_SCROLL_DOWN:
+            return TT_EVENT_DOUBLE_SCROLL_DOWN;
+        case AML_MP_TT_EVENT_TIMER:
+            return TT_EVENT_TIMER;
+        case AML_MP_TT_EVENT_GO_TO_PAGE:
+            return TT_EVENT_GO_TO_PAGE;
+        case AML_MP_TT_EVENT_GO_TO_SUBTITLE:
+            return TT_EVENT_GO_TO_SUBTITLE;
+        default:
+            return TT_EVENT_INVALID;
+    }
+}
+
+AML_MP_SubtitleDataType convertToMpSubtitleDataType(AmlSubDataType subDataType) {
+    switch (subDataType) {
+        case SUB_DATA_TYPE_STRING:
+            return AML_MP_SUB_DATA_TYPE_STRING;
+        case SUB_DATA_TYPE_CC_JSON:
+            return AML_MP_SUB_DATA_TYPE_CC_JSON;
+        case SUB_DATA_TYPE_BITMAP:
+            return AML_MP_SUB_DATA_TYPE_BITMAP;
+        case SUB_DATA_TYPE_POSITON_BITMAP:
+            return AML_MP_SUB_DATA_TYPE_POSITON_BITMAP;
+    }
+}
+
+#endif
 
 bool isSupportMultiHwDemux()
 {

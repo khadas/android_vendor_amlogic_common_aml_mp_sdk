@@ -435,7 +435,8 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             ret = AmTsPlayer_setWorkMode(mPlayer, *(am_tsplayer_work_mode*)(parameter));
             break;
 
-        case AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER:
+        case AML_MP_PLAYER_PARAMETER_TELETEXT_CONTROL:
+            AmlPlayerBase::setParameter(key, parameter);
             break;
 
         case AML_MP_PLAYER_PARAMETER_VIDEO_TUNNEL_ID:

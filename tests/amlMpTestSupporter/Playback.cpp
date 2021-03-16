@@ -612,6 +612,15 @@ static struct TestModule::Command g_commandTable[] = {
     },
 
     {
+        "Start", 0, "call start",
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
+            int ret = Aml_MP_Player_Start(player);
+            printf("call start ret: %d\n", ret);
+            return ret;
+        }
+    },
+
+    {
         "Stop", 0, "call stop",
         [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             int ret = Aml_MP_Player_Stop(player);

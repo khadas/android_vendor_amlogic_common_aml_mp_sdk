@@ -76,6 +76,21 @@ public:
 
     virtual int setADParams(Aml_MP_AudioParams* params) = 0;
 
+#ifdef HAVE_SUBTITLE
+    //Subtitle Call back function
+    static void AmlMPSubtitleDataCb(const char * data, int size, AmlSubDataType type,
+                                                int x, int y, int width, int height, int videoWidth,
+                                                int videoHeight, int showing);
+    static void AmlMPSubtitleAvailCb(int avail);
+    static void AmlMPSubtitleDimensionCb(int width, int height);
+    static void AmlMPSubtitleAfdEventCb(int event);
+    static void AmlMPSubtitleChannelUpdateCb(int event, int id);
+    static void AmlMPSubtitleLanguageCb(std::string lang);
+    static void AmlMPSubtitleInfoCb(int what, int extra);
+
+    static wptr<AmlPlayerBase> sSubtitleCbHandle;
+#endif
+
 protected:
     int mSubWindowX;
     int mSubWindowY;
@@ -97,6 +112,13 @@ private:
 #ifdef HAVE_SUBTITLE
     static bool constructAmlSubtitleParam(AmlSubtitleParam* amlSubParam, Aml_MP_SubtitleParams* params);
     AmlSubtitleHnd mSubtitleHandle = nullptr;
+
+    //Subtitle info
+    Aml_MP_SubtitleData mSubtitleData;
+    Aml_MP_SubtitleDimension mSubtitleDimension;
+    char mSubtitleIso639Code[4];
+
+    int mSubtitleShow;
 #endif
     Aml_MP_SubtitleParams mSubtitleParams;
 

@@ -25,6 +25,10 @@
 
 namespace aml_mp {
 
+#ifdef HAVE_SUBTITLE
+wptr<AmlPlayerBase> AmlPlayerBase::sSubtitleCbHandle;
+#endif
+
 sptr<AmlPlayerBase> AmlPlayerBase::create(Aml_MP_PlayerCreateParams* createParams, int instanceId)
 {
     sptr<AmlPlayerBase> player;
@@ -59,6 +63,8 @@ AmlPlayerBase::AmlPlayerBase(int instanceId)
     mSubWindowY = 0;
     mSubWindowWidth = 1920;
     mSubWindowHeight = 1080;
+
+    mSubtitleShow = 1;
 #endif
 }
 
@@ -138,7 +144,8 @@ int AmlPlayerBase::showSubtitle()
     ALOGI("showSubtitle");
 
 #ifdef HAVE_SUBTITLE
-    RETURN_IF(-1, mSubtitleHandle == nullptr);
+    mSubtitleShow = 1;
+    RETURN_IF(0, mSubtitleHandle == nullptr);
 
 #ifndef __ANDROID_VNDK__
     AmlSubtitleStatus ret = amlsub_UiShow(mSubtitleHandle);
@@ -156,7 +163,8 @@ int AmlPlayerBase::hideSubtitle()
     ALOGI("hideSubtitle");
 
 #ifdef HAVE_SUBTITLE
-    RETURN_IF(-1, mSubtitleHandle == nullptr);
+    mSubtitleShow = 0;
+    RETURN_IF(0, mSubtitleHandle == nullptr);
 
 #ifndef __ANDROID_VNDK__
     AmlSubtitleStatus ret = amlsub_UiHide(mSubtitleHandle);
@@ -211,6 +219,10 @@ int AmlPlayerBase::startSubtitleDecoding()
     ALOGI("startSubtitleDecoding");
 
 #ifdef HAVE_SUBTITLE
+    if (mSubtitleParams.pid == AML_MP_INVALID_PID) {
+        ALOGI("No subtitle info, not start subtitle");
+        return 0;
+    }
     AmlSubtitleParam subParam{};
     subParam.ioSource = AmlSubtitleIOType::E_SUBTITLE_DEMUX;
     if (!constructAmlSubtitleParam(&subParam, &mSubtitleParams)) {
@@ -230,24 +242,32 @@ int AmlPlayerBase::startSubtitleDecoding()
 
 
 #ifndef __ANDROID_VNDK__
+    sSubtitleCbHandle = this;
+    amlsub_RegistOnDataCB(mSubtitleHandle, AmlMPSubtitleDataCb);
+    amlsub_RegistOnSubtitleAvailCb(mSubtitleHandle, AmlMPSubtitleAvailCb);
+    amlsub_RegistGetDimesionCb(mSubtitleHandle, AmlMPSubtitleDimensionCb);
+    amlsub_RegistAfdEventCB(mSubtitleHandle, AmlMPSubtitleAfdEventCb);
+    amlsub_RegistOnChannelUpdateCb(mSubtitleHandle, AmlMPSubtitleChannelUpdateCb);
+    amlsub_RegistOnSubtitleLanguageCb(mSubtitleHandle, AmlMPSubtitleLanguageCb);
+    amlsub_RegistOnSubtitleInfoCB(mSubtitleHandle, AmlMPSubtitleInfoCb);
+
     AmlSubtitleStatus ret = amlsub_Open(mSubtitleHandle, &subParam);
     if (ret != SUB_STAT_OK) {
         ALOGE("amlsub_Open failed!");
     }
 
+    if (mSubtitleShow) {
+        showSubtitle();
+    } else {
+        hideSubtitle();
+    }
     ALOGI("Subtitle size is x:%d, y: %d, width: %d, height: %d", mSubWindowX, mSubWindowY, mSubWindowWidth, mSubWindowHeight);
     ret = amlsub_UiSetSurfaceViewRect(mSubtitleHandle, mSubWindowX, mSubWindowY, mSubWindowWidth, mSubWindowHeight);
     if (ret != SUB_STAT_OK) {
         ALOGE("amlsub_UiSetSurfaceViewRect failed!");
     }
 
-    amlsub_RegistGetDimesionCb(mSubtitleHandle, [](int width, int height) {
-        //printf("subtitle size:%d x %d\n", width, height);
-    });
-
 #endif
-
-    showSubtitle();
 #endif
     return 0;
 }
@@ -258,6 +278,10 @@ int AmlPlayerBase::stopSubtitleDecoding()
 
 #ifdef HAVE_SUBTITLE
     RETURN_IF(-1, mSubtitleHandle == nullptr);
+
+    if (sSubtitleCbHandle == this) {
+        sSubtitleCbHandle = nullptr;
+    }
 
     hideSubtitle();
 
@@ -283,7 +307,7 @@ int AmlPlayerBase::setSubtitleWindow(int x, int y, int width, int height)
     mSubWindowHeight = height;
 
 #ifdef HAVE_SUBTITLE
-    RETURN_IF(-1, mSubtitleHandle == nullptr);
+    RETURN_IF(0, mSubtitleHandle == nullptr);
 #ifndef __ANDROID_VNDK__
 
     AmlSubtitleStatus ret = amlsub_UiSetSurfaceViewRect(mSubtitleHandle, mSubWindowX, mSubWindowY, mSubWindowWidth, mSubWindowHeight);
@@ -297,6 +321,146 @@ int AmlPlayerBase::setSubtitleWindow(int x, int y, int width, int height)
 
     return 0;
 }
+
+int AmlPlayerBase::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
+#ifdef HAVE_SUBTITLE
+    AmlSubtitleStatus ret = SUB_STAT_INV;
+    AmlTeletextCtrlParam amlTeletextCtrlParam;
+
+    switch (key) {
+        case AML_MP_PLAYER_PARAMETER_TELETEXT_CONTROL:
+            amlTeletextCtrlParam = convertToTeletextCtrlParam((AML_MP_TeletextCtrlParam*)parameter);
+#ifndef __ANDROID_VNDK__
+            ret = amlsub_TeletextControl(mSubtitleHandle, &amlTeletextCtrlParam);
+#endif
+            break;
+        default:
+            ret = SUB_STAT_INV;
+    }
+
+    if (ret != SUB_STAT_OK) {
+        return -1;
+    }
+#endif
+    return 0;
+}
+
+#ifdef HAVE_SUBTITLE
+void AmlPlayerBase::AmlMPSubtitleDataCb(const char * data, int size, AmlSubDataType type,
+                                            int x, int y, int width, int height, int videoWidth,
+                                            int videoHeight, int showing) {
+    ALOG(LOG_INFO, nullptr, "Call AmlMPSubtitleDataCb");
+    if (sSubtitleCbHandle == nullptr) {
+        return;
+    }
+
+    sptr<AmlPlayerBase> cbHandle = sSubtitleCbHandle.promote();
+    if (cbHandle == nullptr) {
+        return;
+    }
+
+    cbHandle->mSubtitleData.data = data;
+    cbHandle->mSubtitleData.size = size;
+
+    cbHandle->mSubtitleData.type = convertToMpSubtitleDataType(type);
+    cbHandle->mSubtitleData.x = x;
+    cbHandle->mSubtitleData.y = y;
+    cbHandle->mSubtitleData.width = width;
+    cbHandle->mSubtitleData.height = height;
+    cbHandle->mSubtitleData.videoWidth = videoWidth;
+    cbHandle->mSubtitleData.videoHeight = videoHeight;
+    cbHandle->mSubtitleData.showing = showing;
+    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_DATA, (int64_t)(&(cbHandle->mSubtitleData)));
+}
+
+void AmlPlayerBase::AmlMPSubtitleAvailCb(int avail) {
+    ALOG(LOG_INFO, nullptr, "Call AmlMPSubtitleAvailCb: %d", avail);
+    if (sSubtitleCbHandle == nullptr) {
+        return;
+    }
+
+    sptr<AmlPlayerBase> cbHandle = sSubtitleCbHandle.promote();
+    if (cbHandle == nullptr) {
+        return;
+    }
+
+    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_SUBTITLE_AVAIL, (int64_t)(&avail));
+}
+
+void AmlPlayerBase::AmlMPSubtitleDimensionCb(int width, int height) {
+    if (sSubtitleCbHandle == nullptr) {
+        return;
+    }
+    sptr<AmlPlayerBase> cbHandle = sSubtitleCbHandle.promote();
+    if (cbHandle == nullptr) {
+        return;
+    }
+    cbHandle->mSubtitleDimension.width = width;
+    cbHandle->mSubtitleDimension.height = height;
+    ALOG(LOG_INFO, nullptr, "[AmlMPSubtitleDimensionCb] Get call back info width: %d, height: %d\n", cbHandle->mSubtitleDimension.width, cbHandle->mSubtitleDimension.height);
+    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_DIMENSION, (int64_t)(&(cbHandle->mSubtitleDimension)));
+}
+
+void AmlPlayerBase::AmlMPSubtitleAfdEventCb(int event) {
+    ALOG(LOG_INFO, nullptr, "AmlMPSubtitleAfdEventCb: %d", event);
+    if (sSubtitleCbHandle == nullptr) {
+        return;
+    }
+    sptr<AmlPlayerBase> cbHandle = sSubtitleCbHandle.promote();
+    if (cbHandle == nullptr) {
+        return;
+    }
+
+    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_AFD_EVENT, (int64_t)(&event));
+}
+
+void AmlPlayerBase::AmlMPSubtitleChannelUpdateCb(int event, int id) {
+    if (sSubtitleCbHandle == nullptr) {
+        return;
+    }
+    sptr<AmlPlayerBase> cbHandle = sSubtitleCbHandle.promote();
+    if (cbHandle == nullptr) {
+        return;
+    }
+    ALOG(LOG_INFO, nullptr, "AmlMPSubtitleChannelUpdateCb [event: %d, id: %d]", event, id);
+
+    Aml_MP_SubtitleChannelUpdate subtitleChannelUpdate;
+    subtitleChannelUpdate.event = event;
+    subtitleChannelUpdate.id = id;
+    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_CHANNEL_UPDATE, (int64_t)(&subtitleChannelUpdate));
+}
+
+void AmlPlayerBase::AmlMPSubtitleLanguageCb(std::string lang) {
+    if (sSubtitleCbHandle == nullptr) {
+        return;
+    }
+    sptr<AmlPlayerBase> cbHandle = sSubtitleCbHandle.promote();
+    if (cbHandle == nullptr) {
+        return;
+    }
+    lang.copy(cbHandle->mSubtitleIso639Code, 3, 0);
+    cbHandle->mSubtitleIso639Code[3] = '\0';
+    ALOG(LOG_INFO, nullptr, "[AmlMPSubtitleLanguageCb] Get callback info iso639Code: %s\n", cbHandle->mSubtitleIso639Code);
+    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_SUBTITLE_LANGUAGE, (int64_t)(&(cbHandle->mSubtitleIso639Code)));
+}
+
+void AmlPlayerBase::AmlMPSubtitleInfoCb(int what, int extra) {
+    ALOG(LOG_INFO, nullptr, "AmlMPSubtitleInfoCb [what: %d, extra: %d]", what, extra);
+    if (sSubtitleCbHandle == nullptr) {
+        return;
+    }
+    sptr<AmlPlayerBase> cbHandle = sSubtitleCbHandle.promote();
+    if (cbHandle == nullptr) {
+        return;
+    }
+
+    Aml_MP_SubtitleInfo subtitleInfo;
+    subtitleInfo.what = what;
+    subtitleInfo.extra = extra;
+    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_SUBTITLE_INFO, (int64_t)(&subtitleInfo));
+}
+
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 void AmlPlayerBase::notifyListener(Aml_MP_PlayerEventType eventType, int64_t param)
