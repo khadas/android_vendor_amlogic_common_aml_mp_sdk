@@ -15,6 +15,10 @@
 #include <amports/vformat.h>
 #include <amports/aformat.h>
 #include <Aml_MP/Common.h>
+#ifdef HAVE_SUBTITLE
+#include <string>
+#include <SubtitleNativeAPI.h>
+#endif
 #include "AmlMpConfig.h"
 
 #ifndef _LINUX_LIST_H
@@ -117,6 +121,12 @@ DVB_DemuxSource_t convertToDVBDemuxSource(Aml_MP_DemuxSource source);
 Aml_MP_DemuxSource convertToMpDemuxSource(DVB_DemuxSource_t source);
 am_tsplayer_stream_type convertToTsplayerStreamType(Aml_MP_StreamType streamType);
 Aml_MP_StreamType convertToAmlMPStreamType(am_tsplayer_stream_type streamType);
+
+#ifdef HAVE_SUBTITLE
+AmlTeletextCtrlParam convertToTeletextCtrlParam(AML_MP_TeletextCtrlParam* teletextCtrlParam);
+AmlTeletextEvent convertToTeletextEvent(Aml_MP_TeletextEvent teletextEvent);
+AML_MP_SubtitleDataType convertToMpSubtitleDataType(AmlSubDataType subDataType);
+#endif
 
 bool isSupportMultiHwDemux();
 

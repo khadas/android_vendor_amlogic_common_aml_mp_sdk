@@ -236,6 +236,7 @@ typedef enum {
 
     AML_MP_PLAYER_PARAMETER_WORK_MODE,                      //setWorkMode(Aml_MP_PlayerWorkMode*)
     AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER,            //setZorder(int*)
+    AML_MP_PLAYER_PARAMETER_TELETEXT_CONTROL,               //amlsub_TeletextControl(AML_MP_TeletextCtrlParam*)
 
     AML_MP_PLAYER_PARAMETER_VENDOR_ID,                      //setVendorID(int*)
     AML_MP_PLAYER_PARAMETER_VIDEO_TUNNEL_ID,                //setVideoTunnelID(int*)
@@ -385,12 +386,47 @@ typedef struct {
 } Aml_MP_AdecStat;
 
 ////////////////////////////////////////
-//AML_MP_PLAYER_PARAMETER_SUBTITLE_INFO
+//AML_MP_SUBTITLE_EVENT_DATA
+typedef enum {
+    AML_MP_SUB_DATA_TYPE_STRING = 0,
+    AML_MP_SUB_DATA_TYPE_CC_JSON = 1,
+    AML_MP_SUB_DATA_TYPE_BITMAP = 2,
+    AML_MP_SUB_DATA_TYPE_POSITON_BITMAP = 4,
+}AML_MP_SubtitleDataType;
+
+typedef struct {
+    const char *data;
+    int size;
+    AML_MP_SubtitleDataType type;
+    int x;
+    int y;
+    int width;
+    int height;
+    int videoWidth;
+    int videoHeight;
+    int showing;
+}Aml_MP_SubtitleData;
+
+////////////////////////////////////////
+//AML_MP_SUBTITLE_EVENT_DIMENSION
 typedef struct {
     uint32_t width;
     uint32_t height;
-    uint32_t iso639Code;
-} Aml_MP_SubtitleInfo;
+} Aml_MP_SubtitleDimension;
+
+////////////////////////////////////////
+//AML_MP_SUBTITLE_EVENT_CHANNEL_UPDATE
+typedef struct {
+    int event;
+    int id;
+}Aml_MP_SubtitleChannelUpdate;
+
+////////////////////////////////////////
+//AML_MP_SUBTITLE_EVENT_SUBTITLE_INFO
+typedef struct {
+    int what;
+    int extra;
+}Aml_MP_SubtitleInfo;
 
 ////////////////////////////////////////
 //AML_MP_PLAYER_PARAMETER_SUBTITLE_DECODE_STAT
@@ -399,6 +435,72 @@ typedef struct {
     uint32_t errorFrameCount;
     uint32_t dropFrameCount;
 } Aml_MP_SubDecStat;
+
+////////////////////////////////////////
+//AML_MP_PLAYER_PARAMETER_TELETEXT_CONTROL
+typedef enum {
+    AML_MP_TT_EVENT_INVALID          = -1,
+
+    // These are the four FastText shortcuts, usually represented by red, green,
+    // yellow and blue keys on the handset.
+    AML_MP_TT_EVENT_QUICK_NAVIGATE_RED = 0,
+    AML_MP_TT_EVENT_QUICK_NAVIGATE_GREEN,
+    AML_MP_TT_EVENT_QUICK_NAVIGATE_YELLOW,
+    AML_MP_TT_EVENT_QUICK_NAVIGATE_BLUE,
+
+    // The ten numeric keys used to input page indexes.
+    AML_MP_TT_EVENT_0,
+    AML_MP_TT_EVENT_1,
+    AML_MP_TT_EVENT_2,
+    AML_MP_TT_EVENT_3,
+    AML_MP_TT_EVENT_4,
+    AML_MP_TT_EVENT_5,
+    AML_MP_TT_EVENT_6,
+    AML_MP_TT_EVENT_7,
+    AML_MP_TT_EVENT_8,
+    AML_MP_TT_EVENT_9,
+
+    // This is the home key, which returns to the nominated index page for this service.
+    AML_MP_TT_EVENT_INDEXPAGE,
+
+    // These are used to quickly increment/decrement the page index.
+    AML_MP_TT_EVENT_NEXTPAGE,
+    AML_MP_TT_EVENT_PREVIOUSPAGE,
+
+    // These are used to navigate the sub-pages when in 'hold' mode.
+    AML_MP_TT_EVENT_NEXTSUBPAGE,
+    AML_MP_TT_EVENT_PREVIOUSSUBPAGE,
+
+    // These are used to traverse the page history (if caching requested).
+    AML_MP_TT_EVENT_BACKPAGE,
+    AML_MP_TT_EVENT_FORWARDPAGE,
+
+    // This is used to toggle hold on the current page.
+    AML_MP_TT_EVENT_HOLD,
+    // Reveal hidden page content (as defined in EBU specification)
+    AML_MP_TT_EVENT_REVEAL,
+    // This key toggles 'clear' mode (page hidden until updated)
+    AML_MP_TT_EVENT_CLEAR,
+    // This key toggles 'clock only' mode (page hidden until updated)
+    AML_MP_TT_EVENT_CLOCK,
+    // Used to toggle transparent background ('video mix' mode)
+    AML_MP_TT_EVENT_MIX_VIDEO,
+    // Used to toggle double height top / double-height bottom / normal height display.
+    AML_MP_TT_EVENT_DOUBLE_HEIGHT,
+    // Functional enhancement may offer finer scrolling of double-height display.
+    AML_MP_TT_EVENT_DOUBLE_SCROLL_UP,
+    AML_MP_TT_EVENT_DOUBLE_SCROLL_DOWN,
+    // Used to initiate/cancel 'timer' mode (clear and re-display page at set time)
+    AML_MP_TT_EVENT_TIMER,
+    AML_MP_TT_EVENT_GO_TO_PAGE,
+    AML_MP_TT_EVENT_GO_TO_SUBTITLE
+} Aml_MP_TeletextEvent;
+
+typedef struct {
+    int magazine;
+    int page;
+    Aml_MP_TeletextEvent event;
+} AML_MP_TeletextCtrlParam;
 
 ///////////////////////////////////////////////////////////////////////////////
 typedef enum {
@@ -466,6 +568,16 @@ typedef enum {
     AML_MP_DVRPLAYER_EVENT_REACHED_BEGIN     ,            /**< reached begin*/
     AML_MP_DVRPLAYER_EVENT_REACHED_END,                    /**< reached end*/
     AML_MP_DVRPLAYER_EVENT_NOTIFY_PLAYTIME,               /**< notify play cur segmeng time ms*/
+
+    //Subtitle event
+    AML_MP_SUBTITLE_EVENT_BASE = 0x2000,
+    AML_MP_SUBTITLE_EVENT_DATA,                         //param: Aml_MP_SubtitleData
+    AML_MP_SUBTITLE_EVENT_SUBTITLE_AVAIL,               //param: int
+    AML_MP_SUBTITLE_EVENT_DIMENSION,                    //param: Aml_MP_SubtitleDimension
+    AML_MP_SUBTITLE_EVENT_AFD_EVENT,                    //param: int
+    AML_MP_SUBTITLE_EVENT_CHANNEL_UPDATE,               //param: Aml_MP_SubtitleChannelUpdate
+    AML_MP_SUBTITLE_EVENT_SUBTITLE_LANGUAGE,            //param: char[4]
+    AML_MP_SUBTITLE_EVENT_SUBTITLE_INFO,                //param: Aml_MP_SubtitleInfo
 } Aml_MP_PlayerEventType;
 
 

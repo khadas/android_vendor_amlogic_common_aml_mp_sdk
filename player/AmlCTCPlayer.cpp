@@ -434,6 +434,11 @@ int AmlCTCPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
         case AML_MP_PLAYER_PARAMETER_AUDIO_BALANCE:
             ret = mCtcPlayer->SetAudioBalance(ctcAudioBalanceConvert(*(Aml_MP_AudioBalance*)parameter));
             break;
+
+        case AML_MP_PLAYER_PARAMETER_TELETEXT_CONTROL:
+            AmlPlayerBase::setParameter(key, parameter);
+            break;
+
         default:
             ALOGI("Not support parameter key: %d", key);
             break;
