@@ -168,7 +168,7 @@ int AmlMpPlayerImpl::setSubtitleParams(const Aml_MP_SubtitleParams* params)
     return 0;
 }
 
-int AmlMpPlayerImpl::setCASParams(const Aml_MP_CASParams* params)
+int AmlMpPlayerImpl::setIptvCASParams(const Aml_MP_IptvCasParams* params)
 {
     AML_MP_TRACE(10);
 
@@ -826,13 +826,13 @@ int AmlMpPlayerImpl::startDescrambling()
 {
     AML_MP_TRACE(10);
 
-    ALOGI("encrypted stream!");
+    ALOGI("encrypted stream!, mCreateParams.sourceType=%d", mCreateParams.sourceType);
     if (mCASParams.type == AML_MP_CAS_UNKNOWN) {
         ALOGE("unknown cas type!");
         return -1;
     }
 
-    mCasHandle = AmlCasBase::create(mCreateParams.sourceType, &mCASParams);
+    mCasHandle = AmlCasBase::create(&mCASParams, mInstanceId);
     if (mCasHandle == nullptr) {
         ALOGE("create CAS handle failed!");
         return -1;
@@ -1071,15 +1071,19 @@ void AmlMpPlayerImpl::programEventCallback(Parser::ProgramEventType event, int p
         case Parser::ProgramEventType::EVENT_ECM_DATA_PARSED:
         {
             ALOGI("programEventCallback: ecmData parsed, size:%d", param2);
-            // uint8_t* ecmData = (uint8_t*)data;
-            // std::string ecmDataStr;
-            // char hex[3];
-            // for (int i = 0; i < param2; i++) {
-            //     snprintf(hex, sizeof(hex), "%02X", ecmData[i]);
-            //     ecmDataStr.append(hex);
-            //     ecmDataStr.append(" ");
-            // }
-            // ALOGI("programEventCallback: ecmData: size:%d, hexStr:%s", param2, ecmDataStr.c_str());
+            uint8_t* ecmData = (uint8_t*)data;
+            std::string ecmDataStr;
+            char hex[3];
+            for (int i = 0; i < param2; i++) {
+                 snprintf(hex, sizeof(hex), "%02X", ecmData[i]);
+                 ecmDataStr.append(hex);
+                 ecmDataStr.append(" ");
+            }
+            ALOGI("programEventCallback: ecmData: size:%d, hexStr:%s", param2, ecmDataStr.c_str());
+
+            if (mCasHandle) {
+                mCasHandle->processEcm(ecmData, param2);
+            }
         }
     }
 }

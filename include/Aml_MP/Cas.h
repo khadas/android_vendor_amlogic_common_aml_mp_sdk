@@ -14,7 +14,6 @@
 
 #define MAX_CHAN_COUNT (8)
 #define MAX_DATA_LEN (8)
-#define AML_MP_MAX_PATH_SIZE    512
 
 /**\brief Service Mode of the program*/
 typedef enum {

@@ -68,7 +68,7 @@ public:
     int setVideoParams(const Aml_MP_VideoParams* params);
     int setAudioParams(const Aml_MP_AudioParams* params);
     int setSubtitleParams(const Aml_MP_SubtitleParams* params);
-    int setCASParams(const Aml_MP_CASParams* params);
+    int setIptvCASParams(const Aml_MP_IptvCasParams* params);
     int start();
     int stop();
     int pause();
@@ -156,7 +156,7 @@ private:
     Aml_MP_AudioParams mAudioParams;
     Aml_MP_SubtitleParams mSubtitleParams;
     WindowSize mSubtitleWindow;
-    Aml_MP_CASParams mCASParams{};
+    Aml_MP_IptvCasParams mCASParams{};
     Aml_MP_AudioParams mADParams;
 
     Aml_MP_VideoDisplayMode mVideoDisplayMode{AML_MP_VIDEO_DISPLAY_MODE_NORMAL};

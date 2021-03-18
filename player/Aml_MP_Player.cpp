@@ -68,12 +68,12 @@ int Aml_MP_Player_SetSubtitleParams(AML_MP_PLAYER handle, Aml_MP_SubtitleParams*
     return player->setSubtitleParams(params);
 }
 
-int Aml_MP_Player_SetCASParams(AML_MP_PLAYER handle, Aml_MP_CASParams* params)
+int Aml_MP_Player_SetIptvCASParams(AML_MP_PLAYER handle, Aml_MP_IptvCasParams* params)
 {
     AmlMpPlayerImpl* player = aml_handle_cast<AmlMpPlayerImpl>(handle);
     RETURN_IF(-1, player == nullptr);
 
-    return player->setCASParams(params);
+    return player->setIptvCASParams(params);
 }
 
 int Aml_MP_Player_Start(AML_MP_PLAYER handle)

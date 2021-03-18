@@ -1,5 +1,10 @@
 LOCAL_PATH:= $(call my-dir)
 
+define is-module-source-exist
+$(shell find $(TOP)/vendor/amlogic/common/prebuilt/libmediadrm/wvcas/ -maxdepth 1 -type d -name $(1) -exec echo OK \; 2>/dev/null)
+endef
+
+
 AML_MP_PLAYER_SRC := \
 	player/Aml_MP.cpp \
 	player/Aml_MP_Player.cpp \
@@ -10,13 +15,24 @@ AML_MP_PLAYER_SRC := \
 AML_MP_PLAYER_SRC_29 := \
 	player/AmlCTCPlayer.cpp \
 
+
 AML_MP_CAS_SRC := \
 	cas/Aml_MP_CAS.cpp \
 	cas/AmlCasBase.cpp \
 	cas/AmlDvbCasHal.cpp \
 
-AML_MP_CAS_SRC_29 := \
-	cas/AmlIptvCas.cpp \
+ifeq ($(call is-module-source-exist, include),OK)
+
+AML_MP_CAS_SRC_30 += \
+        cas/wv_iptvcas/AmlWVIptvCas.cpp \
+
+AML_MP_CFLAGS_30 := -DHAVE_WVIPTV_CAS
+
+AML_MP_VENDOR_SHARED_LIBS_30 += \
+        libdec_ca_wvcas \
+
+endif
+
 
 AML_MP_DVR_SRC := \
 	dvr/Aml_MP_DVR.cpp \
@@ -43,6 +59,7 @@ AML_MP_UTILS_SRC := \
 	utils/AmlMpStrongPointer.cpp \
 	utils/AmlMpThread.cpp \
 	utils/AmlMpUtils.cpp \
+	utils/Amlsysfsutils.cpp \
 
 AML_MP_SRCS := \
 	$(AML_MP_PLAYER_SRC) \
@@ -69,7 +86,8 @@ AML_MP_INC := $(LOCAL_PATH)/include \
 	$(TOP)/vendor/amlogic/common/mediahal_sdk/include \
 	$(TOP)/hardware/amlogic/gralloc \
 	$(TOP)/hardware/amlogic/media/amcodec/include \
-	$(TOP)/vendor/amlogic/common/frameworks/services/subtiltleserver/client
+	$(TOP)/vendor/amlogic/common/frameworks/services/subtiltleserver/client \
+	$(TOP)/vendor/amlogic/common/prebuilt/libmediadrm/
 
 AML_MP_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/include \
 	$(LOCAL_PATH) \
@@ -81,7 +99,7 @@ AML_MP_CFLAGS := -DANDROID_PLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
 
 AML_MP_CFLAGS_29 := -DHAVE_SUBTITLE \
 	-DHAVE_CTC \
-	-DHAVE_IPTV_CAS \
+
 
 AML_MP_SHARED_LIBS := \
 	libutils \
