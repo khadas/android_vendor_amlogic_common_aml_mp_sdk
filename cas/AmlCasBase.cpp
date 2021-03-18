@@ -10,28 +10,43 @@
 #define LOG_TAG "AmlCasBase"
 #include <utils/Log.h>
 #include "AmlCasBase.h"
-#include "AmlIptvCas.h"
-#include "AmlDvbCasHal.h"
+#include "wv_iptvcas/AmlWVIptvCas.h"
+#include "vmx_iptvcas/AmlVMXIptvCas.h"
 #include <utils/AmlMpUtils.h>
 
 namespace aml_mp {
-sptr<AmlCasBase> AmlCasBase::create(Aml_MP_InputSourceType inputType, const Aml_MP_CASParams* casParams)
-{
-    sptr<AmlCasBase> cas;
 
-    switch (inputType) {
-    case AML_MP_INPUT_SOURCE_TS_MEMORY:
+sptr<AmlCasBase> AmlCasBase::create(const Aml_MP_IptvCasParams* casParams, int instanceId)
+{
+    sptr<AmlCasBase> cas = nullptr;
+
+    ALOGI("%s, casParams->type=%d", __func__, casParams->type);
+    switch (casParams->type) {
+    case AML_MP_CAS_VERIMATRIX_IPTV:
     {
-#ifdef HAVE_IPTV_CAS
-        const Aml_MP_IptvCasParam *iptvCasParam = &casParams->u.iptvCasParam;
-        cas = new AmlIptvCas(casParams->type, iptvCasParam);
+#ifdef HAVE_VMXIPTV_CAS
+        ALOGI("%s, iptv vmxcas support", __func__);
+        cas = new AmlVMXIptvCas(casParams, instanceId);
+#endif
+    }
+    break;
+
+    case AML_MP_CAS_WIDEVINE:
+    {
+#ifdef HAVE_WVIPTV_CAS
+        ALOGI("%s, iptv wvcas support", __func__);
+        cas = new AmlWVIptvCas(casParams, instanceId);
 #endif
     }
     break;
 
     default:
-        ALOGI("unknown input source type!");
         break;
+    }
+
+    if (casParams->type == AML_MP_CAS_UNKNOWN) {
+        ALOGE("unsupported ca type!");
+        return nullptr;
     }
 
     return cas;

@@ -328,7 +328,7 @@ int Playback::startIPTVDescrambling()
 {
     MLOG();
 
-    Aml_MP_CASParams casParams;
+    Aml_MP_IptvCasParams casParams;
     int ret = 0;
 
     casParams.type = AML_MP_CAS_UNKNOWN;
@@ -337,21 +337,22 @@ int Playback::startIPTVDescrambling()
     {
         ALOGI("verimatrix iptv!");
         casParams.type = AML_MP_CAS_VERIMATRIX_IPTV;
-        casParams.u.iptvCasParam.videoCodec = mProgramInfo->videoCodec;
-        casParams.u.iptvCasParam.audioCodec = mProgramInfo->audioCodec;
-        casParams.u.iptvCasParam.videoPid = mProgramInfo->videoPid;
-        casParams.u.iptvCasParam.audioPid = mProgramInfo->audioPid;
-        casParams.u.iptvCasParam.ecmPid = mProgramInfo->ecmPid[0];
-        casParams.u.iptvCasParam.demuxId = mDemuxId;
+        casParams.videoCodec = mProgramInfo->videoCodec;
+        casParams.audioCodec = mProgramInfo->audioCodec;
+        casParams.videoPid = mProgramInfo->videoPid;
+        casParams.audioPid = mProgramInfo->audioPid;
+        casParams.ecmPid[0] = mProgramInfo->ecmPid[0];
+        casParams.ecmPid[1] = mProgramInfo->ecmPid[1];
+        casParams.demuxId = mDemuxId;
 
         char value[PROPERTY_VALUE_MAX];
         property_get("config.media.vmx.dvb.key_file", value, "/data/mediadrm");
-        strncpy(casParams.u.iptvCasParam.keyPath, value, sizeof(casParams.u.iptvCasParam.keyPath)-1);
+        strncpy(casParams.keyPath, value, sizeof(casParams.keyPath)-1);
 
         property_get("config.media.vmx.dvb.server_ip", value, "client-test-3.verimatrix.com");
-        strncpy(casParams.u.iptvCasParam.serverAddress, value, sizeof(casParams.u.iptvCasParam.serverAddress)-1);
+        strncpy(casParams.serverAddress, value, sizeof(casParams.serverAddress)-1);
 
-        casParams.u.iptvCasParam.serverPort = property_get_int32("config.media.vmx.dvb.server_port", 12686);
+        casParams.serverPort = property_get_int32("config.media.vmx.dvb.server_port", 12686);
     }
     break;
 
@@ -370,13 +371,36 @@ int Playback::startIPTVDescrambling()
     }
     break;
 
+    case 0x4AD4:
+    case 0x4AD5:
+    {
+        ALOGI("wvcas iptv, systemid=0x%x!", mProgramInfo->caSystemId);
+        casParams.type = AML_MP_CAS_WIDEVINE;
+        casParams.caSystemId = mProgramInfo->caSystemId;
+        casParams.videoCodec = mProgramInfo->videoCodec;
+        casParams.audioCodec = mProgramInfo->audioCodec;
+        casParams.videoPid = mProgramInfo->videoPid;
+        casParams.audioPid = mProgramInfo->audioPid;
+        casParams.ecmPid[0] = mProgramInfo->ecmPid[0];
+        casParams.ecmPid[1] = mProgramInfo->ecmPid[1];
+        casParams.demuxId = mDemuxId;
+
+        casParams.private_size = 0;
+        if (mProgramInfo->privateDataLength > 0) {
+            memcpy(casParams.private_data, mProgramInfo->privateData, mProgramInfo->privateDataLength);
+            casParams.private_size =  mProgramInfo->privateDataLength;
+        }
+        ALOGI("wvcas iptv, private_size=%d", casParams.private_size);
+    }
+    break;
+
     default:
         ALOGI("unknown caSystemId:%#x", mProgramInfo->caSystemId);
         break;
     }
 
     if (casParams.type != AML_MP_CAS_UNKNOWN) {
-        ret = Aml_MP_Player_SetCASParams(mPlayer, &casParams);
+        ret = Aml_MP_Player_SetIptvCASParams(mPlayer, &casParams);
     }
 
     return ret;

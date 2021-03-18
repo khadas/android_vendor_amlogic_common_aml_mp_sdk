@@ -17,6 +17,8 @@
 //typedef void* AML_MP_HANDLE;
 #define AML_MP_INVALID_HANDLE   (0)
 #define AML_MP_INVALID_PID      (0x1FFF)
+#define AML_MP_MAX_PATH_SIZE    512
+
 
 typedef void* AML_MP_PLAYER;
 typedef void* AML_MP_DVRRECORDER;
@@ -150,31 +152,41 @@ typedef struct {
 typedef enum {
     AML_MP_CAS_UNKNOWN,
     AML_MP_CAS_VERIMATRIX_IPTV,
+    AML_MP_CAS_WIDEVINE,
 } Aml_MP_CASType;
 
+//add for get url info from setdatasource,such as wv
 typedef struct {
-    Aml_MP_CodecID videoCodec;
-    Aml_MP_CodecID audioCodec;
-    int videoPid;
-    int audioPid;
-    int ecmPid;
-    Aml_MP_DemuxId demuxId;
+    char* license_url;
+    char* provision_url;
+    char* request_header;
+    char* request_body;
+    char* content_type;
+}Aml_MP_IptvCasHeaders;
 
-    char serverAddress[100];
-    int serverPort;
-    char keyPath[100];
-} Aml_MP_IptvCasParam;
 
 typedef struct {
     Aml_MP_CASType type;
-    union {
-        Aml_MP_IptvCasParam iptvCasParam;
-        struct {
-            uint8_t data[1024];
-            size_t size;
-        } casParam;
-    } u;
-} Aml_MP_CASParams;
+    Aml_MP_CodecID videoCodec;
+    Aml_MP_CodecID audioCodec;
+    unsigned int  caSystemId;
+    int videoPid;
+    int audioPid;
+    int ecmPid[3];
+    Aml_MP_DemuxId demuxId;
+
+    //add for vmx get url info
+    char serverAddress[AML_MP_MAX_PATH_SIZE];
+    int serverPort;
+    char keyPath[AML_MP_MAX_PATH_SIZE];
+
+    //add for private data to cas
+    //should care audio and video not same
+    uint8_t private_data[AML_MP_MAX_PATH_SIZE];
+    size_t private_size;
+
+    Aml_MP_IptvCasHeaders *headers;
+} Aml_MP_IptvCasParams;
 
 ////////////////////////////////////////
 typedef enum {

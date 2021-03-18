@@ -142,8 +142,8 @@ int Aml_MP_Player_SetAudioParams(AML_MP_PLAYER handle, Aml_MP_AudioParams* param
 int Aml_MP_Player_SetSubtitleParams(AML_MP_PLAYER handle, Aml_MP_SubtitleParams* params);
 
 /**
- * \brief Aml_MP_Player_SetCASParams
- * Set CAS params
+ * \brief Aml_MP_Player_SetIptvCASParams
+ * Set iptv CAS params
  * Mainly used for iptv
  *
  * \param [in]  player handle
@@ -151,7 +151,7 @@ int Aml_MP_Player_SetSubtitleParams(AML_MP_PLAYER handle, Aml_MP_SubtitleParams*
  *
  * \return 0 if success
  */
-int Aml_MP_Player_SetCASParams(AML_MP_PLAYER handle, Aml_MP_CASParams* params);
+int Aml_MP_Player_SetIptvCASParams(AML_MP_PLAYER handle, Aml_MP_IptvCasParams* params);
 
 /**
  * \brief Aml_MP_Player_Start
