@@ -74,7 +74,6 @@ private:
     int mVideoTunnelId = -1;
 
 private:
-    android::sp<NativeHandle> mSidebandHandle;
     AmlTsPlayer(const AmlTsPlayer&) = delete;
     AmlTsPlayer& operator= (const AmlTsPlayer&) = delete;
 };

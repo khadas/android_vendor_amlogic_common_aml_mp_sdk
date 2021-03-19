@@ -143,7 +143,7 @@ void Parser::setEventCallback(const std::function<ProgramEventCallback>& cb)
 int Parser::close()
 {
     clearAllSectionFilters();
-
+    std::lock_guard<std::mutex> _l(mLock);
     if (mDemux != nullptr) {
         mDemux->stop();
         mDemux->close();
@@ -186,11 +186,13 @@ sptr<ProgramInfo> Parser::getProgramInfo() const
 
 int Parser::writeData(const uint8_t* buffer, size_t size)
 {
-    int wlen = 0;
+    int wlen = -1;
     //ALOGV("writeData:%p, size:%d", buffer, size);
-
+    std::lock_guard<std::mutex> _l(mLock);
     sptr<AmlDemuxBase> demux = mDemux;
-    wlen = demux->feedTs(buffer, size);
+    if(demux){
+        wlen = demux->feedTs(buffer, size);
+    }
 
     return wlen;
 }
@@ -285,6 +287,7 @@ int Parser::pmtCb(int pid, size_t size, const uint8_t* data, void* userData)
     CHECK(program_info_length < 1024);
     p = section.advance(4);
 
+    results.privateDataLength = 0;
     if (program_info_length > 0) {
         int descriptorsRemaining = program_info_length;
         const uint8_t* p2 = p;
@@ -549,24 +552,27 @@ void Parser::onPmtParsed(const PMTSection& results)
     }
 
     bool isNewEcm = false;
-    bool isKeyProgramParsed = false;
+    bool isProgramSeleted = false;
     bool isNewPmt = false;
     bool isPidChanged = false;
     Aml_MP_PlayerEventPidChangeInfo pidChangeInfo;
     {
         std::lock_guard<std::mutex> _l(mLock);
         if (!hasProgramHint_l()) {
-            isKeyProgramParsed = true;
-        } else {
-            if (mProgramNumber != -1 && results.programNumber == mProgramNumber) {
-                isKeyProgramParsed = true;
-            } else if (mVPid != AML_MP_INVALID_PID || mAPid != AML_MP_INVALID_PID) {
-                for (PMTStream stream : results.streams) {
-                    if (stream.streamPid == mVPid || stream.streamPid == mAPid) {
-                        isKeyProgramParsed = true;
-                        break;
-                    }
+            isProgramSeleted = true;
+        } else if (mProgramNumber != -1 && results.programNumber == mProgramNumber) {
+            isProgramSeleted = true;
+        } else if (mVPid != AML_MP_INVALID_PID || mAPid != AML_MP_INVALID_PID) {
+            bool containsAudio = false, containsVideo = false;
+            for (PMTStream stream : results.streams) {
+                if (mVPid == stream.streamPid) {
+                    containsVideo = true;
+                } else if (mAPid == stream.streamPid) {
+                    containsAudio = true;
                 }
+            }
+            if ((mVPid == AML_MP_INVALID_PID || containsVideo) && (mAPid == AML_MP_INVALID_PID || containsAudio)) {
+                isProgramSeleted = true;
             }
         }
         //check is newPmt or updatePmt
@@ -577,7 +583,7 @@ void Parser::onPmtParsed(const PMTSection& results)
             mPidPmtMap.emplace(results.pmtPid, results);
         } else {
             // is pmt updated
-            if (isKeyProgramParsed) {
+            if (isProgramSeleted) {
                 // check pid change
                 isPidChanged = checkPidChange(it->second, results, &pidChangeInfo);
             }
@@ -585,20 +591,20 @@ void Parser::onPmtParsed(const PMTSection& results)
             mPidPmtMap.emplace(results.pmtPid, results);
         }
         //check is newEcm
-        if (isKeyProgramParsed && results.scrambled && mEcmPidSet.find(results.ecmPid) == mEcmPidSet.end()) {
+        if (isProgramSeleted && results.scrambled && mEcmPidSet.find(results.ecmPid) == mEcmPidSet.end()) {
             isNewEcm = true;
             mEcmPidSet.emplace(results.ecmPid);
         }
     }
 
-    if (!isKeyProgramParsed) {
-        ALOGI("not key program parsed");
+    if (!isProgramSeleted) {
+        ALOGI("not program selected");
         return;
     }
 
     if (isNewEcm && results.scrambled) {
         // filter ecmData
-        addSectionFilter(results.ecmPid, ecmCb);
+        addSectionFilter(results.ecmPid, ecmCb, false);
     }
 
     std::lock_guard<std::mutex> _l(mLock);
@@ -786,7 +792,7 @@ bool Parser::checkPidChange(PMTSection oldPmt, PMTSection newPmt, Aml_MP_PlayerE
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-int Parser::addSectionFilter(int pid, Aml_MP_Demux_SectionFilterCb cb)
+int Parser::addSectionFilter(int pid, Aml_MP_Demux_SectionFilterCb cb, bool checkCRC)
 {
     int ret = 0;
 
@@ -795,7 +801,7 @@ int Parser::addSectionFilter(int pid, Aml_MP_Demux_SectionFilterCb cb)
         return -1;
     }
 
-    context->channel = mDemux->createChannel(pid);
+    context->channel = mDemux->createChannel(pid, checkCRC);
     ret = mDemux->openChannel(context->channel);
     if (ret < 0) {
         ALOGE("open channel pid:%d failed!", pid);
@@ -830,13 +836,14 @@ int Parser::addSectionFilter(int pid, Aml_MP_Demux_SectionFilterCb cb)
 
 int Parser::removeSectionFilter(int pid)
 {
+    std::lock_guard<std::mutex> _l(mLock);
     sptr<SectionFilterContext> context;
 
-    {
-        std::lock_guard<std::mutex> _l(mLock);
-        auto it = mSectionFilters.find(pid);
-        context = it->second;
+    auto it = mSectionFilters.find(pid);
+    if (it == mSectionFilters.end()) {
+        return 0;
     }
+    context = it->second;
 
     if (context->filter != AML_MP_INVALID_HANDLE) {
         mDemux->detachFilter(context->filter, context->channel);
@@ -850,11 +857,8 @@ int Parser::removeSectionFilter(int pid)
         context->channel = AML_MP_INVALID_HANDLE;
     }
 
-    {
-        std::lock_guard<std::mutex> _l(mLock);
-        int ret = mSectionFilters.erase(context->mPid);
-        ALOGI("pid:%d, %d sections removed!", pid, ret);
-    }
+    int ret = mSectionFilters.erase(context->mPid);
+    ALOGI("pid:%d, %d sections removed!", pid, ret);
 
     return 0;
 }

@@ -18,6 +18,7 @@
 #include <gui/Surface.h>
 #endif
 #include "Aml_MP_PlayerImpl.h"
+#include <video_tunnel.h>
 
 namespace aml_mp {
 
@@ -145,6 +146,38 @@ int AmlTsPlayer::setANativeWindow(ANativeWindow* nativeWindow)
         }
         ALOGI("setANativeWindow nativeWindow: %p, surface: %p", nativeWindow, surface);
         ret = AmTsPlayer_setSurface(mPlayer, surface);
+#else
+        if (mVideoTunnelId != -1) {
+            ALOGE("setANativeWindow mVideoTunnelId:%d", mVideoTunnelId);
+        }
+        if (nativeWindow) {
+            int type = AM_FIXED_TUNNEL;
+            int mesonVtFd = meson_vt_open();
+            if (mesonVtFd < 0) {
+                ALOGI("meson_vt_open failed!");
+                return -1;
+            }
+            if (meson_vt_alloc_id(mesonVtFd, &mVideoTunnelId) < 0) {
+                ALOGI("meson_vt_alloc_id failed!");
+                meson_vt_close(mesonVtFd);
+                return -1;
+            }
+            ALOGI("setAnativeWindow: allocId: %d", mVideoTunnelId);
+            meson_vt_free_id(mesonVtFd, mVideoTunnelId);
+            meson_vt_close(mesonVtFd);
+
+            native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(type, mVideoTunnelId);
+            mSidebandHandle = NativeHandle::create(sidebandHandle, true);
+
+            ALOGI("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
+
+            ret = native_window_set_sideband_stream(nativeWindow, sidebandHandle);
+            if (ret < 0) {
+                ALOGE("set sideband stream failed!");
+                return ret;
+            }
+            AmTsPlayer_setSurface(mPlayer, (void*)&mVideoTunnelId);
+        }
 #endif
     } else {
         ret = AmlPlayerBase::setANativeWindow(nativeWindow);

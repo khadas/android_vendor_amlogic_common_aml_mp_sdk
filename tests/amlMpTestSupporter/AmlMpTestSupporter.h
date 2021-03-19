@@ -11,6 +11,7 @@
 #define _AML_MP_TEST_SUPPORTER_H_
 
 #include <utils/AmlMpRefBase.h>
+#include <utils/AmlMpHandle.h>
 #include <string>
 #include <thread>
 #include <vector>
@@ -31,7 +32,7 @@ struct ProgramInfo;
 struct NativeUI;
 struct CommandProcessor;
 
-class AmlMpTestSupporter : public AmlMpRefBase
+class AmlMpTestSupporter : public AmlMpHandle
 {
 public:
     enum PlayMode {
@@ -52,6 +53,7 @@ public:
         int height              = -1;
         int zorder              = 0;
         int videoMode           = 0;
+        ANativeWindow* aNativeWindow = nullptr;
     };
 
     AmlMpTestSupporter();

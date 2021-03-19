@@ -80,16 +80,13 @@ void AmlMpEventLooperRoster::unregisterStaleHandlers() {
     {
         std::lock_guard<std::mutex> autoLock(mLock);
 
-        auto it = mHandlers.end();
-        for (size_t i = mHandlers.size(); i > 0;) {
-            i--;
-            it--;
-            const HandlerInfo &info = mHandlers.at(i);
+        for (auto it = mHandlers.begin(); it != mHandlers.end();) {
+            const HandlerInfo &info = it->second;
 
             sptr<AmlMpEventLooper> looper = info.mLooper.promote();
             if (looper == NULL) {
-                ALOGV("Unregistering stale handler:%d", it->first);
-                mHandlers.erase(it);
+                ALOGI("Unregistering stale handler:%d", it->first);
+                it = mHandlers.erase(it);
             } else {
                 // At this point 'looper' might be the only sp<> keeping
                 // the object alive. To prevent it from going out of scope
@@ -98,6 +95,7 @@ void AmlMpEventLooperRoster::unregisterStaleHandlers() {
                 // it to a Vector which will go out of scope after the lock
                 // has been released.
                 activeLoopers.push_back(looper);
+                ++it;
             }
         }
     }

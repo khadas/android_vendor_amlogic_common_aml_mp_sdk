@@ -33,7 +33,7 @@ public:
 
 private:
     void threadLoop();
-    int addPSISection(int pid) override;
+    int addPSISection(int pid, bool checkCRC) override;
     int removePSISection(int pid) override;
     bool isStopped() const override;
 

@@ -1015,7 +1015,8 @@ int AmlMpPlayerImpl::prepare()
     applyParameters();
 
 
-    if ((mVideoParams.videoCodec == AML_MP_CODEC_UNKNOWN && mVideoParams.pid != AML_MP_INVALID_PID) ||
+    if (mCreateParams.drmMode == AML_MP_INPUT_STREAM_ENCRYPTED ||
+        (mVideoParams.videoCodec == AML_MP_CODEC_UNKNOWN && mVideoParams.pid != AML_MP_INVALID_PID) ||
         (mAudioParams.audioCodec == AML_MP_CODEC_UNKNOWN && mAudioParams.pid != AML_MP_INVALID_PID) ||
         (mSubtitleParams.subtitleCodec == AML_MP_CODEC_UNKNOWN && mSubtitleParams.pid != AML_MP_INVALID_PID)) {
         // need parse ts stream and find format info

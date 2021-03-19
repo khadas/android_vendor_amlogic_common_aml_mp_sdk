@@ -40,7 +40,7 @@ public:
         return size;
     }
 
-    CHANNEL createChannel(int pid);
+    CHANNEL createChannel(int pid, bool checkCRC = true);
     int destroyChannel(CHANNEL channel);
     int openChannel(CHANNEL channel);
     int closeChannel(CHANNEL channel);
@@ -56,7 +56,7 @@ public:
         virtual ~ITsParser() =default;
         virtual int feedTs(const uint8_t* buffer, size_t size) = 0;
         virtual void reset() = 0;
-        virtual int addPSISection(int pid) = 0;
+        virtual int addPSISection(int pid, bool checkCRC = true) = 0;
         virtual int getPSISectionData(int pid) = 0;
         virtual void removePSISection(int pid) = 0;
 
@@ -73,7 +73,7 @@ protected:
     struct Filter;
 
     AmlDemuxBase();
-    virtual int addPSISection(int pid) = 0;
+    virtual int addPSISection(int pid, bool checkCRC = true) = 0;
     virtual int removePSISection(int pid) = 0;
     virtual bool isStopped() const = 0;
 

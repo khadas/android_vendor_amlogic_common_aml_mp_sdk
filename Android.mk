@@ -109,6 +109,7 @@ AML_MP_SHARED_LIBS := \
 	libnativewindow \
 	libui \
 	libstagefright_foundation \
+	libvideotunnel
 
 AML_MP_SYSTEM_SHARED_LIBS := \
 	libamdvr.product \

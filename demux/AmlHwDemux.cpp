@@ -35,7 +35,7 @@ public:
     int feedTs(const uint8_t* buffer, size_t size);
     int dvr_close();
     void reset();
-    int addPSISection(int pid);
+    int addPSISection(int pid, bool checkCRC);
     int getPSISectionData(int pid);
     void removePSISection(int pid);
 
@@ -150,9 +150,9 @@ int AmlHwDemux::feedTs(const uint8_t* buffer, size_t size)
     return mTsParser->feedTs(buffer, size);
 }
 
-int AmlHwDemux::addPSISection(int pid)
+int AmlHwDemux::addPSISection(int pid, bool checkCRC)
 {
-    int channelFd = mTsParser->addPSISection(pid);
+    int channelFd = mTsParser->addPSISection(pid, checkCRC);
 
     int ret = mLooper->addFd(
             channelFd,
@@ -284,7 +284,7 @@ int HwTsParser::feedTs(const uint8_t* buffer, size_t size)
     return (size - left);
 }
 
-int HwTsParser::addPSISection(int pid)
+int HwTsParser::addPSISection(int pid, bool checkCRC)
 {
     int fd = -1;
     fd = ::open(mDemuxName.c_str(), O_RDWR);
@@ -296,7 +296,9 @@ int HwTsParser::addPSISection(int pid)
     struct dmx_sct_filter_params filter_param;
     memset(&filter_param, 0, sizeof(filter_param));
     filter_param.pid = pid;
-     filter_param.flags = DMX_CHECK_CRC;
+    if (checkCRC) {
+        filter_param.flags = DMX_CHECK_CRC;
+    }
 
     int ret = ioctl(fd, DMX_SET_FILTER, &filter_param);
     if (ret < 0) {
