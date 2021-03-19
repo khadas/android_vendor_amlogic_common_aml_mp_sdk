@@ -220,7 +220,7 @@ AmlDemuxBase::~AmlDemuxBase()
 
 }
 
-AmlDemuxBase::CHANNEL AmlDemuxBase::createChannel(int pid)
+AmlDemuxBase::CHANNEL AmlDemuxBase::createChannel(int pid, bool checkCRC)
 {
     Channel* channel;
 
@@ -238,7 +238,7 @@ AmlDemuxBase::CHANNEL AmlDemuxBase::createChannel(int pid)
             goto exit;
         }
 
-        if (addPSISection(pid) < 0) {
+        if (addPSISection(pid, checkCRC) < 0) {
             ALOGE("openHardwareChannel failed!");
             return nullptr;
         }

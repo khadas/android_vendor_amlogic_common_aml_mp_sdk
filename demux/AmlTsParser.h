@@ -262,7 +262,7 @@ private:
         uint8_t* data;
     };
 
-    int addSectionFilter(int pid, Aml_MP_Demux_SectionFilterCb cb);
+    int addSectionFilter(int pid, Aml_MP_Demux_SectionFilterCb cb, bool checkCRC = true);
     int removeSectionFilter(int pid);
     void clearAllSectionFilters();
     void notifyParseDone_l();

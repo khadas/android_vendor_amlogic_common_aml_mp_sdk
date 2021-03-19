@@ -40,7 +40,7 @@ public:
     ~SwTsParser();
     int feedTs(const uint8_t* buffer, size_t size) override;
     void reset() override;
-    int addPSISection(int pid) override;
+    int addPSISection(int pid, bool checkCRC) override;
     int getPSISectionData(int pid) override;
     void removePSISection(int pid) override;
 
@@ -233,10 +233,11 @@ int AmlSwDemux::feedTs(const uint8_t* buffer, size_t size)
     return 0;
 }
 
-int AmlSwDemux::addPSISection(int pid)
+int AmlSwDemux::addPSISection(int pid, bool checkCRC)
 {
     sptr<AmlMpMessage> msg = new AmlMpMessage(kWhatAddPid, mHandler);
     msg->setInt32("pid", pid);
+    msg->setInt32("checkCRC", checkCRC);
     msg->post();
 
     return 0;
@@ -278,7 +279,9 @@ void AmlSwDemux::onMessageReceived(const sptr<AmlMpMessage>& msg)
     {
         int pid = AML_MP_INVALID_PID;
         msg->findInt32("pid", &pid);
-        onAddFilterPid(pid);
+        int checkCRC = 0;
+        msg->findInt32("checkCRC", &checkCRC);
+        onAddFilterPid(pid, checkCRC);
     }
     break;
 
@@ -415,11 +418,11 @@ void AmlSwDemux::onFlush()
     mRemainingBytesBuffer->setRange(0, 0);
 }
 
-void AmlSwDemux::onAddFilterPid(int pid)
+void AmlSwDemux::onAddFilterPid(int pid, bool checkCRC)
 {
     if (mTsParser != nullptr) {
         ALOGI("add section pid:%d(%#x)", pid, pid);
-        mTsParser->addPSISection(pid);
+        mTsParser->addPSISection(pid, checkCRC);
     }
 }
 
@@ -517,7 +520,7 @@ void SwTsParser::reset()
     }
 }
 
-int SwTsParser::addPSISection(int pid)
+int SwTsParser::addPSISection(int pid, bool checkCRC)
 {
     if (pid == 0x1FFF)
         return -1;

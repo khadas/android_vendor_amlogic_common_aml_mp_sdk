@@ -96,6 +96,7 @@ protected:
     int mSubWindowY;
     int mSubWindowWidth;
     int mSubWindowHeight;
+    android::sp<android::NativeHandle> mSidebandHandle;
 
     explicit AmlPlayerBase(int instanceId);
     void notifyListener(Aml_MP_PlayerEventType eventType, int64_t param = 0);
@@ -107,7 +108,6 @@ private:
     Aml_MP_PlayerEventCallback mEventCb;
     void* mUserData;
 
-    android::sp<android::NativeHandle> mSidebandHandle;
 
 #ifdef HAVE_SUBTITLE
     static bool constructAmlSubtitleParam(AmlSubtitleParam* amlSubParam, Aml_MP_SubtitleParams* params);

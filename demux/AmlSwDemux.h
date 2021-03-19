@@ -42,7 +42,7 @@ private:
         kWhatDumpInfo = 'dmpI',
     };
 
-    virtual int addPSISection(int pid) override;
+    virtual int addPSISection(int pid, bool checkCRC) override;
     virtual int removePSISection(int pid) override;
     virtual bool isStopped() const override;
 
@@ -51,7 +51,7 @@ private:
     void onFeedData(const sptr<AmlMpBuffer>& data);
     int resync(const sptr<AmlMpBuffer>& buffer);
     void onFlush();
-    void onAddFilterPid(int pid);
+    void onAddFilterPid(int pid, bool checkCRC = true);
     void onRemoveFilterPid(int pid);
 
     sptr<AmlMpEventLooper> mLooper;

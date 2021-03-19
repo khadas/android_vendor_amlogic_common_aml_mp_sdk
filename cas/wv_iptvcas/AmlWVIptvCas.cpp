@@ -225,7 +225,7 @@ int AmlWVIptvCas::processEcm(const uint8_t* data, size_t size)
             MLOGI("%s, pid=0x%x, size=%zu", __func__, mIptvCasParam.videoPid, size);
             ret = pIptvCas->processEcm(1, mIptvCasParam.ecmPid[0] ,pdata, size);
         } else {
-            checkEcmProcess(pdata, mIptvCasParam.ecmPid[0], mIptvCasParam.ecmPid[1], &size);
+            // checkEcmProcess(pdata, mIptvCasParam.ecmPid[0], mIptvCasParam.ecmPid[1], &size);
         }
     }
 

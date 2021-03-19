@@ -167,19 +167,23 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
     ret = mPlayback->setSubtitleDisplayWindow(mDisplayParam.width, 0, mDisplayParam.width, mDisplayParam.height);
 
     if (!mDisplayParam.videoMode) {
-        mNativeUI->controlSurface(
-                mDisplayParam.x,
-                mDisplayParam.y,
-                mDisplayParam.x + mDisplayParam.width,
-                mDisplayParam.y + mDisplayParam.height);
-        mNativeUI->controlSurface(mDisplayParam.zorder);
-        sp<ANativeWindow> window = mNativeUI->getNativeWindow();
-        if (window == nullptr) {
-            ALOGE("create native window failed!");
-            return -1;
-        }
+        if (mDisplayParam.aNativeWindow) {
+            mPlayback->setANativeWindow(mDisplayParam.aNativeWindow);
+        } else {
+            mNativeUI->controlSurface(
+                    mDisplayParam.x,
+                    mDisplayParam.y,
+                    mDisplayParam.x + mDisplayParam.width,
+                    mDisplayParam.y + mDisplayParam.height);
+            mNativeUI->controlSurface(mDisplayParam.zorder);
+            sp<ANativeWindow> window = mNativeUI->getNativeWindow();
+            if (window == nullptr) {
+                ALOGE("create native window failed!");
+                return -1;
+            }
 
-        mPlayback->setANativeWindow(window);
+            mPlayback->setANativeWindow(window);
+        }
     } else {
         setOsdBlank(1);
         mPlayback->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER, &mDisplayParam.zorder);
