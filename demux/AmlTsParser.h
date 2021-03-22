@@ -160,6 +160,7 @@ public:
     using ProgramEventCallback = void(ProgramEventType event, int programPid, int param, void* data);
     void setProgram(int programNumber);
     void setProgram(int vPid, int aPid);
+    bool hasProgramHint_l() const;
     void setEventCallback(const std::function<ProgramEventCallback>& cb);
 
 private:
@@ -242,7 +243,7 @@ private:
         int scrambleAlgorithm = -1;
         SCRAMBLE_INFO_t scrambleInfo{};
 #define PRIVATE_DATA_LENGTH_MAX 256
-        int privateDataLength;
+        int privateDataLength = 0;
         uint8_t privateData[PRIVATE_DATA_LENGTH_MAX];
 
         int streamCount = 0;
@@ -282,8 +283,8 @@ private:
 
 private:
     int mProgramNumber = -1;
-    int mVPid = -1;
-    int mAPid = -1;
+    int mVPid = AML_MP_INVALID_PID;
+    int mAPid = AML_MP_INVALID_PID;
 
     int mProgramMapPid = -1;
     bool mIsHardwareSource = false;
@@ -293,7 +294,6 @@ private:
     sptr<AmlDemuxBase> mDemux;
     sptr<ProgramInfo> mProgramInfo;
 
-    int mProgramCount = 0;
     std::map<int, int> mPidProgramMap; // map: pid--programNumber
     std::map<int, PMTSection> mPidPmtMap; // map: pid--pmt
     std::set<int> mEcmPidSet;// ecmPid

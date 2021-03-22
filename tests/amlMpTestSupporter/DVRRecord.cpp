@@ -138,19 +138,20 @@ int DVRRecord::initDVREncryptRecord(Aml_MP_DVRRecorderEncryptParams& encryptPara
         return ret;
     }
 
-    uint8_t* secBuf = nullptr;
-    uint32_t secBufSize;
-    mSecMem = Aml_MP_CAS_CreateSecmem(mCasSession, AML_MP_CAS_SERVICE_PVR_RECORDING, (void**)&secBuf, &secBufSize);
-    if (mSecMem == nullptr) {
-        ALOGE("create secMem failed");
-        return ret;
-    }
-
     encryptParams.cryptoData = mCasSession;
     encryptParams.cryptoFn = [](Aml_MP_CASCryptoParams* params, void* userdata) {
         AML_MP_CASSESSION casSession = (AML_MP_CASSESSION)userdata;
         return Aml_MP_CAS_DVREncrypt(casSession, params);
     };
+
+    uint8_t* secBuf = nullptr;
+    uint32_t secBufSize;
+    mSecMem = Aml_MP_CAS_CreateSecmem(mCasSession, AML_MP_CAS_SERVICE_PVR_RECORDING, (void**)&secBuf, &secBufSize);
+    if (mSecMem == nullptr) {
+        ALOGE("create secMem failed");
+        return -1;
+    }
+
     encryptParams.secureBuffer = secBuf;
     encryptParams.secureBufferSize = secBufSize;
 

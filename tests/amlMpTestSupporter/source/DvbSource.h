@@ -46,7 +46,6 @@ private:
     std::string mAddress;
     dmd_device_type_t mDeviceType;
     dmd_delivery_t mDelivery;
-    double mFreq = 474;
 
 	int mFendFd = -1;
 

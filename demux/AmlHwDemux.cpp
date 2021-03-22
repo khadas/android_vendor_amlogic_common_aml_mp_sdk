@@ -296,8 +296,7 @@ int HwTsParser::addPSISection(int pid)
     struct dmx_sct_filter_params filter_param;
     memset(&filter_param, 0, sizeof(filter_param));
     filter_param.pid = pid;
-    // comment this line for pes callback(like ecm)
-    // filter_param.flags = DMX_CHECK_CRC;
+     filter_param.flags = DMX_CHECK_CRC;
 
     int ret = ioctl(fd, DMX_SET_FILTER, &filter_param);
     if (ret < 0) {

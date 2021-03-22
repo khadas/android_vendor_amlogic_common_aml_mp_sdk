@@ -129,6 +129,11 @@ void Parser::setProgram(int vPid, int aPid)
     mAPid = aPid;
 }
 
+bool Parser::hasProgramHint_l() const
+{
+    return mProgramNumber >= 0 || mVPid != AML_MP_INVALID_PID || mAPid != AML_MP_INVALID_PID;
+}
+
 void Parser::setEventCallback(const std::function<ProgramEventCallback>& cb)
 {
     std::lock_guard<std::mutex> _l(mLock);
@@ -235,12 +240,15 @@ int Parser::pmtCb(int pid, size_t size, const uint8_t* data, void* userData)
 {
     Parser* parser = (Parser*)userData;
 
-    ALOGI("pmt cb, size:%d", size);
+    ALOGI("pmt cb, pid:%d, size:%d", pid, size);
     Section section(data, size);
     const uint8_t* p = section.data();
     //int table_id = p[0];
     int section_syntax_indicator = (p[1]&0x80) >> 7;
-    CHECK(section_syntax_indicator == 1);
+    if (section_syntax_indicator != 1) {
+        ALOGE("pmt section_syntax_indicator CHECK failed!");
+        return -1;
+    }
     int section_length = (p[1] & 0x0F) << 4 | p[2];
     CHECK(section_length <= 4093);
     ALOGI("section_length = %d, size:%d", section_length, size);
@@ -513,21 +521,21 @@ void Parser::onPatParsed(const std::vector<PATSection>& results)
     }
     removeSectionFilter(0);
 
-    bool foundProgram = (mProgramNumber == -1);
-
-    mProgramCount = 0;
+    int programCount = 0;
     mPidProgramMap.clear();
     for (auto& p : results) {
-        mProgramCount++;
+        programCount++;
         mPidProgramMap.insert_or_assign(p.pmtPid, p.programNumber);
         addSectionFilter(p.pmtPid, pmtCb);
 
-        if (!foundProgram && (mProgramNumber == p.programNumber)) {
-            foundProgram = true;
+        std::lock_guard<std::mutex> _l(mLock);
+        if (!hasProgramHint_l()) {
+            mProgramNumber = p.programNumber;
+            ALOGI("set default program number:%d, pmt pid:%d", mProgramNumber, p.pmtPid);
         }
     }
 
-    if (!foundProgram) {
+    if (programCount == 0) {
         ALOGI("no valid program found!");
         std::lock_guard<std::mutex> _l(mLock);
         notifyParseDone_l();
@@ -547,12 +555,12 @@ void Parser::onPmtParsed(const PMTSection& results)
     Aml_MP_PlayerEventPidChangeInfo pidChangeInfo;
     {
         std::lock_guard<std::mutex> _l(mLock);
-        if (mProgramNumber == -1 && mVPid == -1 && mAPid == -1) {
+        if (!hasProgramHint_l()) {
             isKeyProgramParsed = true;
         } else {
             if (mProgramNumber != -1 && results.programNumber == mProgramNumber) {
                 isKeyProgramParsed = true;
-            } else if (mVPid != -1 || mAPid != -1) {
+            } else if (mVPid != AML_MP_INVALID_PID || mAPid != AML_MP_INVALID_PID) {
                 for (PMTStream stream : results.streams) {
                     if (stream.streamPid == mVPid || stream.streamPid == mAPid) {
                         isKeyProgramParsed = true;

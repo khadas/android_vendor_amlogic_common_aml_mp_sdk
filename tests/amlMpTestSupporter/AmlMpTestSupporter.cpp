@@ -119,6 +119,11 @@ int AmlMpTestSupporter::prepare(bool cryptoMode)
         return -1;
     }
 
+    ALOGI("parsed done!");
+    mSource->removeSourceReceiver(mParserReceiver);
+    mSource->restart();
+    mParser->close();
+
     mProgramInfo = mParser->getProgramInfo();
     if (mProgramInfo == nullptr) {
         ALOGE("get programInfo failed!");
@@ -136,9 +141,6 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
     if (mIsDVRPlayback) {
         return startDVRPlayback();
     }
-
-    mSource->removeSourceReceiver(mParserReceiver);
-    mSource->restart();
 
     Aml_MP_DemuxId demuxId = mParser->getDemuxId();
 
@@ -196,9 +198,6 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
 
 int AmlMpTestSupporter::startRecord()
 {
-    mSource->removeSourceReceiver(mParserReceiver);
-    mSource->restart();
-
     Aml_MP_DemuxId demuxId = mParser->getDemuxId();
     mTestModule = mRecorder = new DVRRecord(mCryptoMode, demuxId, mProgramInfo);
 

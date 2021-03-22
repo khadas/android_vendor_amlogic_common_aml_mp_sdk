@@ -31,9 +31,10 @@ DVRPlayback::DVRPlayback(const std::string& url, bool cryptoMode, Aml_MP_DemuxId
 
     ALOGI("mCryptoMode:%d", mCryptoMode);
     if (mCryptoMode) {
-        initDVRDecryptPlayback(createParams.decryptParams);
-        createParams.basicParams.blockSize = 256*1024;
-        createParams.basicParams.drmMode = AML_MP_INPUT_STREAM_ENCRYPTED;
+        if (initDVRDecryptPlayback(createParams.decryptParams) >= 0) {
+            createParams.basicParams.blockSize = 256 * 1024;
+            createParams.basicParams.drmMode = AML_MP_INPUT_STREAM_ENCRYPTED;
+        }
     }
 
     int ret = Aml_MP_DVRPlayer_Create(&createParams, &mPlayer);
@@ -156,14 +157,14 @@ std::string DVRPlayback::stripUrlIfNeeded(const std::string& url) const
         }
     }
 
-    result.erase(0, strlen("dvr:"));
-    for (;;) {
-        auto it = ++result.begin();
-        if (*it != '/') {
-            break;
-        }
-        result.erase(it);
-    }
+    result.erase(0, strlen("dvr://"));
+    //for (;;) {
+        //auto it = ++result.begin();
+        //if (*it != '/') {
+            //break;
+        //}
+        //result.erase(it);
+    //}
 
     ALOGI("result str:%s", result.c_str());
     return result;
@@ -190,19 +191,20 @@ int DVRPlayback::initDVRDecryptPlayback(Aml_MP_DVRPlayerDecryptParams& decryptPa
         return ret;
     }
 
-    uint8_t* secBuf = nullptr;
-    uint32_t secBufSize;
-    mSecMem = Aml_MP_CAS_CreateSecmem(mCasSession, AML_MP_CAS_SERVICE_PVR_PLAY, (void**)&secBuf, &secBufSize);
-    if (mSecMem == nullptr) {
-        ALOGE("create secMem failed");
-        return ret;
-    }
-
     decryptParams.cryptoData = mCasSession;
     decryptParams.cryptoFn = [](Aml_MP_CASCryptoParams* params, void* userdata) {
         AML_MP_CASSESSION casSession = (AML_MP_CASSESSION)userdata;
         return Aml_MP_CAS_DVRDecrypt(casSession, params);
     };
+
+    uint8_t* secBuf = nullptr;
+    uint32_t secBufSize;
+    mSecMem = Aml_MP_CAS_CreateSecmem(mCasSession, AML_MP_CAS_SERVICE_PVR_PLAY, (void**)&secBuf, &secBufSize);
+    if (mSecMem == nullptr) {
+        ALOGE("create secMem failed");
+        return -1;
+    }
+
     decryptParams.secureBuffer = secBuf;
     decryptParams.secureBufferSize = secBufSize;
 

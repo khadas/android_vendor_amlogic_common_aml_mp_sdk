@@ -78,11 +78,109 @@ int DvbSource::initCheck()
 
     mDeviceType = getDeviceType(mProto.c_str());
 
-    mFreq = std::stod(mAddress);
-    ALOGI("mFreq = %.2f\n", mFreq);
+    char* address = strdup(mAddress.c_str());
+    if (address == nullptr) {
+        ALOGE("dup address failed!");
+        return -1;
+    }
+
+    getDefaultDeliveryConf(mDeviceType, &mDelivery);
+
+
+    const char* delim = "/";
+    int index = 0;
+    for (char* token = strsep(&address, delim); token != nullptr; token = strsep(&address, delim)) {
+        if (strcmp(token, "") == 0) {
+            continue;
+        }
+
+        switch (mDeviceType) {
+        case DMD_TERRESTRIAL:
+        {
+            switch (index) {
+            //freq
+            case 0:
+            {
+                double freq = std::stod(token);
+                ALOGI("freq: %.2f", freq);
+                mDelivery.delivery.terrestrial.desc.dvbt.frequency = freq * 1000;
+                break;
+            }
+
+            //bandwidth
+            case 1:
+            {
+                ALOGI("bandwith:%s", token);
+                if (strcasecmp(token, "8M") == 0) {
+                    mDelivery.delivery.terrestrial.desc.dvbt.bandwidth = DMD_BANDWIDTH_8M;
+                } else if (strcasecmp(token, "7M") == 0) {
+                    mDelivery.delivery.terrestrial.desc.dvbt.bandwidth = DMD_BANDWIDTH_7M;
+                } else if (strcasecmp(token, "6M") == 0) {
+                    mDelivery.delivery.terrestrial.desc.dvbt.bandwidth = DMD_BANDWIDTH_6M;
+                } else if (strcasecmp(token, "5M") == 0) {
+                    mDelivery.delivery.terrestrial.desc.dvbt.bandwidth = DMD_BANDWIDTH_5M;
+                }
+                break;
+            }
+
+            default:
+                break;
+            }
+        }
+        break;
+
+        case DMD_CABLE:
+        {
+            switch (index) {
+            //freq
+            case 0:
+            {
+                double freq = std::stod(token);
+                ALOGI("freq: %.2f", freq);
+                mDelivery.delivery.cable.frequency = freq *1000;
+                break;
+            }
+
+            //symbol rate
+            case 1:
+            {
+                double symbolRate = std::stod(token);
+                ALOGI("symbol rate: %.2f", symbolRate);
+                mDelivery.delivery.cable.symbol_rate = symbolRate;
+                break;
+            }
+
+            //modulation
+            case 2:
+            {
+                ALOGI("modulation: %s", token);
+                if (strcasecmp(token, "16qam") == 0) {
+                    mDelivery.delivery.cable.modulation = DMD_MOD_16QAM;
+                } else if (strcasecmp(token, "32qam") == 0) {
+                    mDelivery.delivery.cable.modulation = DMD_MOD_32QAM;
+                } else if (strcasecmp(token, "64qam") == 0) {
+                    mDelivery.delivery.cable.modulation = DMD_MOD_64QAM;
+                } else if (strcasecmp(token, "128qam") == 0) {
+                    mDelivery.delivery.cable.modulation = DMD_MOD_128QAM;
+                } else if (strcasecmp(token, "256qam") == 0) {
+                    mDelivery.delivery.cable.modulation = DMD_MOD_256QAM;
+                }
+                break;
+            }
+            }
+        }
+        break;
+
+        default:
+            break;
+        }
+
+        ++index;
+    }
+
+    free(address);
 
     int fendIndex = 0;
-
     if (openFend(fendIndex) < 0) {
         ALOGE("openFend failed!\n");
         return -1;
@@ -93,22 +191,6 @@ int DvbSource::initCheck()
 
 int DvbSource::start()
 {
-    getDefaultDeliveryConf(mDeviceType, &mDelivery);
-
-    switch (mDeviceType) {
-    case DMD_TERRESTRIAL:
-        mDelivery.delivery.terrestrial.desc.dvbt.frequency = mFreq * 1000;
-        break;
-
-    case DMD_CABLE:
-        mDelivery.delivery.cable.frequency = mFreq*1000;
-        break;
-
-    case DMD_SATELLITE:
-        mDelivery.delivery.satellite.frequency = mFreq*1000;
-        break;
-    }
-
     DvbLockHandler lockHandler = getProtoHandler(mProto.c_str());
     int ret = lockHandler(mFendFd, &mDelivery);
     if (ret < 0) {
