@@ -646,7 +646,7 @@ int AmlCTCPlayer::resumeAudioDecoding() {
     return ret;
 }
 
-int AmlCTCPlayer::setADParams(Aml_MP_AudioParams* params) {
+int AmlCTCPlayer::setADParams(Aml_MP_AudioParams* params, bool enableMix) {
     AML_MP_UNUSED(params);
     MLOGI("%s:%d\n", __FUNCTION__, __LINE__);
     return -1;

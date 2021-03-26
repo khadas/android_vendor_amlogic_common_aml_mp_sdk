@@ -73,8 +73,10 @@ public:
 
     virtual int startAudioDecoding() = 0;
     virtual int stopAudioDecoding() = 0;
+    virtual int startADDecoding() {return 0;}
+    virtual int stopADDecoding() {return 0;}
 
-    virtual int setADParams(Aml_MP_AudioParams* params) = 0;
+    virtual int setADParams(Aml_MP_AudioParams* params, bool enableMix) = 0;
 
 #ifdef HAVE_SUBTITLE
     //Subtitle Call back function

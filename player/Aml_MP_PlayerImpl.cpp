@@ -52,9 +52,10 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
     memset(&mSubtitleParams, 0, sizeof(mSubtitleParams));
     mSubtitleParams.pid = AML_MP_INVALID_PID;
     mSubtitleParams.subtitleCodec = AML_MP_CODEC_UNKNOWN;
-    memset(&mCASParams, 0, sizeof(mCASParams));
     memset(&mADParams, 0, sizeof(mADParams));
     mADParams.pid = AML_MP_INVALID_PID;
+    mADParams.audioCodec = AML_MP_CODEC_UNKNOWN;
+    memset(&mCASParams, 0, sizeof(mCASParams));
 
     mWorkMode = AML_MP_PLAYER_MODE_NORMAL;
     mAudioBalance = AML_MP_AUDIO_BALANCE_STEREO;
@@ -185,26 +186,37 @@ int AmlMpPlayerImpl::start()
     }
 
     if (mState == STATE_PREPARING) {
-        if (mAudioParams.pid != AML_MP_INVALID_PID) {
+        if (mAudioParams.audioCodec == AML_MP_CODEC_UNKNOWN) {
             setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_START_PENDING);
         }
 
-        if (mVideoParams.pid != AML_MP_INVALID_PID) {
+        if (mVideoParams.videoCodec == AML_MP_CODEC_UNKNOWN) {
             setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_START_PENDING);
         }
 
-        if (mSubtitleParams.pid != AML_MP_INVALID_PID) {
+        if (mSubtitleParams.subtitleCodec == AML_MP_CODEC_UNKNOWN) {
             setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_START_PENDING);
         }
 
-        if (mADParams.pid != AML_MP_INVALID_PID) {
+        if (mADParams.audioCodec == AML_MP_CODEC_UNKNOWN) {
             setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_START_PENDING);
         }
 
         return 0;
     }
 
-    setParams_l();
+    if (mVideoParams.pid != AML_MP_INVALID_PID) {
+        mPlayer->setVideoParams(&mVideoParams);
+    }
+
+    if (mAudioParams.pid != AML_MP_INVALID_PID) {
+        mPlayer->setAudioParams(&mAudioParams);
+    }
+
+    if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
+        mPlayer->setSubtitleParams(&mSubtitleParams);
+    }
+
     int ret = mPlayer->start();
     if (ret < 0) {
         MLOGE("%s failed!", __FUNCTION__);
@@ -221,13 +233,11 @@ int AmlMpPlayerImpl::start()
         setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_STARTED);
     }
 
-    if (mSubtitleParams.pid != AML_MP_INVALID_PID) {
+    if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
         setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_STARTED);
     }
 
-    if (mADParams.pid != AML_MP_INVALID_PID) {
-        setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_STARTED);
-    }
+    startADDecoding_l();
 
     MLOG("end");
     return ret;
@@ -242,15 +252,19 @@ int AmlMpPlayerImpl::stop()
     if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         if (mPlayer) {
             mPlayer->stop();
+
+            Aml_MP_AudioParams dummyAudioParam{AML_MP_INVALID_PID, AML_MP_CODEC_UNKNOWN};
+            mPlayer->setAudioParams(&dummyAudioParam);
         }
 
         setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_STOPPED);
         setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_STOPPED);
         setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_STOPPED);
-        setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_STOPPED);
     }
 
     int ret = resetIfNeeded_l();
+
+    stopADDecoding_l();
 
     MLOG("end");
     return ret;
@@ -630,9 +644,16 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
         break;
 
     case AML_MP_PLAYER_PARAMETER_AD_STATE:
+    {
         RETURN_IF(-1, parameter == nullptr);
-        mADState = *(int*)parameter;
-        break;
+        int ADState = *(int*)parameter;
+        if (ADState) {
+            startADDecoding_l();
+        } else {
+            stopADDecoding_l();
+        }
+        return 0;
+    }
 
     case AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL:
         RETURN_IF(-1, parameter == nullptr);
@@ -682,12 +703,12 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
     {
         MLOGI("set surface handle: %p", parameter);
         mSurfaceHandle = parameter;
-        break;
     }
+    break;
 
     default:
         MLOGW("unhandled key:%#x", key);
-        break;
+        return ret;
     }
 
     if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
@@ -747,12 +768,15 @@ int AmlMpPlayerImpl::startVideoDecoding_l()
         }
     }
 
-    if (mState == STATE_PREPARING && mVideoParams.pid != AML_MP_INVALID_PID) {
+    if (mState == STATE_PREPARING && mVideoParams.videoCodec == AML_MP_CODEC_UNKNOWN) {
         setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_START_PENDING);
         return 0;
     }
 
-    setParams_l();
+    if (mVideoParams.pid != AML_MP_INVALID_PID) {
+        mPlayer->setVideoParams(&mVideoParams);
+    }
+
     int ret = mPlayer->startVideoDecoding();
     if (ret < 0) {
         MLOGE("%s failed!", __FUNCTION__);
@@ -795,13 +819,14 @@ int AmlMpPlayerImpl::startAudioDecoding()
     AML_MP_TRACE(10);
     std::unique_lock<std::mutex> _l(mLock);
 
-
     return startAudioDecoding_l();
 }
 
 int AmlMpPlayerImpl::startAudioDecoding_l()
 {
     MLOG();
+    int ret;
+
     if (mState == STATE_IDLE) {
         if (prepare_l() < 0) {
             MLOGE("prepare failed!");
@@ -809,22 +834,30 @@ int AmlMpPlayerImpl::startAudioDecoding_l()
         }
     }
 
-    if (mState == STATE_PREPARING && mAudioParams.pid != AML_MP_INVALID_PID) {
+    if (mState == STATE_PREPARING && mAudioParams.audioCodec == AML_MP_CODEC_UNKNOWN) {
         setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_START_PENDING);
         return 0;
     }
 
-    setParams_l();
-    int ret = mPlayer->startAudioDecoding();
+    if (mAudioParams.pid == AML_MP_INVALID_PID) {
+        return 0;
+    }
+
+    if (getStreamState_l(AML_MP_STREAM_TYPE_AD) == STREAM_STATE_STARTED) {
+        resetADCodec_l(false);
+    }
+
+    mPlayer->setAudioParams(&mAudioParams);
+
+    ret = mPlayer->startAudioDecoding();
     if (ret < 0) {
         MLOGE("%s failed!", __FUNCTION__);
         return -1;
     }
 
     setState_l(STATE_RUNNING);
-    if (mAudioParams.pid != AML_MP_INVALID_PID) {
-        setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_STARTED);
-    }
+
+    setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_STARTED);
 
     MLOG("end");
     return ret;
@@ -835,17 +868,110 @@ int AmlMpPlayerImpl::stopAudioDecoding()
     AML_MP_TRACE(10);
     std::unique_lock<std::mutex> _l(mLock);
     MLOG();
+    int ret;
     RETURN_IF(-1, mPlayer == nullptr);
 
     if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         if (mPlayer) {
             mPlayer->stopAudioDecoding();
+
+            Aml_MP_AudioParams dummyAudioParam{AML_MP_INVALID_PID, AML_MP_CODEC_UNKNOWN};
+            mPlayer->setAudioParams(&dummyAudioParam);
         }
 
         setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_STOPPED);
+
+        if (getStreamState_l(AML_MP_STREAM_TYPE_AD) == STREAM_STATE_STARTED) {
+            resetADCodec_l(true);
+        }
     }
 
-    int ret = resetIfNeeded_l();
+    ret = resetIfNeeded_l();
+
+    MLOG("end");
+    return ret;
+}
+
+int AmlMpPlayerImpl::startADDecoding()
+{
+    AML_MP_TRACE(10);
+    std::unique_lock<std::mutex> _l(mLock);
+
+    return startADDecoding_l();
+}
+
+int AmlMpPlayerImpl::startADDecoding_l()
+{
+    MLOG();
+    int ret;
+
+    if (mState == STATE_IDLE) {
+        if (prepare_l() < 0) {
+            ALOGE("prepare failed!");
+            return -1;
+        }
+    }
+
+    if (mState == STATE_PREPARING && mADParams.audioCodec == AML_MP_CODEC_UNKNOWN) {
+        setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_START_PENDING);
+        return 0;
+    }
+
+    if (mADParams.pid == AML_MP_INVALID_PID) {
+        return 0;
+    }
+
+    if (getStreamState_l(AML_MP_STREAM_TYPE_AUDIO) == STREAM_STATE_STARTED) {
+        resetAudioCodec_l(false);
+    }
+
+    mPlayer->setADParams(&mADParams, true);
+
+    ret = mPlayer->startADDecoding();
+    if (ret < 0) {
+        ALOGE("%s failed!", __FUNCTION__);
+        return -1;
+    }
+
+    setState_l(STATE_RUNNING);
+
+    setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_STARTED);
+
+    MLOG("end");
+    return ret;
+}
+
+int AmlMpPlayerImpl::stopADDecoding()
+{
+    AML_MP_TRACE(10);
+    std::unique_lock<std::mutex> _l(mLock);
+
+    return stopADDecoding_l();
+}
+
+int AmlMpPlayerImpl::stopADDecoding_l()
+{
+    MLOG();
+    RETURN_IF(-1, mPlayer == nullptr);
+    int ret;
+
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
+        if (mPlayer) {
+            mPlayer->stopADDecoding();
+
+            Aml_MP_AudioParams dummyADParam{AML_MP_INVALID_PID, AML_MP_CODEC_UNKNOWN};
+            mPlayer->setADParams(&dummyADParam, false);
+        }
+
+
+        if (getStreamState_l(AML_MP_STREAM_TYPE_AUDIO) == STREAM_STATE_STARTED) {
+            resetAudioCodec_l(true);
+        }
+
+        setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_STOPPED);
+    }
+
+    ret = resetIfNeeded_l();
 
     MLOG("end");
     return ret;
@@ -871,12 +997,15 @@ int AmlMpPlayerImpl::startSubtitleDecoding_l()
         }
     }
 
-    if (mState == STATE_PREPARING && mSubtitleParams.pid != AML_MP_INVALID_PID) {
+    if (mState == STATE_PREPARING && mSubtitleParams.subtitleCodec == AML_MP_CODEC_UNKNOWN) {
         setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_START_PENDING);
         return 0;
     }
 
-    setParams_l();
+    if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
+        mPlayer->setSubtitleParams(&mSubtitleParams);
+    }
+
     int ret = mPlayer->startSubtitleDecoding();
     if (ret < 0) {
         MLOGE("%s failed!", __FUNCTION__);
@@ -884,7 +1013,7 @@ int AmlMpPlayerImpl::startSubtitleDecoding_l()
     }
 
     setState_l(STATE_RUNNING);
-    if (mSubtitleParams.pid != AML_MP_INVALID_PID) {
+    if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
         setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_STARTED);
     }
 
@@ -969,6 +1098,11 @@ int AmlMpPlayerImpl::setADParams(Aml_MP_AudioParams* params)
     AML_MP_TRACE(10);
     std::unique_lock<std::mutex> _l(mLock);
 
+    if (getStreamState_l(AML_MP_STREAM_TYPE_AD) != STREAM_STATE_STOPPED) {
+        ALOGE("AD started already!");
+        return -1;
+    }
+
     mADParams.pid = params->pid;
     mADParams.audioCodec = params->audioCodec;
     mADParams.nChannels = params->nChannels;
@@ -1027,7 +1161,6 @@ std::string AmlMpPlayerImpl::streamStateString(uint32_t streamState)
             hasValue = true;
         }
     }
-
 
     return ss.str();
 }
@@ -1156,25 +1289,6 @@ int AmlMpPlayerImpl::prepare_l()
     return 0;
 }
 
-void AmlMpPlayerImpl::setParams_l()
-{
-    if (mVideoParams.pid != AML_MP_INVALID_PID) {
-        mPlayer->setVideoParams(&mVideoParams);
-    }
-
-    if (mAudioParams.pid != AML_MP_INVALID_PID) {
-        mPlayer->setAudioParams(&mAudioParams);
-    }
-
-    if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
-        mPlayer->setSubtitleParams(&mSubtitleParams);
-    }
-
-    if (mADParams.pid != AML_MP_INVALID_PID) {
-        mPlayer->setADParams(&mADParams);
-    }
-}
-
 void AmlMpPlayerImpl::programEventCallback(Parser::ProgramEventType event, int param1, int param2, void* data)
 {
     switch (event)
@@ -1264,6 +1378,7 @@ int AmlMpPlayerImpl::finishPreparingIfNeeded_l()
     }
 
     if (getStreamState_l(AML_MP_STREAM_TYPE_AD) == STREAM_STATE_START_PENDING) {
+        startADDecoding_l();
     }
 
     return 0;
@@ -1279,7 +1394,7 @@ int AmlMpPlayerImpl::resetIfNeeded_l()
         }
     }
 
-    if (mState == STATE_STOPPED) {
+    if (mState == STATE_STOPPED || mState == STATE_PREPARING || mState == STATE_PREPARED) {
         reset_l();
     }
 
@@ -1322,10 +1437,6 @@ int AmlMpPlayerImpl::applyParameters_l()
     mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_MUTE, &mAudioMute);
     mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_NETWORK_JITTER, &mNetworkJitter);
 
-    if (mADState != -1) {
-        mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AD_STATE, &mADState);
-    }
-
     if (mADMixLevel != -1) {
         mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL, &mADMixLevel);
     }
@@ -1341,6 +1452,45 @@ void AmlMpPlayerImpl::notifyListener(Aml_MP_PlayerEventType eventType, int64_t p
     } else {
         MLOGW("mEventCb is NULL, eventType:%d, param:%lld", eventType, param);
     }
+}
+
+int AmlMpPlayerImpl::resetADCodec_l(bool callStart)
+{
+    int ret = 0;
+
+    ret = mPlayer->stopADDecoding();
+    if (ret < 0) {
+        MLOGW("stopADDecoding failed while resetADCodec");
+    }
+
+    if (mADParams.pid != AML_MP_INVALID_PID) {
+        mPlayer->setADParams(&mADParams, true);
+    }
+
+    if (callStart) {
+        ret = mPlayer->startADDecoding();
+    }
+
+    return ret;
+}
+
+int AmlMpPlayerImpl::resetAudioCodec_l(bool callStart)
+{
+    int ret = 0;
+    ret = mPlayer->stopAudioDecoding();
+    if (ret < 0) {
+        MLOGW("stopAudioDecoding failed while resetAudioCodec");
+    }
+
+    if (mAudioParams.pid != AML_MP_INVALID_PID) {
+        mPlayer->setAudioParams(&mAudioParams);
+    }
+
+    if (callStart) {
+        ret = mPlayer->startAudioDecoding();
+    }
+
+    return ret;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

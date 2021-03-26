@@ -660,6 +660,30 @@ int AmlTsPlayer::stopAudioDecoding() {
     return 0;
 }
 
+int AmlTsPlayer::startADDecoding()
+{
+    am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
+
+    ret = AmTsPlayer_startAudioDecoding(mPlayer);
+
+    if (ret != AM_TSPLAYER_OK) {
+        return -1;
+    }
+    return 0;
+}
+
+int AmlTsPlayer::stopADDecoding()
+{
+    am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
+
+    ret = AmTsPlayer_stopAudioDecoding(mPlayer);
+
+    if (ret != AM_TSPLAYER_OK) {
+        return -1;
+    }
+    return 0;
+}
+
 int AmlTsPlayer::pauseAudioDecoding() {
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
 
@@ -683,10 +707,15 @@ int AmlTsPlayer::resumeAudioDecoding() {
 }
 
 
-int AmlTsPlayer::setADParams(Aml_MP_AudioParams* params) {
+int AmlTsPlayer::setADParams(Aml_MP_AudioParams* params, bool enableMix) {
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
     am_tsplayer_audio_params audioParams;
 
+    if (enableMix) {
+        AmTsPlayer_enableADMix(mPlayer);
+    } else {
+        AmTsPlayer_disableADMix(mPlayer);
+    }
     audioParams.pid = (int32_t)(params->pid);
     audioParams.codectype = audioCodecConvert(params->audioCodec);
 

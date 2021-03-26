@@ -60,10 +60,12 @@ public:
 
     int startAudioDecoding() override;
     int stopAudioDecoding() override;
+    int startADDecoding() override;
+    int stopADDecoding() override;
     int pauseAudioDecoding();
     int resumeAudioDecoding();
 
-    int setADParams(Aml_MP_AudioParams* params) override;
+    int setADParams(Aml_MP_AudioParams* params, bool enableMix) override;
 
 
 private:
