@@ -338,22 +338,6 @@ int Aml_MP_Player_StopSubtitleDecoding(AML_MP_PLAYER handle)
     return player->stopSubtitleDecoding();
 }
 
-//int Aml_MP_Player_StartDescrambling(AML_MP_PLAYER handle)
-//{
-    //AmlMpPlayerImpl* player = aml_handle_cast<AmlMpPlayerImpl>(handle);
-    //RETURN_IF(-1, player == nullptr);
-
-    //return player->startDescrambling();
-//}
-
-//int Aml_MP_Player_StopDescrambling(AML_MP_PLAYER handle)
-//{
-    //AmlMpPlayerImpl* player = aml_handle_cast<AmlMpPlayerImpl>(handle);
-    //RETURN_IF(-1, player == nullptr);
-
-    //return player->stopDescrambling();
-//}
-
 int Aml_MP_Player_SetADParams(AML_MP_PLAYER handle, Aml_MP_AudioParams* params)
 {
     AmlMpPlayerImpl* player = aml_handle_cast<AmlMpPlayerImpl>(handle);
@@ -362,4 +346,19 @@ int Aml_MP_Player_SetADParams(AML_MP_PLAYER handle, Aml_MP_AudioParams* params)
     return player->setADParams(params);
 }
 
+int Aml_MP_Player_StartADDecoding(AML_MP_PLAYER handle)
+{
+    AmlMpPlayerImpl* player = aml_handle_cast<AmlMpPlayerImpl>(handle);
+    RETURN_IF(-1, player == nullptr);
+
+    return player->startADDecoding();
+}
+
+int Aml_MP_Player_StopADDecoding(AML_MP_PLAYER handle)
+{
+    AmlMpPlayerImpl* player = aml_handle_cast<AmlMpPlayerImpl>(handle);
+    RETURN_IF(-1, player == nullptr);
+
+    return player->stopADDecoding();
+}
 

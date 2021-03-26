@@ -67,6 +67,7 @@ public:
     int registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData);
     int setVideoParams(const Aml_MP_VideoParams* params);
     int setAudioParams(const Aml_MP_AudioParams* params);
+    int setADParams(Aml_MP_AudioParams* params);
     int setSubtitleParams(const Aml_MP_SubtitleParams* params);
     int setIptvCASParams(const Aml_MP_IptvCasParams* params);
     int start();
@@ -96,21 +97,17 @@ public:
     int setPcrPid(int pid);
 
     int startVideoDecoding();
-    int startVideoDecoding_l();
     int stopVideoDecoding();
 
     int startAudioDecoding();
-    int startAudioDecoding_l();
     int stopAudioDecoding();
 
+    int startADDecoding();
+    int stopADDecoding();
+
     int startSubtitleDecoding();
-    int startSubtitleDecoding_l();
     int stopSubtitleDecoding();
 
-    int startDescrambling_l();
-    int stopDescrambling_l();
-
-    int setADParams(Aml_MP_AudioParams* params);
     int setSubtitleWindow(int x, int y, int width, int height);
 
 private:
@@ -150,7 +147,6 @@ private:
     void setStreamState_l(Aml_MP_StreamType streamType, int state);
     StreamState getStreamState_l(Aml_MP_StreamType streamType);
     int prepare_l();
-    void setParams_l();
     int finishPreparingIfNeeded_l();
     int resetIfNeeded_l();
     int reset_l();
@@ -159,6 +155,19 @@ private:
     void writeDataFromBuffer_l();
 
     void notifyListener(Aml_MP_PlayerEventType eventType, int64_t param);
+
+    int startVideoDecoding_l();
+    int startAudioDecoding_l();
+    int startSubtitleDecoding_l();
+    int startADDecoding_l();
+    int stopADDecoding_l();
+
+    int startDescrambling_l();
+    int stopDescrambling_l();
+
+
+    int resetADCodec_l(bool callStart);
+    int resetAudioCodec_l(bool callStart);
 
     const int mInstanceId;
     char mName[50];
@@ -192,7 +201,6 @@ private:
     Aml_MP_AudioBalance mAudioBalance{AML_MP_AUDIO_BALANCE_STEREO};
     bool mAudioMute{false};
     int mNetworkJitter{0};
-    int mADState{-1};
     int mADMixLevel{-1};
     Aml_MP_PlayerWorkMode mWorkMode;
 

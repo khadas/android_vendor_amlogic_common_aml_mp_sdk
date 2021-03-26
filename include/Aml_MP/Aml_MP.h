@@ -504,7 +504,6 @@ int Aml_MP_Player_StartSubtitleDecoding(AML_MP_PLAYER handle);
  */
 int Aml_MP_Player_StopSubtitleDecoding(AML_MP_PLAYER handle);
 
-//AD
 /**
  * \brief Aml_MP_Player_SetADParams
  * Set AD params
@@ -516,6 +515,27 @@ int Aml_MP_Player_StopSubtitleDecoding(AML_MP_PLAYER handle);
  * \return 0 if success
  */
 int Aml_MP_Player_SetADParams(AML_MP_PLAYER handle, Aml_MP_AudioParams* params);
+
+
+/**
+ * \brief Aml_MP_Player_StartADDecoding
+ * start AD decoding
+ *
+ * \param handle
+ *
+ * \return
+ */
+int Aml_MP_Player_StartADDecoding(AML_MP_PLAYER handle);
+
+
+/**
+ * \brief Aml_MP_Player_StopADDecoding
+ * stop AD decoding
+ * \param handle
+ *
+ * \return
+ */
+int Aml_MP_Player_StopADDecoding(AML_MP_PLAYER handle);
 
 ///////////////////////////////////////////////////////////////////////////////
 //                                  CAS                                      //
