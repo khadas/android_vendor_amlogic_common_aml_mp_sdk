@@ -59,6 +59,7 @@ private:
     am_tsplayer_handle mTsPlayerHandle{0};
     DVR_WrapperPlaybackOpenParams_t mPlaybackOpenParams{};
     DVR_PlaybackPids_t mPlayPids{};
+    int mVendorID{};
 
     bool mIsEncryptStream;
     uint8_t* mSecureBuffer = nullptr;

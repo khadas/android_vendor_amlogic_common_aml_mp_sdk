@@ -148,6 +148,9 @@ int AmlDVRPlayer::start(bool initialPaused)
     };
     mPlaybackOpenParams.event_userdata = this;
 
+    //apply parameters
+    mPlaybackOpenParams.vendor = (DVR_PlaybackVendor_t)mVendorID;
+
     int error = dvr_wrapper_open_playback(&mDVRPlayerHandle, &mPlaybackOpenParams);
     if (error < 0) {
         ALOGE("open playback failed!");
@@ -350,6 +353,12 @@ int AmlDVRPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter)
             Aml_MP_ADVolume* ADVolume = (Aml_MP_ADVolume*)parameter;
             //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL, AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE, value is master %d, slave %d", ADVolume->masterVolume, ADVolume->slaveVolume);
             ret = AmTsPlayer_setADMixLevel(mPlayer, ADVolume->masterVolume, ADVolume->slaveVolume);
+            break;
+        }
+
+        case AML_MP_PLAYER_PARAMETER_VENDOR_ID:
+        {
+            mVendorID = *(int*)parameter;
             break;
         }
 

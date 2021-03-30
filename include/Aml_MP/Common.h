@@ -236,6 +236,8 @@ typedef enum {
     AML_MP_PLAYER_PARAMETER_WORK_MODE,                      //setWorkMode(Aml_MP_PlayerWorkMode)
     AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER,            //transcation.setLayer(xxx, int)
 
+    AML_MP_PLAYER_PARAMETER_VENDOR_ID,                      //setVendorID(int)
+
     //get only
     AML_MP_PLAYER_PARAMETER_GET_BASE        = 0x2000,
     AML_MP_PLAYER_PARAMETER_VIDEO_INFO,                     //getVideoInfo(Aml_MP_VideoInfo)
