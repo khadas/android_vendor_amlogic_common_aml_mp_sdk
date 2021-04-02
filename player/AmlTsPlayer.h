@@ -12,6 +12,7 @@
 
 #include "AmlPlayerBase.h"
 #include <AmTsPlayer.h>
+#include <utils/AmlMpUtils.h>
 
 namespace android {
 class NativeHandle;
@@ -79,6 +80,7 @@ private:
 
     ANativeWindow* mNativewindow = nullptr;
     int mBlackOut = 0;
+    NativeWindowHelper mNativeWindowHelper;
 
 private:
     AmlTsPlayer(const AmlTsPlayer&) = delete;

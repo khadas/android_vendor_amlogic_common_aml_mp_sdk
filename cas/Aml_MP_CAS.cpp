@@ -19,6 +19,114 @@ static const char* mName = LOG_TAG;
 using namespace aml_mp;
 //using namespace android;
 
+///////////////////////////////////////////////////////////////////////////////
+//global CAS functions
+pthread_once_t g_dvbCasInitFlag = PTHREAD_ONCE_INIT;
+CasHandle g_casHandle = 0;
+
+static AM_CA_SECTION convertToCASection(Aml_MP_CASSectionType casSection)
+{
+    switch (casSection) {
+    case AML_MP_CAS_SECTION_PMT:
+        return AM_CA_SECTION_PMT;
+
+    case AML_MP_CAS_SECTION_CAT:
+        return AM_CA_SECTION_CAT;
+
+    case AML_MP_CAS_SECTION_NIT:
+        return AM_CA_SECTION_NIT;
+    }
+}
+
+
+int Aml_MP_CAS_Initialize()
+{
+    MLOG();
+
+#ifdef HAVE_CAS_HAL
+    pthread_once(&g_dvbCasInitFlag, [] {
+        AM_CA_Init(&g_casHandle);
+    });
+#endif
+
+    return 0;
+}
+
+int Aml_MP_CAS_Terminate()
+{
+    MLOG();
+
+    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+
+#ifdef HAVE_CAS_HAL
+    ret = AM_CA_Term(g_casHandle);
+#endif
+
+    g_casHandle = 0;
+
+    return ret;
+}
+
+int Aml_MP_CAS_IsNeedWholeSection()
+{
+    int ret = AM_ERROR_GENERAL_ERORR;
+
+#ifdef HAVE_CAS_HAL
+    ret = AM_CA_IsNeedWholeSection();
+#endif
+
+    MLOG("isNeedWholeSection = %d", ret);
+    return ret;
+}
+
+int Aml_MP_CAS_IsSystemIdSupported(int caSystemId)
+{
+    bool ret = false;
+
+#ifdef HAVE_CAS_HAL
+    ret = AM_CA_IsSystemIdSupported(caSystemId);
+#else
+    AML_MP_UNUSED(caSystemId);
+#endif
+
+    return ret;
+}
+
+int Aml_MP_CAS_ReportSection(Aml_MP_CASSectionReportAttr* pAttr, uint8_t* data, size_t len)
+{
+    MLOG("dmx_dev:%d, service_id:%d", pAttr->dmxDev, pAttr->serviceId);
+
+    AM_CA_SecAttr_t attr;
+    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+
+    attr.dmx_dev = pAttr->dmxDev;
+    attr.service_id = pAttr->serviceId;
+    attr.section_type = convertToCASection(pAttr->sectionType);
+
+#ifdef HAVE_CAS_HAL
+    ret = AM_CA_ReportSection(&attr, data, len);
+#else
+    AML_MP_UNUSED(data);
+    AML_MP_UNUSED(len);
+#endif
+
+    return ret;
+}
+
+int Aml_MP_CAS_SetEmmPid(int dmxDev, uint16_t emmPid)
+{
+    MLOG("dmxDev:%d, emmPid:%d", dmxDev, emmPid);
+
+    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+    RETURN_IF(-1, g_casHandle == 0);
+
+#ifdef HAVE_CAS_HAL
+    ret = AM_CA_SetEmmPid(g_casHandle, dmxDev, emmPid);
+#endif
+
+    return ret;
+}
+
 int Aml_MP_CAS_OpenSession(AML_MP_CASSESSION* casSession, Aml_MP_CASServiceType serviceType)
 {
     AmlDvbCasHal* dvbCasHal = new AmlDvbCasHal(serviceType);
@@ -47,7 +155,7 @@ int Aml_MP_CAS_RegisterEventCallback(AML_MP_CASSESSION casSession, Aml_MP_CAS_Ev
         ret = dvbCasHal->registerEventCallback(cb, userData);
     } else {
         CAS_EventFunction_t eventFn = reinterpret_cast<CAS_EventFunction_t>(cb);
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
         ret = AM_CA_RegisterEventCallback((CasSession)nullptr, eventFn);
 #else
         AML_MP_UNUSED(eventFn);
@@ -144,3 +252,4 @@ int Aml_MP_CAS_DestroySecmem(AML_MP_CASSESSION casSession, AML_MP_SECMEM secMem)
 
     return dvbCasHal->destroySecmem(secMem);
 }
+

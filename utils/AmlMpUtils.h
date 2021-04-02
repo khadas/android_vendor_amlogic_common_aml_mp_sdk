@@ -30,6 +30,12 @@ struct list_head {
 #include <dvr_wrapper.h>
 #include <dvb_utils.h>
 
+#include <utils/RefBase.h>
+namespace android {
+class NativeHandle;
+}
+
+
 namespace aml_mp {
 
 #define AML_MP_UNUSED(x) (void)(x)
@@ -137,6 +143,24 @@ AML_MP_SubtitleDataType convertToMpSubtitleDataType(AmlSubDataType subDataType);
 #endif
 
 bool isSupportMultiHwDemux();
+
+struct NativeWindowHelper
+{
+    NativeWindowHelper() = default;
+    ~NativeWindowHelper() = default;
+
+    int setSiebandTunnelMode(ANativeWindow* nativeWindow);
+    int setSidebandNonTunnelMode(ANativeWindow* nativeWindow, int& videoTunnelId);
+
+private:
+    android::sp<android::NativeHandle> mSidebandHandle;
+
+    NativeWindowHelper(const NativeWindowHelper&) = delete;
+    NativeWindowHelper& operator= (const NativeWindowHelper&) = delete;
+};
+
+
+int pushBlankBuffersToNativeWindow(ANativeWindow *nativeWindow /* nonnull */);
 
 }
 #endif
