@@ -15,24 +15,9 @@
 #include <utils/AmlMpLog.h>
 
 static const char* mName = LOG_TAG;
+
 ///////////////////////////////////////////////////////////////////////////////
-//global CAS functions
-pthread_once_t g_dvbCasInitFlag = PTHREAD_ONCE_INIT;
-CasHandle g_casHandle = 0;
-
-static AM_CA_SECTION convertToCASection(Aml_MP_CASSectionType casSection)
-{
-    switch (casSection) {
-    case AML_MP_CAS_SECTION_PMT:
-        return AM_CA_SECTION_PMT;
-
-    case AML_MP_CAS_SECTION_CAT:
-        return AM_CA_SECTION_CAT;
-
-    case AML_MP_CAS_SECTION_NIT:
-        return AM_CA_SECTION_NIT;
-    }
-}
+extern CasHandle g_casHandle;
 
 static CA_SERVICE_TYPE_t convertToCAServiceType(Aml_MP_CASServiceType casServiceType)
 {
@@ -78,105 +63,12 @@ static void convertToCAServiceInfo(AM_CA_ServiceInfo_t* caServiceInfo, Aml_MP_CA
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-extern "C" {
-
-int Aml_MP_CAS_Initialize()
-{
-    MLOG();
-
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
-    pthread_once(&g_dvbCasInitFlag, [] {
-        AM_CA_Init(&g_casHandle);
-    });
-#endif
-
-    return 0;
-}
-
-int Aml_MP_CAS_Terminate()
-{
-    MLOG();
-
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
-
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
-    ret = AM_CA_Term(g_casHandle);
-#endif
-
-    g_casHandle = 0;
-
-    return ret;
-}
-
-int Aml_MP_CAS_IsNeedWholeSection()
-{
-    int ret = AM_ERROR_GENERAL_ERORR;
-
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
-    ret = AM_CA_IsNeedWholeSection();
-#endif
-
-    MLOG("isNeedWholeSection = %d", ret);
-    return ret;
-}
-
-int Aml_MP_CAS_IsSystemIdSupported(int caSystemId)
-{
-    bool ret = false;
-
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
-    ret = AM_CA_IsSystemIdSupported(caSystemId);
-#else
-    AML_MP_UNUSED(caSystemId);
-#endif
-
-    return ret;
-}
-
-int Aml_MP_CAS_ReportSection(Aml_MP_CASSectionReportAttr* pAttr, uint8_t* data, size_t len)
-{
-    MLOG("dmx_dev:%d, service_id:%d", pAttr->dmxDev, pAttr->serviceId);
-
-    AM_CA_SecAttr_t attr;
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
-
-    attr.dmx_dev = pAttr->dmxDev;
-    attr.service_id = pAttr->serviceId;
-    attr.section_type = convertToCASection(pAttr->sectionType);
-
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
-    ret = AM_CA_ReportSection(&attr, data, len);
-#else
-    AML_MP_UNUSED(data);
-    AML_MP_UNUSED(len);
-#endif
-
-    return ret;
-}
-
-int Aml_MP_CAS_SetEmmPid(int dmxDev, uint16_t emmPid)
-{
-    MLOG("dmxDev:%d, emmPid:%d", dmxDev, emmPid);
-
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
-    RETURN_IF(-1, g_casHandle == 0);
-
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
-    ret = AM_CA_SetEmmPid(g_casHandle, dmxDev, emmPid);
-#endif
-
-    return ret;
-}
-
-} //extern "C"
-
-///////////////////////////////////////////////////////////////////////////////
 namespace aml_mp {
 AmlDvbCasHal::AmlDvbCasHal(Aml_MP_CASServiceType serviceType)
 : mServiceType(serviceType)
 {
     AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
     CA_SERVICE_TYPE_t caServiceType = convertToCAServiceType(mServiceType);
     ret = AM_CA_OpenSession(g_casHandle, &mCasSession, caServiceType);
 #endif
@@ -193,7 +85,7 @@ AmlDvbCasHal::~AmlDvbCasHal()
     MLOG();
 
     AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
     ret = AM_CA_CloseSession(mCasSession);
 #endif
     if (ret != AM_ERROR_SUCCESS) {
@@ -208,7 +100,7 @@ int AmlDvbCasHal::registerEventCallback(Aml_MP_CAS_EventCallback cb, void* userD
     AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
     CAS_EventFunction_t eventFn = reinterpret_cast<CAS_EventFunction_t>(cb);
 
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
     ret = AM_CA_RegisterEventCallback(mCasSession, eventFn);
 #else
     AML_MP_UNUSED(eventFn);
@@ -225,7 +117,7 @@ int AmlDvbCasHal::startDescrambling(Aml_MP_CASServiceInfo* serviceInfo)
     AM_CA_ServiceInfo_t caServiceInfo;
     convertToCAServiceInfo(&caServiceInfo, serviceInfo);
 
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
     ret = AM_CA_StartDescrambling(mCasSession, &caServiceInfo);
 #endif
 
@@ -238,7 +130,7 @@ int AmlDvbCasHal::stopDescrambling()
 
     AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
 
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
     ret = AM_CA_StopDescrambling(mCasSession);
 #endif
 
@@ -251,7 +143,7 @@ int AmlDvbCasHal::updateDescramblingPid(int oldStreamPid, int newStreamPid)
 
     AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
 
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
    ret = AM_CA_UpdateDescramblingPid(mCasSession, oldStreamPid, newStreamPid);
 #endif
 
@@ -267,7 +159,7 @@ int AmlDvbCasHal::startDVRRecord(Aml_MP_CASServiceInfo* serviceInfo)
     AM_CA_ServiceInfo_t caServiceInfo;
     convertToCAServiceInfo(&caServiceInfo, serviceInfo);
 
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
     ret = AM_CA_DVRStart(mCasSession, &caServiceInfo);
 #endif
 
@@ -280,7 +172,7 @@ int AmlDvbCasHal::stopDVRRecord()
 
     AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
 
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
     ret = AM_CA_DVRStop(mCasSession);
 #endif
 
@@ -295,7 +187,7 @@ int AmlDvbCasHal::startDVRReplay(Aml_MP_CASDVRReplayParams* dvrReplayParams)
     AM_CA_PreParam_t caParams;
     caParams.dmx_dev = dvrReplayParams->dmxDev;
 
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
     ret = AM_CA_DVRSetPreParam(mCasSession, &caParams);
 #else
     AML_MP_UNUSED(caParams);
@@ -310,7 +202,7 @@ int AmlDvbCasHal::stopDVRReplay()
 
     AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
 
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
     ret = AM_CA_DVRStopReplay(mCasSession);
 #endif
 
@@ -324,7 +216,7 @@ int AmlDvbCasHal::DVREncrypt(Aml_MP_CASCryptoParams* cryptoParams)
     static_assert(sizeof(loff_t) == sizeof(int64_t), "Imcompatible loff_t vs int64_t");
     AM_CA_CryptoPara_t* amCryptoParams = reinterpret_cast<AM_CA_CryptoPara_t*>(cryptoParams);
 
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
     ret = AM_CA_DVREncrypt(mCasSession, amCryptoParams);
 #else
     AML_MP_UNUSED(amCryptoParams);
@@ -343,7 +235,7 @@ int AmlDvbCasHal::DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams)
     if (!mDvrReplayInited) {
         mDvrReplayInited = true;
         MLOGI("DVRReplay");
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
         ret = AM_CA_DVRReplay(mCasSession, amCryptoParams);
         if (ret < 0) {
             MLOGE("CAS DVR replay failed, ret = %d", ret);
@@ -352,7 +244,7 @@ int AmlDvbCasHal::DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams)
 #endif
     }
 
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
     ret = AM_CA_DVRDecrypt(mCasSession, amCryptoParams);
 #else
     AML_MP_UNUSED(amCryptoParams);
@@ -366,7 +258,7 @@ AML_MP_SECMEM AmlDvbCasHal::createSecmem(Aml_MP_CASServiceType type, void** pSec
     SecMemHandle secMem = 0;
     CA_SERVICE_TYPE_t caServiceType = convertToCAServiceType(type);
 
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
     secMem = AM_CA_CreateSecmem(mCasSession, caServiceType, pSecbuf, size);
 #else
     AML_MP_UNUSED(caServiceType);
@@ -385,7 +277,7 @@ int AmlDvbCasHal::destroySecmem(AML_MP_SECMEM secMem)
 
     AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
 
-#if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
+#ifdef HAVE_CAS_HAL
     ret = AM_CA_DestroySecmem(mCasSession, (SecMemHandle)secMem);
 #endif
 

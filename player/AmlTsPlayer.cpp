@@ -18,7 +18,6 @@
 #include <gui/Surface.h>
 #endif
 #include "Aml_MP_PlayerImpl.h"
-#include <video_tunnel.h>
 
 namespace aml_mp {
 
@@ -153,49 +152,25 @@ int AmlTsPlayer::setANativeWindow(ANativeWindow* nativeWindow)
 
     int ret = 0;
     if (AmlMpConfig::instance().mTsPlayerNonTunnel) {
+        if (AmlMpConfig::instance().mUseVideoTunnel == 0) {
 #ifndef __ANDROID_VNDK__
-        android::Surface* surface = nullptr;
-        if (nativeWindow != nullptr) {
-            surface = (android::Surface*)nativeWindow;
-        }
-        MLOGI("setANativeWindow nativeWindow: %p, surface: %p", nativeWindow, surface);
-        ret = AmTsPlayer_setSurface(mPlayer, surface);
-#else
-        if (mVideoTunnelId != -1) {
-            MLOGE("setANativeWindow mVideoTunnelId:%d", mVideoTunnelId);
-        }
-        if (nativeWindow) {
-            int type = AM_FIXED_TUNNEL;
-            int mesonVtFd = meson_vt_open();
-            if (mesonVtFd < 0) {
-                MLOGI("meson_vt_open failed!");
-                return -1;
+            android::Surface* surface = nullptr;
+            if (nativeWindow != nullptr) {
+                surface = (android::Surface*)nativeWindow;
             }
-            if (meson_vt_alloc_id(mesonVtFd, &mVideoTunnelId) < 0) {
-                MLOGI("meson_vt_alloc_id failed!");
-                meson_vt_close(mesonVtFd);
-                return -1;
-            }
-            MLOGI("setAnativeWindow: allocId: %d", mVideoTunnelId);
-            meson_vt_free_id(mesonVtFd, mVideoTunnelId);
-            meson_vt_close(mesonVtFd);
-
-            native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(type, mVideoTunnelId);
-            mSidebandHandle = NativeHandle::create(sidebandHandle, true);
-
-            MLOGI("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
-
-            ret = native_window_set_sideband_stream(nativeWindow, sidebandHandle);
-            if (ret < 0) {
-                MLOGE("set sideband stream failed!");
-                return ret;
-            }
-            AmTsPlayer_setSurface(mPlayer, (void*)&mVideoTunnelId);
-        }
+            MLOGI("setANativeWindow nativeWindow: %p, surface: %p", nativeWindow, surface);
+            ret = AmTsPlayer_setSurface(mPlayer, surface);
 #endif
+        } else {
+            ret = mNativeWindowHelper.setSidebandNonTunnelMode(nativeWindow, mVideoTunnelId);
+            if (ret == 0) {
+                AmTsPlayer_setSurface(mPlayer, (void*)&mVideoTunnelId);
+            }
+        }
     } else {
-        ret = AmlPlayerBase::setANativeWindow(nativeWindow);
+        ret = mNativeWindowHelper.setSiebandTunnelMode(nativeWindow);
     }
+
     return ret;
 }
 
