@@ -438,6 +438,27 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
         case AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER:
             break;
 
+        case AML_MP_PLAYER_PARAMETER_VIDEO_TUNNEL_ID:
+        {
+            mVideoTunnelId = *(int*)parameter;
+            ret = AmTsPlayer_setSurface(mPlayer, &mVideoTunnelId);
+            break;
+        }
+
+        case AML_MP_PLAYER_PARAMETER_SURFACE_HANDLE:
+        {
+#if ANDROID_PLATFORM_SDK_VERSION >= 30
+            // this is video tunnel id, must be a member variable address
+            mVideoTunnelId = (int)parameter;
+            ALOGI("set videoTunnelId: %d", mVideoTunnelId);
+            ret = AmTsPlayer_setSurface(mPlayer, &mVideoTunnelId);
+#else
+            void* surface = parameter;
+            ret = AmTsPlayer_setSurface(mPlayer, surface);
+#endif
+            break;
+        }
+
         default:
             ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
     }

@@ -299,7 +299,7 @@ int Aml_MP_Player_GetBufferStat(AML_MP_PLAYER handle, Aml_MP_BufferStat* bufferS
  *
  * \return 0 if success
  */
-int Aml_MP_Player_SetANativeWindow(AML_MP_PLAYER handle, void* nativeWindow);
+int Aml_MP_Player_SetANativeWindow(AML_MP_PLAYER handle, ANativeWindow* nativeWindow);
 
 /**
  * \brief Aml_MP_Player_SetVideoWindow

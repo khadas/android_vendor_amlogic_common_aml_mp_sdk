@@ -306,7 +306,7 @@ int Aml_MP_DVRPlayer_GetParameter(AML_MP_DVRPLAYER handle, Aml_MP_PlayerParamete
     return ret;
 }
 
-int Aml_MP_DVRPlayer_SetANativeWindow(AML_MP_DVRPLAYER handle, void* nativeWindow)
+int Aml_MP_DVRPlayer_SetANativeWindow(AML_MP_DVRPLAYER handle, ANativeWindow* nativeWindow)
 {
     AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
     RETURN_IF(-1, dvrPlayer == nullptr);
