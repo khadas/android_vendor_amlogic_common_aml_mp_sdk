@@ -227,6 +227,7 @@ typedef enum {
     AML_MP_PLAYER_PARAMETER_AUDIO_PTS_OFFSET,               //setAudioPtsOffset(int ms)
     AML_MP_PLAYER_PARAMETER_AUDIO_BALANCE,                  //setAudioBalance(Aml_MP_AudioBalance)
     AML_MP_PLAYER_PARAMETER_AUDIO_MUTE,                     //setAudioMute(bool)
+    AML_MP_PLAYER_PARAMETER_CREATE_PARAMS,                  //setCreateParams(Aml_MP_PlayerCreateParams)
 
     AML_MP_PLAYER_PARAMETER_NETWORK_JITTER,                 //setNetworkJitter(int ms)
 

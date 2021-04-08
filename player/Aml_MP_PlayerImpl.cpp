@@ -617,6 +617,15 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
     }
     break;
 
+    case AML_MP_PLAYER_PARAMETER_CREATE_PARAMS:
+    {
+        RETURN_IF(-1, parameter == nullptr);
+        mCreateParams = *(Aml_MP_PlayerCreateParams *)parameter;
+        ALOGI("Set mCreateParams drmmode:%d", mCreateParams.drmMode);
+        return 0;
+    }
+    break;
+
     default:
         ALOGW("unhandled key:%#x", key);
         break;
