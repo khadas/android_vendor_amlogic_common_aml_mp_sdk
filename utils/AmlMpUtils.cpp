@@ -41,6 +41,7 @@ const char* mpCodecId2Str(Aml_MP_CodecID codecId)
         ENUM_TO_STR(AML_MP_AUDIO_CODEC_AAC);
         ENUM_TO_STR(AML_MP_AUDIO_CODEC_LATM);
         ENUM_TO_STR(AML_MP_AUDIO_CODEC_PCM);
+        ENUM_TO_STR(AML_MP_AUDIO_CODEC_AC4);
 
         ENUM_TO_STR(AML_MP_SUBTITLE_CODEC_BASE);
         ENUM_TO_STR(AML_MP_SUBTITLE_CODEC_CC);
@@ -269,6 +270,10 @@ Aml_MP_CodecID convertToMpCodecId(DVR_AudioFormat_t fmt)
         codecId = AML_MP_AUDIO_CODEC_PCM;
         break;
 
+    case DVR_AUDIO_FORMAT_AC4:
+        codecId = AML_MP_AUDIO_CODEC_AC4;
+        break;
+
     default:
         ALOGW("unknown audio codec:%d", fmt);
         break;
@@ -312,6 +317,8 @@ DVR_AudioFormat_t convertToDVRAudioFormat(Aml_MP_CodecID codecId)
             return DVR_AUDIO_FORMAT_LATM;
         case AML_MP_AUDIO_CODEC_PCM:
             return DVR_AUDIO_FORMAT_PCM;
+        case AML_MP_AUDIO_CODEC_AC4:
+            return DVR_AUDIO_FORMAT_AC4;
         default:
             ALOGE("unknown audio codecId:%d", codecId);
             return DVR_AUDIO_FORMAT_MPEG;

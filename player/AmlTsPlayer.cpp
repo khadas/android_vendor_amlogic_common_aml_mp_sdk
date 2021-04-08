@@ -58,6 +58,8 @@ am_tsplayer_audio_codec audioCodecConvert(Aml_MP_CodecID aml_MP_AudioCodec) {
             return AV_AUDIO_CODEC_LATM;
         case AML_MP_AUDIO_CODEC_PCM:
             return AV_AUDIO_CODEC_PCM;
+        case AML_MP_AUDIO_CODEC_AC4:
+            return AV_AUDIO_CODEC_AC4;
         default:
             return AV_AUDIO_CODEC_AUTO;
     }
