@@ -409,19 +409,17 @@ int AmlMpPlayerImpl::getBufferStat(Aml_MP_BufferStat* bufferStat)
     return mPlayer->getBufferStat(bufferStat);
 }
 
-int AmlMpPlayerImpl::setANativeWindow(void* nativeWindow)
+int AmlMpPlayerImpl::setANativeWindow(ANativeWindow* nativeWindow)
 {
     AML_MP_TRACE(10);
-    if (nativeWindow == nullptr) {
-        mNativeWindow = nullptr;
-    } else {
-        mNativeWindow = static_cast<ANativeWindow*>(nativeWindow);
-    }
+    mNativeWindow = nativeWindow;
     ALOGI("setAnativeWindow: %p, mNativewindow: %p", nativeWindow, mNativeWindow.get());
 
     if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         RETURN_IF(-1, mPlayer == nullptr);
-        mPlayer->setANativeWindow(mNativeWindow.get());
+        if (mNativeWindow != nullptr) {
+            mPlayer->setANativeWindow(mNativeWindow.get());
+        }
     }
 
     return 0;
@@ -625,6 +623,19 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
         return 0;
     }
     break;
+
+    case AML_MP_PLAYER_PARAMETER_VIDEO_TUNNEL_ID:
+    {
+        mVideoTunnelId = *(int*)parameter;
+    }
+    break;
+
+    case AML_MP_PLAYER_PARAMETER_SURFACE_HANDLE:
+    {
+        ALOGI("set surface handle: %p", parameter);
+        mSurfaceHandle = parameter;
+        break;
+    }
 
     default:
         ALOGW("unhandled key:%#x", key);
@@ -968,10 +979,21 @@ int AmlMpPlayerImpl::prepare()
         mPlayer->setSubtitleWindow(mSubtitleWindow.x, mSubtitleWindow.y, mSubtitleWindow.width, mSubtitleWindow.height);
     }
 
+    if (mSurfaceHandle != nullptr) {
+        mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_SURFACE_HANDLE, mSurfaceHandle);
+    }
+
     ALOGI("mNativeWindow:%p", mNativeWindow.get());
-    mPlayer->setANativeWindow(mNativeWindow.get());
+    if (mNativeWindow != nullptr) {
+        mPlayer->setANativeWindow(mNativeWindow.get());
+    }
+
     if (!mNativeWindow.get() && mVideoWindow.width > 0 && mVideoWindow.height > 0) {
         mPlayer->setVideoWindow(mVideoWindow.x, mVideoWindow.y, mVideoWindow.width, mVideoWindow.height);
+    }
+
+    if (mVideoTunnelId >= 0) {
+        mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_TUNNEL_ID, &mVideoTunnelId);
     }
 
     if (mSyncSource == AML_MP_AVSYNC_SOURCE_DEFAULT) {

@@ -50,7 +50,7 @@ public:
     int getVolume(float* volume);
     int setParameter(Aml_MP_PlayerParameterKey key, void* parameter);
     int getParameter(Aml_MP_PlayerParameterKey key, void* parameter);
-    int setANativeWindow(void* nativeWindow);
+    int setANativeWindow(ANativeWindow* nativeWindow);
 
 private:
     char mName[50];
@@ -77,6 +77,7 @@ private:
     android::sp<ANativeWindow> mNativeWindow = nullptr;
     android::sp<NativeHandle> mSidebandHandle;
 #endif
+    int mVideoTunnelId = -1;
 
 private:
     AmlDVRPlayer(const AmlDVRPlayer&) = delete;

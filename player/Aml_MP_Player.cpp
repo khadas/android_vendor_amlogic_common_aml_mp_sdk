@@ -172,7 +172,7 @@ int Aml_MP_Player_GetBufferStat(AML_MP_PLAYER handle, Aml_MP_BufferStat* bufferS
     return player->getBufferStat(bufferStat);
 }
 
-int Aml_MP_Player_SetANativeWindow(AML_MP_PLAYER handle, void* nativeWindow)
+int Aml_MP_Player_SetANativeWindow(AML_MP_PLAYER handle, ANativeWindow* nativeWindow)
 {
     AmlMpPlayerImpl* player = aml_handle_cast<AmlMpPlayerImpl>(handle);
     RETURN_IF(-1, player == nullptr);

@@ -218,39 +218,41 @@ typedef struct {
 typedef enum {
     //set/get
     AML_MP_PLAYER_PARAMETER_SET_BASE        = 0x1000,
-    AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE,             //setVideoDisplayMode(Aml_MP_VideoDisplayMode)
-    AML_MP_PLAYER_PARAMETER_BLACK_OUT,                      //setVideoBlackOut(bool)
-    AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE,              //setVideoDecodeMode(Aml_MP_VideoDecodeMode)
-    AML_MP_PLAYER_PARAMETER_VIDEO_PTS_OFFSET,               //setVideoPtsOffset(int ms)
-    AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE,              //setAudioOutputMode(Aml_MP_AudioOutputMode)
-    AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_DEVICE,            //setAudioOutputDevice(Aml_MP_AudioOutputDevice)
-    AML_MP_PLAYER_PARAMETER_AUDIO_PTS_OFFSET,               //setAudioPtsOffset(int ms)
-    AML_MP_PLAYER_PARAMETER_AUDIO_BALANCE,                  //setAudioBalance(Aml_MP_AudioBalance)
-    AML_MP_PLAYER_PARAMETER_AUDIO_MUTE,                     //setAudioMute(bool)
-    AML_MP_PLAYER_PARAMETER_CREATE_PARAMS,                  //setCreateParams(Aml_MP_PlayerCreateParams)
+    AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE,             //setVideoDisplayMode(Aml_MP_VideoDisplayMode*)
+    AML_MP_PLAYER_PARAMETER_BLACK_OUT,                      //setVideoBlackOut(bool*)
+    AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE,              //setVideoDecodeMode(Aml_MP_VideoDecodeMode*)
+    AML_MP_PLAYER_PARAMETER_VIDEO_PTS_OFFSET,               //setVideoPtsOffset(int* ms)
+    AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE,              //setAudioOutputMode(Aml_MP_AudioOutputMode*)
+    AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_DEVICE,            //setAudioOutputDevice(Aml_MP_AudioOutputDevice*)
+    AML_MP_PLAYER_PARAMETER_AUDIO_PTS_OFFSET,               //setAudioPtsOffset(int* ms)
+    AML_MP_PLAYER_PARAMETER_AUDIO_BALANCE,                  //setAudioBalance(Aml_MP_AudioBalance*)
+    AML_MP_PLAYER_PARAMETER_AUDIO_MUTE,                     //setAudioMute(bool*)
+    AML_MP_PLAYER_PARAMETER_CREATE_PARAMS,                  //setCreateParams(Aml_MP_PlayerCreateParams*)
 
-    AML_MP_PLAYER_PARAMETER_NETWORK_JITTER,                 //setNetworkJitter(int ms)
+    AML_MP_PLAYER_PARAMETER_NETWORK_JITTER,                 //setNetworkJitter(int* ms)
 
-    AML_MP_PLAYER_PARAMETER_AD_STATE,                       //setADState(int)
-    AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL,                   //setADMixLevel(Aml_MP_ADVolume)
+    AML_MP_PLAYER_PARAMETER_AD_STATE,                       //setADState(int*)
+    AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL,                   //setADMixLevel(Aml_MP_ADVolume*)
 
-    AML_MP_PLAYER_PARAMETER_WORK_MODE,                      //setWorkMode(Aml_MP_PlayerWorkMode)
-    AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER,            //transcation.setLayer(xxx, int)
+    AML_MP_PLAYER_PARAMETER_WORK_MODE,                      //setWorkMode(Aml_MP_PlayerWorkMode*)
+    AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER,            //setZorder(int*)
 
-    AML_MP_PLAYER_PARAMETER_VENDOR_ID,                      //setVendorID(int)
+    AML_MP_PLAYER_PARAMETER_VENDOR_ID,                      //setVendorID(int*)
+    AML_MP_PLAYER_PARAMETER_VIDEO_TUNNEL_ID,                //setVideoTunnelID(int*)
+    AML_MP_PLAYER_PARAMETER_SURFACE_HANDLE,                 //setSurface(void*)
 
     //get only
     AML_MP_PLAYER_PARAMETER_GET_BASE        = 0x2000,
-    AML_MP_PLAYER_PARAMETER_VIDEO_INFO,                     //getVideoInfo(Aml_MP_VideoInfo)
-    AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_STAT,              //getVdecStat(Aml_MP_VdecStat)
-    AML_MP_PLAYER_PARAMETER_AUDIO_INFO,                     //getAudioInfo(Aml_MP_AudioInfo)
-    AML_MP_PLAYER_PARAMETER_AUDIO_DECODE_STAT,              //getAudioDecStat(Aml_MP_AdecStat)
-    AML_MP_PLAYER_PARAMETER_SUBTITLE_INFO,                  //getSubtitleInfo(Aml_MP_SubtitleInfo)
-    AML_MP_PLAYER_PARAMETER_SUBTITLE_DECODE_STAT,           //getSubtitleDecStat(Aml_MP_SubDecStat)
-    AML_MP_PLAYER_PARAMETER_AD_INFO,                        //getADInfo(Aml_MP_AudioInfo)
-    AML_MP_PLAYER_PARAMETER_AD_DECODE_STAT,                 //getADDecodeStat(Aml_MP_AdecStat)
-    AML_MP_PLAYER_PARAMETER_INSTANCE_ID,                    //getInstanceId(uint32_t)
-    AML_MP_PLAYER_PARAMETER_SYNC_ID,                        //getSyncId(int32_t)
+    AML_MP_PLAYER_PARAMETER_VIDEO_INFO,                     //getVideoInfo(Aml_MP_VideoInfo*)
+    AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_STAT,              //getVdecStat(Aml_MP_VdecStat*)
+    AML_MP_PLAYER_PARAMETER_AUDIO_INFO,                     //getAudioInfo(Aml_MP_AudioInfo*)
+    AML_MP_PLAYER_PARAMETER_AUDIO_DECODE_STAT,              //getAudioDecStat(Aml_MP_AdecStat*)
+    AML_MP_PLAYER_PARAMETER_SUBTITLE_INFO,                  //getSubtitleInfo(Aml_MP_SubtitleInfo*)
+    AML_MP_PLAYER_PARAMETER_SUBTITLE_DECODE_STAT,           //getSubtitleDecStat(Aml_MP_SubDecStat*)
+    AML_MP_PLAYER_PARAMETER_AD_INFO,                        //getADInfo(Aml_MP_AudioInfo*)
+    AML_MP_PLAYER_PARAMETER_AD_DECODE_STAT,                 //getADDecodeStat(Aml_MP_AdecStat*)
+    AML_MP_PLAYER_PARAMETER_INSTANCE_ID,                    //getInstanceId(uint32_t*)
+    AML_MP_PLAYER_PARAMETER_SYNC_ID,                        //getSyncId(int32_t*)
 } Aml_MP_PlayerParameterKey;
 
 ////////////////////////////////////////
@@ -504,5 +506,7 @@ typedef struct {
 } Aml_MP_PlayerEventMpegUserData;
 
 typedef void (*Aml_MP_PlayerEventCallback)(void* userData, Aml_MP_PlayerEventType event, int64_t param);
+
+typedef struct ANativeWindow ANativeWindow;
 
 #endif

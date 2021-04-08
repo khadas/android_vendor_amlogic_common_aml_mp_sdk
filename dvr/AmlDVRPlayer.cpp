@@ -362,6 +362,28 @@ int AmlDVRPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter)
             break;
         }
 
+        case AML_MP_PLAYER_PARAMETER_VIDEO_TUNNEL_ID:
+        {
+            mVideoTunnelId = *(int*)parameter;
+            ret = AmTsPlayer_setSurface(mPlayer, &mVideoTunnelId);
+            break;
+        }
+
+        case AML_MP_PLAYER_PARAMETER_SURFACE_HANDLE:
+        {
+            ALOGI("PVR set surface handle: %p", parameter);
+#if ANDROID_PLATFORM_SDK_VERSION >= 30
+            // this is video tunnel id
+            mVideoTunnelId = (int)parameter;
+            ret = AmTsPlayer_setSurface(mPlayer, &mVideoTunnelId);
+#else
+            void* surface = parameter;
+            ret = AmTsPlayer_setSurface(mPlayer, surface);
+#endif
+
+            break;
+        }
+
         default:
             ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
     }
@@ -444,14 +466,10 @@ int AmlDVRPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter)
     return 0;
 }
 
-int AmlDVRPlayer::setANativeWindow(void* nativeWindow) {
+int AmlDVRPlayer::setANativeWindow(ANativeWindow* nativeWindow) {
     MLOG();
 
-    if (nativeWindow == nullptr) {
-        mNativeWindow = nullptr;
-    } else {
-        mNativeWindow = static_cast<ANativeWindow*>(nativeWindow);
-    }
+    mNativeWindow = nativeWindow;
     ALOGI("PVR setAnativeWindow: %p, mNativewindow: %p", nativeWindow, mNativeWindow.get());
 
     return 0;
