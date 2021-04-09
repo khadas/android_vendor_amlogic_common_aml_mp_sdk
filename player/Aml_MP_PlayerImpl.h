@@ -218,7 +218,9 @@ private:
     sptr<AmlPlayerBase> mPlayer;
 
     sptr<AmlCasBase> mCasHandle;
-    int mZorder = -2;
+
+    static constexpr int kZorderBase = -2;
+    int mZorder;
 
 #ifndef __ANDROID_VNDK__
     android::sp<android::SurfaceComposerClient> mComposerClient;

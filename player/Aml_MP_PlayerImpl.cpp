@@ -65,6 +65,7 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
     mPlayer = AmlPlayerBase::create(&mCreateParams, mInstanceId);
     mParser = new Parser(mCreateParams.demuxId, mCreateParams.sourceType == AML_MP_INPUT_SOURCE_TS_DEMOD, true);
     mTempBuffer = new uint8_t[TEMP_BUFFER_SIZE];
+    mZorder = kZorderBase + mInstanceId;
 }
 
 AmlMpPlayerImpl::~AmlMpPlayerImpl()
