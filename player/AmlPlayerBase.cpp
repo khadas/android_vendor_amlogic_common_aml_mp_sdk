@@ -372,6 +372,12 @@ void AmlPlayerBase::AmlMPSubtitleDataCb(const char * data, int size, AmlSubDataT
     cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_DATA, (int64_t)(&(cbHandle->mSubtitleData)));
 }
 
+#define ERROR_DECODER_NORMAL 1
+#define ERROR_DECODER_TIMEOUT 2
+#define ERROR_DECODER_LOSEDATA 3
+#define ERROR_DECODER_INVALIDDATA 4
+#define ERROR_DECODER_TIMEERROR 5
+
 void AmlPlayerBase::AmlMPSubtitleAvailCb(int avail) {
     ALOG(LOG_INFO, nullptr, "Call AmlMPSubtitleAvailCb: %d", avail);
     if (sSubtitleCbHandle == nullptr) {
@@ -383,7 +389,26 @@ void AmlPlayerBase::AmlMPSubtitleAvailCb(int avail) {
         return;
     }
 
-    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_SUBTITLE_AVAIL, (int64_t)(&avail));
+    switch (avail) {
+    case ERROR_DECODER_NORMAL:
+        cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_SUBTITLE_AVAIL, (int64_t)(&avail));
+        break;
+    case ERROR_DECODER_TIMEOUT:
+        cbHandle->notifyListener(AML_MP_PLAYER_EVENT_SUBTITLE_TIMEOUT, (int64_t)(&avail));
+        break;
+    case ERROR_DECODER_LOSEDATA:
+        cbHandle->notifyListener(AML_MP_PLAYER_EVENT_SUBTITLE_LOSEDATA, (int64_t)(&avail));
+        break;
+    case ERROR_DECODER_INVALIDDATA:
+        cbHandle->notifyListener(AML_MP_PLAYER_EVENT_SUBTITLE_INVALID_DATA, (int64_t)(&avail));
+        break;
+    case ERROR_DECODER_TIMEERROR:
+        cbHandle->notifyListener(AML_MP_PLAYER_EVENT_SUBTITLE_INVALID_TIMESTAMP, (int64_t)(&avail));
+        break;
+    default:
+        ALOG(LOG_INFO, nullptr, "Unhandled avail callback param: %d", avail);
+        break;
+    }
 }
 
 void AmlPlayerBase::AmlMPSubtitleDimensionCb(int width, int height) {
