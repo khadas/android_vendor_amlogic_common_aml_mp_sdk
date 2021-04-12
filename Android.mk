@@ -1,9 +1,10 @@
 LOCAL_PATH:= $(call my-dir)
 
+ifeq ($(BUILD_WITH_WIDEVINECAS),true)
 define is-module-source-exist
 $(shell find $(TOP)/vendor/amlogic/common/prebuilt/libmediadrm/wvcas/ -maxdepth 1 -type d -name $(1) -exec echo OK \; 2>/dev/null)
 endef
-
+endif
 
 AML_MP_PLAYER_SRC := \
 	player/Aml_MP.cpp \
