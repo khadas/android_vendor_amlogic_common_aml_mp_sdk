@@ -96,16 +96,19 @@ public:
     int setPcrPid(int pid);
 
     int startVideoDecoding();
+    int startVideoDecoding_l();
     int stopVideoDecoding();
 
     int startAudioDecoding();
+    int startAudioDecoding_l();
     int stopAudioDecoding();
 
     int startSubtitleDecoding();
+    int startSubtitleDecoding_l();
     int stopSubtitleDecoding();
 
-    int startDescrambling();
-    int stopDescrambling();
+    int startDescrambling_l();
+    int stopDescrambling_l();
 
     int setADParams(Aml_MP_AudioParams* params);
     int setSubtitleWindow(int x, int y, int width, int height);
@@ -113,17 +116,25 @@ public:
 private:
     enum State {
         STATE_IDLE,
+        STATE_PREPARING,
         STATE_PREPARED,
         STATE_RUNNING, //audio,video,subtitle at least one is running
         STATE_PAUSED, //all paused
+        STATE_STOPPED,
     };
 
     enum StreamState {
-        ALL_STREAMS_STOPPED     = 0,
-        AUDIO_STARTED           = 1 << 0,
-        VIDEO_STARTED           = 1 << 1,
-        SUBTITLE_STARTED        = 1 << 2,
-        AD_STARTED              = 1 << 3,
+        STREAM_STATE_STOPPED            = 0,
+        STREAM_STATE_START_PENDING      = 1,
+        STREAM_STATE_STARTED            = 2,
+    };
+    static const int kStreamStateBits = 2;
+    static const int kStreamStateMask = 3;
+
+    enum PrepareWaitingType {
+        kPrepareWaitingNone         = 0,
+        kPrepareWaitingCodecId      = 1 << 0,
+        kPrepareWaitingEcm          = 1 << 1,
     };
 
     struct WindowSize {
@@ -134,24 +145,36 @@ private:
     };
 
     const char* stateString(State state);
-    std::string streamStateString(int streamState);
-    void setState(State state);
-    int prepare();
-    void setParams();
-    int resetIfNeeded();
-    int reset();
-    int applyParameters();
+    std::string streamStateString(uint32_t streamState);
+    void setState_l(State state);
+    void setStreamState_l(Aml_MP_StreamType streamType, int state);
+    StreamState getStreamState_l(Aml_MP_StreamType streamType);
+    int prepare_l();
+    void setParams_l();
+    int finishPreparingIfNeeded_l();
+    int resetIfNeeded_l();
+    int reset_l();
+    int applyParameters_l();
     void programEventCallback(Parser::ProgramEventType event, int param1, int param2, void* data);
-    void writeDataFromBuffer();
+    void writeDataFromBuffer_l();
+
+    void notifyListener(Aml_MP_PlayerEventType eventType, int64_t param);
 
     const int mInstanceId;
     char mName[50];
-    State mState{STATE_IDLE};
-    int mStreamState{ALL_STREAMS_STOPPED};
 
-    Aml_MP_PlayerCreateParams mCreateParams;
+    std::mutex mEventLock;
     Aml_MP_PlayerEventCallback mEventCb = nullptr;
     void* mUserData = nullptr;
+
+
+    mutable std::mutex mLock;
+    State mState{STATE_IDLE};
+    uint32_t mStreamState{0};
+    uint32_t mPrepareWaitingType{kPrepareWaitingNone};
+
+    Aml_MP_PlayerCreateParams mCreateParams;
+
     Aml_MP_VideoParams mVideoParams;
     Aml_MP_AudioParams mAudioParams;
     Aml_MP_SubtitleParams mSubtitleParams;
@@ -185,23 +208,8 @@ private:
     int mPcrPid = AML_MP_INVALID_PID;
 
     sptr<AmlPlayerBase> mPlayer;
-    sptr<Parser> mParser;
-#define TS_BUFFER_SIZE (188 * 1000 * 10)
-    AmlMpFifo mTsBuffer;
-#define START_ALL_DELAY (1 << 0)
-#define START_VIDEO_DELAY (1 << 1)
-#define START_AUDIO_DELAY (1 << 2)
-#define START_SUBTITLE_DELAY (1 << 3)
-    mutable std::mutex mLock;
-    bool mParserEnable = false;
-    int mStartDelayFlag = 0;
-#define TEMP_BUFFER_SIZE (188 * 100)
-    uint8_t* mTempBuffer;
-    int mTempBufferSize = 0;
 
     sptr<AmlCasBase> mCasHandle;
-
-
     int mZorder = -2;
 
 #ifndef __ANDROID_VNDK__
@@ -209,6 +217,11 @@ private:
     android::sp<android::SurfaceControl> mSurfaceControl;
     android::sp<android::Surface> mSurface = nullptr;
 #endif
+
+    sptr<Parser> mParser;
+    AmlMpFifo mTsBuffer;
+    uint8_t* mTempBuffer;
+    int mTempBufferSize = 0;
 
 private:
     AmlMpPlayerImpl(const AmlMpPlayerImpl&) = delete;

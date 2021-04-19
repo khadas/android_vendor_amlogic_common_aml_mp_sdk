@@ -9,7 +9,7 @@
 
 #define LOG_NDEBUG 0
 #define LOG_TAG "AmlMp"
-#define KEEP_ALOGX
+#define mName LOG_TAG
 #include <utils/AmlMpLog.h>
 #include <Aml_MP/Aml_MP.h>
 #include <utils/AmlMpUtils.h>

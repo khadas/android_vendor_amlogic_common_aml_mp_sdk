@@ -8,7 +8,6 @@
  */
 
 #define LOG_TAG "AmlDVRRecorder"
-#define KEEP_ALOGX
 #include <utils/AmlMpLog.h>
 #include "AmlDVRRecorder.h"
 #include <Aml_MP/Dvr.h>

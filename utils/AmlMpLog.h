@@ -12,19 +12,21 @@
 
 #include <utils/Log.h>
 
+#define AML_MP_LOG_TAG  "Aml_MP"
+
 #if LOG_NDEBUG
 #define MLOGV(fmt, ...)
 #else
-#define MLOGV(fmt, ...) ALOG(LOG_VERBOSE, mName, fmt, ##__VA_ARGS__)
+#define MLOGV(fmt, ...) ALOG(LOG_VERBOSE, AML_MP_LOG_TAG, "%s " fmt, mName, ##__VA_ARGS__)
 #endif
 
-#define MLOGD(fmt, ...) ALOG(LOG_DEBUG, mName, fmt, ##__VA_ARGS__)
-#define MLOGI(fmt, ...) ALOG(LOG_INFO, mName, fmt, ##__VA_ARGS__)
-#define MLOGW(fmt, ...) ALOG(LOG_WARN, mName, fmt, ##__VA_ARGS__)
-#define MLOGE(fmt, ...) ALOG(LOG_ERROR, mName, fmt, ##__VA_ARGS__)
+#define MLOGD(fmt, ...) ALOG(LOG_DEBUG, AML_MP_LOG_TAG, "%s " fmt, mName, ##__VA_ARGS__)
+#define MLOGI(fmt, ...) ALOG(LOG_INFO, AML_MP_LOG_TAG, "%s " fmt, mName, ##__VA_ARGS__)
+#define MLOGW(fmt, ...) ALOG(LOG_WARN, AML_MP_LOG_TAG, "%s " fmt, mName, ##__VA_ARGS__)
+#define MLOGE(fmt, ...) ALOG(LOG_ERROR, AML_MP_LOG_TAG, "%s " fmt, mName, ##__VA_ARGS__)
 
 #ifndef MLOG
-#define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define MLOG(fmt, ...) MLOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #endif
 
 #ifndef KEEP_ALOGX
@@ -49,7 +51,7 @@
 #define ALOGI_IF(cond, fmt, ...) \
 ({do { \
     if ((cond)) \
-        (void)ALOG(LOG_INFO, mName, fmt, ##__VA_ARGS__); \
+        (void)MLOGI(fmt, ##__VA_ARGS__); \
 } while(0);})
 #endif
 

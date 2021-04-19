@@ -65,7 +65,7 @@ public:
 
         mBeginTime = std::chrono::steady_clock::now();
         if (mVerbose) {
-            ALOG(LOG_DEBUG, m_tag, "%s() >> begin", m_func);
+            ALOG(LOG_DEBUG, "Aml_MP", "%s %s() >> begin", m_tag, m_func);
         }
     }
 
@@ -75,11 +75,11 @@ public:
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - mBeginTime).count();
 
         if (mVerbose) {
-            ALOG(LOG_DEBUG, m_tag, "%s() << end %lld ms", m_func, duration);
+            ALOG(LOG_DEBUG, "Aml_MP", "%s %s() << end %lld ms", m_tag, m_func, duration);
         }
 
         if(duration >= mThreshold)
-            ALOG(LOG_WARN, m_tag, "%s() takes %lld ms, Seems slow, check!", m_func, duration);
+            ALOG(LOG_WARN, "Aml_MP", "%s %s() takes %lld ms, Seems slow, check!", m_tag, m_func, duration);
     }
 
 private:

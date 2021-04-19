@@ -4,7 +4,7 @@
 // A looper implementation based on epoll().
 //
 #define LOG_TAG "AmlMpLooper"
-
+#define mName LOG_TAG
 //#define LOG_NDEBUG 0
 
 // Debugs poll and wake interactions.
@@ -17,7 +17,6 @@
 #include <sys/eventfd.h>
 #include <unistd.h>
 #include <chrono>
-#define KEEP_ALOGX
 #include "AmlMpLog.h"
 
 namespace aml_mp {

@@ -15,6 +15,7 @@
  */
 
 #define LOG_TAG "AmlMpRefBase"
+#define mName LOG_TAG
 // #define LOG_NDEBUG 0
 
 #include <memory>
@@ -22,7 +23,6 @@
 //#include <android-base/macros.h>
 
 #include "AmlMpRefBase.h"
-#define KEEP_ALOGX
 #include "AmlMpLog.h"
 
 //#include <utils/CallStack.h>

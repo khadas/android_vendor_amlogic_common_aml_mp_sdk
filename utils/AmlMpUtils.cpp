@@ -55,17 +55,17 @@ const char* mpCodecId2Str(Aml_MP_CodecID codecId)
 const char* mpStreamType2Str(Aml_MP_StreamType streamType)
 {
     switch (streamType) {
-    case AML_MP_STREAM_TYPE_VIDEO: return "video";
-    case AML_MP_STREAM_TYPE_AUDIO: return "audio";
-    case AML_MP_STREAM_TYPE_AD: return "ad";
-    case AML_MP_STREAM_TYPE_SUBTITLE: return "subtitle";
-    case AML_MP_STREAM_TYPE_TELETEXT: return "teletext";
-    case AML_MP_STREAM_TYPE_ECM: return "ecm";
-    case AML_MP_STREAM_TYPE_EMM: return "emm";
-    case AML_MP_STREAM_TYPE_SECTION: return "section";
+    case AML_MP_STREAM_TYPE_VIDEO: return "VIDEO";
+    case AML_MP_STREAM_TYPE_AUDIO: return "AUDIO";
+    case AML_MP_STREAM_TYPE_AD: return "AD";
+    case AML_MP_STREAM_TYPE_SUBTITLE: return "SUBTITLE";
+    case AML_MP_STREAM_TYPE_TELETEXT: return "TELETEXT";
+    case AML_MP_STREAM_TYPE_ECM: return "ECM";
+    case AML_MP_STREAM_TYPE_EMM: return "EMM";
+    case AML_MP_STREAM_TYPE_SECTION: return "SECTION";
     case AML_MP_STREAM_TYPE_UNKNOWN:
     default:
-        return "unknown";
+        return "UNKNOWN";
     }
 }
 

@@ -12,7 +12,6 @@
 #include <Aml_MP/Dvr.h>
 #include <utils/AmlMpHandle.h>
 #include <utils/AmlMpUtils.h>
-#define KEEP_ALOGX
 #include <utils/AmlMpLog.h>
 #ifndef __ANDROID_VNDK__
 #include <gui/Surface.h>
