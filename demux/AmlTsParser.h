@@ -112,29 +112,7 @@ public:
                videoPid != AML_MP_INVALID_PID) &&
                (!scrambled || (hasEcmPid || hasEmmPid));
     }
-    void debugLog() const {
-        ALOGI("ProgramInfo: programNumber=%d, pid=%d", programNumber, pmtPid);
-        for (auto it : videoStreams) {
-            ALOGI("ProgramInfo: videoStream: pid:%d, codecId:%d", it.pid, it.codecId);
-        }
-        for (auto it : audioStreams) {
-            ALOGI("ProgramInfo: audioStream: pid:%d, codecId:%d", it.pid, it.codecId);
-        }
-        for (auto it : subtitleStreams) {
-            ALOGI("ProgramInfo: subtitleStream: pid:%d, codecId:%d", it.pid, it.codecId);
-        }
-        if(scrambled) {
-            ALOGI("ProgramInfo: is scrambled, caSystemId:0x%04X, ecmPid:0x%04X, privateDataLength:%d", caSystemId, ecmPid[0], privateDataLength);
-            std::string privateDataHex;
-            char hex[3];
-            for(int i = 0; i < privateDataLength; i++){
-                snprintf(hex, sizeof(hex), "%02X", privateData[i]);
-                privateDataHex.append(hex);
-                privateDataHex.append(" ");
-            }
-            ALOGI("ProgramInfo: privateData: %s", privateDataHex.c_str());
-        }
-    }
+    void debugLog() const;
 };
 
 class Parser : public AmlMpRefBase

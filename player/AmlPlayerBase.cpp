@@ -8,7 +8,6 @@
  */
 
 #define LOG_TAG "AmlPlayerBase"
-#define KEEP_ALOGX
 #include "utils/AmlMpLog.h"
 #include <utils/AmlMpUtils.h>
 #include "AmlPlayerBase.h"

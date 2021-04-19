@@ -8,7 +8,6 @@
  */
 
 #define LOG_TAG "TestUrlList"
-#define KEEP_ALOGX
 #include <utils/Log.h>
 #include "TestUrlList.h"
 #include <dirent.h>

@@ -18,8 +18,8 @@
  */
 
 #define LOG_TAG "AmlMpThread"
+#define mName LOG_TAG
 #include "AmlMpThread.h"
-#define KEEP_ALOGX
 #include "AmlMpLog.h"
 #include <unistd.h>
 #include <sys/syscall.h>

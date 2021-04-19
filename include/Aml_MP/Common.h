@@ -200,6 +200,7 @@ typedef enum {
     AML_MP_STREAM_TYPE_ECM,
     AML_MP_STREAM_TYPE_EMM,
     AML_MP_STREAM_TYPE_SECTION,
+    AML_MP_STREAM_TYPE_NB,
 } Aml_MP_StreamType;
 
 ////////////////////////////////////////
