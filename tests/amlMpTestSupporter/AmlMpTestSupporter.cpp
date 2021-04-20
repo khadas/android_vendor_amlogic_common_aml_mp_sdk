@@ -150,13 +150,18 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
         sourceType = AML_MP_INPUT_SOURCE_TS_DEMOD;
     }
 
-    mTestModule = mPlayback = new Playback(demuxId, sourceType, mProgramInfo);
+    if (mPlayback == nullptr) {
+        mTestModule = mPlayback = new Playback(demuxId, sourceType, mProgramInfo->scrambled ? AML_MP_INPUT_STREAM_ENCRYPTED : AML_MP_INPUT_STREAM_NORMAL);
+    }
 
     if (mEventCallback != nullptr) {
         mPlayback->registerEventCallback(mEventCallback, mUserData);
     }
 
-    mNativeUI = new NativeUI();
+    if (mNativeUI == nullptr) {
+        mNativeUI = new NativeUI();
+    }
+
     if (mDisplayParam.width < 0) {
         mDisplayParam.width = mNativeUI->getDefaultSurfaceWidth();
     }
@@ -191,7 +196,7 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
         mPlayback->setVideoWindow(mDisplayParam.x, mDisplayParam.y, mDisplayParam.width, mDisplayParam.height);
     }
 
-    ret = mPlayback->start(mPlayMode);
+    ret = mPlayback->start(mProgramInfo, mPlayMode);
     if (ret < 0) {
         MLOGE("playback start failed!");
         return -1;
@@ -264,11 +269,28 @@ int AmlMpTestSupporter::stop()
 {
     MLOGI("stopping...");
 
-    if (mSource != nullptr) mSource->stop();
-    if (mParser != nullptr) mParser->close();
-    if (mPlayback != nullptr) mPlayback->stop();
-    if (mRecorder != nullptr) mRecorder->stop();
-    if (mDVRPlayback != nullptr) mDVRPlayback->stop();
+    if (mSource != nullptr) {
+        mSource->stop();
+        mSource.clear();
+    }
+
+    if (mParser != nullptr) {
+        mParser->close();
+        mParser.clear();
+    }
+
+    if (mPlayback != nullptr) {
+        mPlayback->stop();
+    }
+
+    if (mRecorder != nullptr) {
+        mRecorder->stop();
+    }
+
+    if (mDVRPlayback != nullptr) {
+        mDVRPlayback->stop();
+    }
+
     if (mDisplayParam.videoMode) {
         setOsdBlank(0);
     }
@@ -423,6 +445,11 @@ int AmlMpTestSupporter::setOsdBlank(int blank)
         ret += writeNode("/sys/class/graphics/fb0/blank", blank);
     #endif
     return ret;
+}
+
+sptr<TestModule> AmlMpTestSupporter::getPlayback() const
+{
+    return mPlayback;
 }
 
 }

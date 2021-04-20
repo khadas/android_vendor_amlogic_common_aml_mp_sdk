@@ -12,7 +12,6 @@
 #include "TestUrlList.h"
 #include <dirent.h>
 #include <unistd.h>
-#include <json/json.h>
 #include <fstream>
 
 static const char* mName = LOG_TAG;
@@ -20,44 +19,66 @@ static const char* mName = LOG_TAG;
 namespace aml_mp {
 TestUrlList::TestUrlList()
 {
-    initDefaultConfig();
+}
+
+void TestUrlList::initSourceDir(const std::string& sourceDir)
+{
+    mSourceDir = sourceDir;
+    if (*(mSourceDir.end()-1) != '/') {
+        mSourceDir.append("/");
+    }
 }
 
 bool TestUrlList::getUrls(const std::string& testName, std::list<std::string>* results)
 {
     if (results == nullptr) return false;
 
-    MLOGI("mUrlInfos size = %d, mSourceDir:%s\n", mUrlInfos.size(), mSourceDir.c_str());
-    bool found = false;
-    for (auto& p : mUrlInfos) {
-        if (p.testNames.empty() || (p.testNames.find(testName) != p.testNames.end())) {
-            results->push_back(mSourceDir + p.url);
-            found = true;
-        }
+    std::string subDir = mapToDirectoryName(testName);
+    std::string dir = mSourceDir + subDir;
+
+    auto it = mFileListCache.find(dir);
+    if (it != mFileListCache.end()) {
+        *results = it->second;
+        return true;
+    } else if (collectFileList(dir, results)) {
+        mFileListCache.emplace(dir, *results);
+        return true;
     }
 
-    return found;
+    return false;
 }
 
-int TestUrlList::genConfig(const std::string& sourceDir)
+std::string TestUrlList::mapToDirectoryName(const std::string& testName)
 {
-    MLOG("sourceDir:%s", sourceDir.c_str());
+    std::string subdir = "";
+    const std::map<std::string, std::string> dirTable = {
+        {"subtitleTest", "subtitle/"},
+    };
 
-    if (access(sourceDir.c_str(), F_OK) < 0) {
-        printf("cann't access %s\n", sourceDir.c_str());
-        return -1;
+    auto it = dirTable.find(testName);
+    if (it != dirTable.end()) {
+        subdir = it->second;
     }
 
-    struct DIR* dir;
-    dir = opendir(sourceDir.c_str());
-    if (dir == nullptr) {
-        printf("open %s failed!\n", sourceDir.c_str());
+    return subdir;
+}
+
+bool TestUrlList::collectFileList(const std::string& dir, std::list<std::string>* fileList)
+{
+    if (access(dir.c_str(), F_OK) < 0) {
+        printf("cann't access %s\n", dir.c_str());
+        return false;
     }
 
-    Json::Value root, item;
+    struct DIR* dirHandle;
+    dirHandle = opendir(dir.c_str());
+    if (dirHandle == nullptr) {
+        printf("open %s failed!\n", dir.c_str());
+        return false;
+    }
 
     struct dirent* ent;
-    while ((ent = readdir(dir)) != nullptr) {
+    while ((ent = readdir(dirHandle)) != nullptr) {
         std::string file = ent->d_name;
         if (file == "." || file == "..") {
             continue;
@@ -76,112 +97,14 @@ int TestUrlList::genConfig(const std::string& sourceDir)
             continue;
         }
 
-        //printf("file:%s\n", file.c_str());
-
-        item["url"] = file;
-        item["testName"] = "AmlMpPlayerTest";
-
-        root.append(item);
+        std::string fullPath = dir + file;
+        printf("file: %s\n", fullPath.c_str());
+        fileList->push_back(std::move(fullPath));
     }
 
-    closedir(dir);
+    closedir(dirHandle);
 
-
-    if (!root.empty()) {
-        std::string configFile = sourceDir + "/amlMpUnitTestConfig.json";
-        std::ofstream of(configFile);
-        if (!of.is_open()) {
-            printf("open %s failed!\n", configFile.c_str());
-        } else {
-            Json::StyledStreamWriter().write(of, root);
-        }
-
-        initSourceDir(sourceDir);
-        initUrlInfo(root);
-    }
-
-    return 0;
+    return !fileList->empty();
 }
-
-int TestUrlList::loadConfig(const std::string& sourceDir)
-{
-    if (sourceDir.empty()) {
-        printf("invalid sourceDir!\n");
-        return -1;
-    }
-
-    std::string configFile = mSourceDir + "/amlMpUnitTestConfig.json";
-    std::ifstream cf(configFile);
-    if (!cf.is_open()) {
-        printf("oepn %s failed!\n", configFile.c_str());
-        return -1;
-    }
-
-    Json::Value root;
-    if (!Json::Reader().parse(cf, root)) {
-        printf("parse %s failed!\n", configFile.c_str());
-        return -1;
-    }
-
-    if (!root.isArray()) {
-        printf("config is invalied!\n");
-        return -1;
-    }
-
-    initSourceDir(sourceDir);
-    initUrlInfo(root);
-
-    return 0;
-}
-
-void TestUrlList::initSourceDir(const std::string& sourceDir)
-{
-    mSourceDir = sourceDir;
-    if (*(mSourceDir.end()-1) != '/') {
-        mSourceDir.append("/");
-    }
-}
-
-void TestUrlList::initUrlInfo(const Json::Value& root)
-{
-    mUrlInfos.clear();
-
-    for (auto& p : root) {
-        if (!p.isObject() && !p.isString()) {
-            continue;
-        }
-
-        MLOG();
-
-        UrlInfo info;
-        if (p.isObject()) {
-            Json::Value url = p.get("url", Json::nullValue);
-            if (url.isString()) {
-                info.url = url.asString();
-                printf("url:%s\n", info.url.c_str());
-            }
-
-            Json::Value testNames = p.get("testName", Json::nullValue);
-            if (testNames.isArray()) {
-                for (auto& t : testNames) {
-                    info.testNames.emplace(t.asString());
-                }
-            } else if (testNames.isString()) {
-                info.testNames.emplace(testNames.asString());
-            }
-        }
-
-        mUrlInfos.push_back(std::move(info));
-    }
-}
-
-void TestUrlList::initDefaultConfig()
-{
-    UrlInfo info;
-    info.url = "/storage/5E82-06C8/a.ts";
-
-    mUrlInfos.emplace_back(info);
-}
-
 
 }

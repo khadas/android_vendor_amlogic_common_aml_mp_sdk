@@ -72,6 +72,8 @@ public:
     int fetchAndProcessCommands();
     int setOsdBlank(int blank);
 
+    sptr<TestModule> getPlayback() const;
+
 private:
     int startDVRPlayback();
     bool processCommand(const std::vector<std::string>& args);

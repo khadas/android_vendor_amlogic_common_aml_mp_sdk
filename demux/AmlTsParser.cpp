@@ -190,11 +190,11 @@ int Parser::close()
 int Parser::wait()
 {
     std::unique_lock<std::mutex> l(mLock);
-    mCond.wait(l, [this] {
+    bool ret = mCond.wait_for(l, std::chrono::seconds(3), [this] {
         return mParseDone || mRequestQuit;
     });
 
-    return 0;
+    return ret ? 0 : -1;
 }
 
 void Parser::signalQuit()
