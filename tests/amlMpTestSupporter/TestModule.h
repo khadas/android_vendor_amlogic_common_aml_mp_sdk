@@ -30,9 +30,10 @@ public:
     void processCommand(const std::vector<std::string>& args);
     static void printCommands(const Command* pCommands, bool printHeader);
 
+    virtual void* getCommandHandle() const {return nullptr;}
+
 protected:
     virtual const Command* getCommandTable() const {return nullptr;}
-    virtual void* getCommandHandle() const {return nullptr;}
 
 private:
     const Command* findCommand(const std::string& cmdName, const TestModule::Command* commandTable);

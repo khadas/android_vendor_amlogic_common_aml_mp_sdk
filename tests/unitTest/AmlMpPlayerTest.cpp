@@ -11,6 +11,7 @@
 #include <utils/AmlMpLog.h>
 #include <gtest/gtest.h>
 #include "TestUrlList.h"
+#include "../amlMpTestSupporter/TestModule.h"
 #include <AmlMpTestSupporter.h>
 #include <pthread.h>
 #include <getopt.h>
@@ -22,6 +23,7 @@ static const char* mName = LOG_TAG;
 static const int kWaitFirstVfameTimeOutMs = 2 * 1000ll;
 static const int kWaitPlayingErrorsMs = 5 * 1000ll;
 
+///////////////////////////////////////////////////////////////////////////////
 struct AmlMpPlayerTest : public testing::Test
 {
     void SetUp() override {
@@ -33,6 +35,8 @@ struct AmlMpPlayerTest : public testing::Test
     }
 
 protected:
+    void runTest(const std::string& url);
+
     void startPlaying(const std::string& url);
     void stopPlaying();
     bool waitFirstVFrameEvent(int timeoutMs = kWaitFirstVfameTimeOutMs);
@@ -46,36 +50,55 @@ protected:
         return ss.str();
     }
 
+protected:
     sptr<AmlMpTestSupporter> mpTestSupporter;
 
-protected:
     std::mutex mLock;
     std::condition_variable mCond;
     bool mFirstVFrameDisplayed = false;
     bool mPlayingHaveErrors = false;
+
+    AmlMpTestSupporter::PlayMode mPlayMode = AmlMpTestSupporter::START_ALL_STOP_ALL;
 };
+
+void AmlMpPlayerTest::runTest(const std::string& url)
+{
+    startPlaying(url);
+    if (mpTestSupporter->hasVideo()) {
+        ASSERT_TRUE(waitFirstVFrameEvent()) << defaultFailureMessage(url);
+    }
+    ASSERT_FALSE(waitPlayingErrors());
+    stopPlaying();
+}
 
 void AmlMpPlayerTest::startPlaying(const std::string& url)
 {
     MLOGI("url:%s", url.c_str());
 
-    mpTestSupporter = new AmlMpTestSupporter;
-    mpTestSupporter->registerEventCallback([](void* userData, Aml_MP_PlayerEventType event, int64_t param) {
-        AmlMpPlayerTest* self = (AmlMpPlayerTest*)userData;
-        return self->eventCallback(event, param);
-    }, this);
+    if (mpTestSupporter == nullptr) {
+        mpTestSupporter = new AmlMpTestSupporter;
+        mpTestSupporter->registerEventCallback([](void* userData, Aml_MP_PlayerEventType event, int64_t param) {
+            AmlMpPlayerTest* self = (AmlMpPlayerTest*)userData;
+            return self->eventCallback(event, param);
+        }, this);
+    }
+
     mpTestSupporter->setDataSource(url);
     int ret = mpTestSupporter->prepare();
     ASSERT_EQ(ret, 0) << defaultFailureMessage(url);
 
-    mpTestSupporter->startPlay();
+    ret = mpTestSupporter->startPlay();
+    ASSERT_EQ(ret, 0) << defaultFailureMessage(url);
+
+    if (ret != 0) {
+        mPlayingHaveErrors = true;
+    }
 }
 
 void AmlMpPlayerTest::stopPlaying()
 {
     mpTestSupporter->stop();
 
-    mpTestSupporter.clear();
     mFirstVFrameDisplayed = false;
     mPlayingHaveErrors = false;
 }
@@ -100,13 +123,133 @@ void AmlMpPlayerTest::eventCallback(Aml_MP_PlayerEventType event, int64_t param)
         std::unique_lock<std::mutex> _l(mLock);
         mFirstVFrameDisplayed = true;
         mCond.notify_all();
+        break;
     }
-    break;
+
+    default:
+        break;
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+TEST_F(AmlMpPlayerTest, StartPlayTest1)
+{
+    std::list<std::string> urls;
+    if (!TestUrlList::instance().getUrls(test_info_->test_case_name(), &urls)) {
+        return;
+    }
 
-TEST_F(AmlMpPlayerTest, BasicPlaying)
+    std::string url = *urls.begin();
+    mPlayMode = AmlMpTestSupporter::START_ALL_STOP_ALL;
+
+    runTest(url);
+}
+
+TEST_F(AmlMpPlayerTest, StartPlayTest2)
+{
+    std::list<std::string> urls;
+    if (!TestUrlList::instance().getUrls(test_info_->test_case_name(), &urls)) {
+        return;
+    }
+
+    std::string url = *urls.begin();
+    mPlayMode = AmlMpTestSupporter::START_ALL_STOP_SEPARATELY;
+
+    runTest(url);
+}
+
+TEST_F(AmlMpPlayerTest, StartPlayTest3)
+{
+    std::list<std::string> urls;
+    if (!TestUrlList::instance().getUrls(test_info_->test_case_name(), &urls)) {
+        return;
+    }
+
+    std::string url = *urls.begin();
+    mPlayMode = AmlMpTestSupporter::START_SEPARATELY_STOP_ALL;
+
+    runTest(url);
+}
+
+TEST_F(AmlMpPlayerTest, StartPlayTest4)
+{
+    std::list<std::string> urls;
+    if (!TestUrlList::instance().getUrls(test_info_->test_case_name(), &urls)) {
+        return;
+    }
+
+    std::string url = *urls.begin();
+    mPlayMode = AmlMpTestSupporter::START_SEPARATELY_STOP_SEPARATELY;
+
+    runTest(url);
+}
+
+TEST_F(AmlMpPlayerTest, StartPlayTest5)
+{
+    std::list<std::string> urls;
+    if (!TestUrlList::instance().getUrls(test_info_->test_case_name(), &urls)) {
+        return;
+    }
+
+    std::string url = *urls.begin();
+    mPlayMode = AmlMpTestSupporter::START_SEPARATELY_STOP_SEPARATELY_V2;
+
+    runTest(url);
+}
+
+TEST_F(AmlMpPlayerTest, StartPlayTest6)
+{
+    std::list<std::string> urls;
+    if (!TestUrlList::instance().getUrls(test_info_->test_case_name(), &urls)) {
+        return;
+    }
+
+    std::string url = *urls.begin();
+    mPlayMode = AmlMpTestSupporter::START_AUDIO_START_VIDEO;
+
+    runTest(url);
+}
+
+TEST_F(AmlMpPlayerTest, StartPlayTest7)
+{
+    std::list<std::string> urls;
+    if (!TestUrlList::instance().getUrls(test_info_->test_case_name(), &urls)) {
+        return;
+    }
+
+    std::string url = *urls.begin();
+    mPlayMode = AmlMpTestSupporter::START_VIDEO_START_AUDIO;
+
+    runTest(url);
+}
+
+TEST_F(AmlMpPlayerTest, ClearLastFrame)
+{
+    std::list<std::string> urls;
+    if (!TestUrlList::instance().getUrls(test_info_->test_case_name(), &urls)) {
+        return;
+    }
+
+    std::string url = *urls.begin();
+
+    startPlaying(url);
+    if (mpTestSupporter->hasVideo()) {
+        ASSERT_TRUE(waitFirstVFrameEvent()) << defaultFailureMessage(url);
+    }
+    ASSERT_FALSE(waitPlayingErrors());
+
+    sptr<TestModule> testModule = mpTestSupporter->getPlayback();
+    AML_MP_PLAYER player = testModule->getCommandHandle();
+
+    int blackOut = 1;
+    Aml_MP_Player_SetParameter(player, AML_MP_PLAYER_PARAMETER_BLACK_OUT, &blackOut);
+    ALOGI("cleared last frame!\n");
+
+    stopPlaying();
+    ASSERT_FALSE(waitPlayingErrors());
+}
+
+TEST_F(AmlMpPlayerTest, ZappingTest)
 {
     std::list<std::string> urls;
     if (!TestUrlList::instance().getUrls(test_info_->test_case_name(), &urls)) {
@@ -114,39 +257,46 @@ TEST_F(AmlMpPlayerTest, BasicPlaying)
     }
 
     for (auto& url : urls) {
-        startPlaying(url);
-        if (mpTestSupporter->hasVideo()) {
-            ASSERT_TRUE(waitFirstVFrameEvent()) << defaultFailureMessage(url);
-        }
-        ASSERT_FALSE(waitPlayingErrors());
-        stopPlaying();
+        runTest(url);
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+static void usage()
+{
+    printf("Usage: AmlMpPlayerTest <test_source_dir>\n"
+            "   try --help for more details.\n"
+            );
 }
 
 int main(int argc, char *argv[])
 {
-    static const struct option longopts[] = {
-        {"dir",      required_argument,       nullptr, 'dir '},
-        {nullptr,       no_argument,        nullptr, 0},
-    };
-
-    int opt;
-    std::string sourceDir;
-    while ((opt = getopt_long(argc, argv, "", longopts, nullptr)) != -1) {
-        switch (opt) {
-        case 'dir ':
-            sourceDir = optarg;
-            break;
-        }
+    if (argc == 1) {
+        usage();
+        return 0;
     }
 
-    if (TestUrlList::instance().loadConfig(sourceDir) < 0) {
-        TestUrlList::instance().genConfig(sourceDir);
+    std::string testpath;
+
+    for (size_t i = 1; i < argc;) {
+        if (argv[i][0] != '-') {
+            testpath = argv[i];
+
+            for (int j = i; j < argc-1; ++j) {
+                argv[j] = argv[j+1];
+            }
+            argc--;
+        } else {
+            ++i;
+        }
     }
 
     testing::InitGoogleTest(&argc, argv);
 
+    if (!testpath.empty()) {
+        printf("testpath:%s, argc:%d\n", testpath.c_str(), argc);
+        TestUrlList::instance().initSourceDir(testpath);
+    }
+
     return RUN_ALL_TESTS();
 }
-
-

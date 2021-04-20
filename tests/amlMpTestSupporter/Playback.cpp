@@ -20,9 +20,8 @@ static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 
-Playback::Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, const sptr<ProgramInfo>& programInfo)
-: mProgramInfo(programInfo)
-, mDemuxId(demuxId)
+Playback::Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, Aml_MP_InputStreamType streamType)
+: mDemuxId(demuxId)
 {
     mIsDVBSource = sourceType == AML_MP_INPUT_SOURCE_TS_DEMOD;
 
@@ -31,9 +30,8 @@ Playback::Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, co
     createParams.channelId = AML_MP_CHANNEL_ID_AUTO;
     createParams.demuxId = demuxId;
     createParams.sourceType = sourceType;
-    createParams.drmMode = programInfo->scrambled ? AML_MP_INPUT_STREAM_ENCRYPTED : AML_MP_INPUT_STREAM_NORMAL;
+    createParams.drmMode = streamType;
     int ret = Aml_MP_Player_Create(&createParams, &mPlayer);
-    printStreamsInfo();
     if (ret < 0) {
         MLOGE("create player failed!");
         return;
@@ -83,8 +81,6 @@ void Playback::registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userDa
     mUserData = userData;
 }
 
-#define ENUM_TO_STR(e) case e: return #e; break
-
 void Playback::eventCallback(Aml_MP_PlayerEventType eventType, int64_t param)
 {
     ALOGI("Playback eventCallback event: %d, %s, param %lld\n", eventType, mpPlayerEventType2Str(eventType), param);
@@ -126,8 +122,11 @@ void Playback::eventCallback(Aml_MP_PlayerEventType eventType, int64_t param)
     }
 }
 
-int Playback::start(PlayMode playMode)
+int Playback::start(const sptr<ProgramInfo>& programInfo, PlayMode playMode)
 {
+    mProgramInfo = programInfo;
+    //printStreamsInfo();
+
     mPlayMode = playMode;
 
     int ret = 0;
@@ -287,7 +286,7 @@ int Playback::stop()
         }
     }
 
-    if (mProgramInfo->scrambled) {
+    if (mProgramInfo && mProgramInfo->scrambled) {
         if (mIsDVBSource) {
             stopDVBDescrambling();
         } else {
@@ -466,21 +465,31 @@ int Playback::stopIPTVDescrambling()
     return 0;
 }
 
-void Playback::printStreamsInfo() {
-    printf("\n");
-    printf("Video Streams:\n");
-    for (int i = 0; i < mProgramInfo->audioStreams.size(); i++) {
+void Playback::printStreamsInfo()
+{
+    if (mProgramInfo == nullptr) {
+        return;
+    }
+
+    for (int i = 0; i < mProgramInfo->videoStreams.size(); i++) {
+        if (i == 0) {
+            printf("Video Streams:\n");
+        }
+
         printf("\tVideo[%d] pid: %d, codec: %d\n", i, mProgramInfo->videoStreams.at(i).pid, mProgramInfo->videoStreams.at(i).codecId);
     }
-    printf("\n");
 
-    printf("Audio streams:\n");
     for (int i = 0; i < mProgramInfo->audioStreams.size(); i++) {
+        if (i == 0) {
+            printf("Audio streams:\n");
+        }
         printf("\tAudio[%d] pid: %d, codec: %d\n", i, mProgramInfo->audioStreams.at(i).pid, mProgramInfo->audioStreams.at(i).codecId);
     }
 
-    printf("Subtitle streams:\n");
     for (int i = 0; i < mProgramInfo->subtitleStreams.size(); i++) {
+        if (i == 0) {
+            printf("Subtitle streams:\n");
+        }
         printf("\tSubtitle[%d] pid: %d, codec: %d", i, mProgramInfo->subtitleStreams.at(i).pid, mProgramInfo->subtitleStreams.at(i).codecId);
         if (mProgramInfo->subtitleStreams.at(i).codecId == AML_MP_SUBTITLE_CODEC_DVB) {
             printf("[%d, %d]\n", mProgramInfo->subtitleStreams.at(i).compositionPageId, mProgramInfo->subtitleStreams.at(i).ancillaryPageId);

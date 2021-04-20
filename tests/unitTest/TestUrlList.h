@@ -11,12 +11,8 @@
 #define _AML_MP_TEST_URL_LIST_H_
 
 #include <list>
-#include <set>
+#include <map>
 #include <string>
-
-namespace Json {
- class Value;
-};
 
 namespace aml_mp {
 class TestUrlList
@@ -28,25 +24,19 @@ public:
     }
 
     ~TestUrlList() = default;
+    void initSourceDir(const std::string& source);
     bool getUrls(const std::string& testName, std::list<std::string>* results);
-    int genConfig(const std::string& source);
-    int loadConfig(const std::string& sourceDir);
 
 private:
-    struct UrlInfo {
-        std::string url;
-        std::set<std::string> testNames;
-    };
-
     TestUrlList();
-    void initDefaultConfig();
-    void initSourceDir(const std::string& source);
-    void initUrlInfo(const Json::Value& root);
+    std::string mapToDirectoryName(const std::string& testName);
+    bool collectFileList(const std::string& dir, std::list<std::string>* fileList);
 
 
-    std::list<UrlInfo> mUrlInfos;
     std::string mSourceDir;
+    std::map<std::string, std::list<std::string>> mFileListCache;
 
+private:
     TestUrlList(const TestUrlList&) = delete;
     TestUrlList& operator=(const TestUrlList&) = delete;
 };
