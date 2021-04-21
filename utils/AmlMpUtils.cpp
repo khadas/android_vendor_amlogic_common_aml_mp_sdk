@@ -15,6 +15,8 @@
 #include <SubtitleNativeAPI.h>
 #endif
 
+static const char* mName = LOG_TAG;
+
 namespace aml_mp {
 #define ENUM_TO_STR(e) case e: return #e; break
 
@@ -109,7 +111,7 @@ vformat_t convertToVFormat(Aml_MP_CodecID videoCodec)
 #endif
 
     default:
-        ALOGE("unknown videoCodec:%d", videoCodec);
+        MLOGE("unknown videoCodec:%d", videoCodec);
         break;
     }
 
@@ -155,7 +157,7 @@ aformat_t convertToAForamt(Aml_MP_CodecID audioCodec)
         break;
 
     default:
-        ALOGE("unknown audioCodec:%d", audioCodec);
+        MLOGE("unknown audioCodec:%d", audioCodec);
         break;
     }
 
@@ -229,7 +231,7 @@ Aml_MP_CodecID convertToMpCodecId(DVR_VideoFormat_t fmt)
         break;
 
     default:
-        ALOGW("unknown video codec:%d", fmt);
+        MLOGW("unknown video codec:%d", fmt);
         break;
     }
 
@@ -275,11 +277,11 @@ Aml_MP_CodecID convertToMpCodecId(DVR_AudioFormat_t fmt)
         break;
 
     default:
-        ALOGW("unknown audio codec:%d", fmt);
+        MLOGW("unknown audio codec:%d", fmt);
         break;
     }
 
-    ALOGI("convertToMpCodecId fmt %d -> %d", fmt, codecId);
+    MLOGI("convertToMpCodecId fmt %d -> %d", fmt, codecId);
     return codecId;
 }
 
@@ -295,7 +297,7 @@ DVR_VideoFormat_t convertToDVRVideoFormat(Aml_MP_CodecID codecId)
         case AML_MP_VIDEO_CODEC_VP9:
             return DVR_VIDEO_FORMAT_VP9;
         default:
-            ALOGE("unknown video codecId:%d", codecId);
+            MLOGE("unknown video codecId:%d", codecId);
             return DVR_VIDEO_FORMAT_MPEG2;
     }
 }
@@ -320,7 +322,7 @@ DVR_AudioFormat_t convertToDVRAudioFormat(Aml_MP_CodecID codecId)
         case AML_MP_AUDIO_CODEC_AC4:
             return DVR_AUDIO_FORMAT_AC4;
         default:
-            ALOGE("unknown audio codecId:%d", codecId);
+            MLOGE("unknown audio codecId:%d", codecId);
             return DVR_AUDIO_FORMAT_MPEG;
     }
 }

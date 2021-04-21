@@ -8,13 +8,13 @@
  */
 
 #define LOG_TAG "AmlDvbCasHal"
-#define mName LOG_TAG
 #include <utils/Log.h>
 #include "AmlDvbCasHal.h"
 #include <pthread.h>
 #include <utils/AmlMpUtils.h>
 #include <utils/AmlMpLog.h>
 
+static const char* mName = LOG_TAG;
 ///////////////////////////////////////////////////////////////////////////////
 //global CAS functions
 pthread_once_t g_dvbCasInitFlag = PTHREAD_ONCE_INIT;
@@ -181,7 +181,7 @@ AmlDvbCasHal::AmlDvbCasHal(Aml_MP_CASServiceType serviceType)
     ret = AM_CA_OpenSession(g_casHandle, &mCasSession, caServiceType);
 #endif
     if (ret != AM_ERROR_SUCCESS) {
-        ALOGE("AM_CA_OpenSession failed!");
+        MLOGE("AM_CA_OpenSession failed!");
         return;
     }
 
@@ -197,7 +197,7 @@ AmlDvbCasHal::~AmlDvbCasHal()
     ret = AM_CA_CloseSession(mCasSession);
 #endif
     if (ret != AM_ERROR_SUCCESS) {
-        ALOGE("AM_CA_CloseSession failed!");
+        MLOGE("AM_CA_CloseSession failed!");
     }
 }
 
@@ -342,11 +342,11 @@ int AmlDvbCasHal::DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams)
 
     if (!mDvrReplayInited) {
         mDvrReplayInited = true;
-        ALOGI("DVRReplay");
+        MLOGI("DVRReplay");
 #if !defined (__ANDROID_VNDK__) || ANDROID_PLATFORM_SDK_VERSION >= 30
         ret = AM_CA_DVRReplay(mCasSession, amCryptoParams);
         if (ret < 0) {
-            ALOGE("CAS DVR replay failed, ret = %d", ret);
+            MLOGE("CAS DVR replay failed, ret = %d", ret);
             return ret;
         }
 #endif

@@ -9,7 +9,7 @@
 
 //#define LOG_NDEBUG 0
 #define LOG_TAG "AmlMpPlayerDemo_UdpSource"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include "UdpSource.h"
 #include <sys/socket.h>
 #include <netdb.h>
@@ -20,6 +20,8 @@
 #include <utils/AmlMpEventLooper.h>
 
 #define UDP_FIFO_SIZE (4 * 1024 * 1024)
+
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 
@@ -48,18 +50,18 @@ int UdpSource::initCheck()
 
     auto p = mAddress.find_last_of(':');
     if (p == std::string::npos) {
-        ALOGE("parsr port failed!");
+        MLOGE("parsr port failed!");
         return -1;
     }
 
     if (strlen(mAddress.data()+p+1) > 9) {
-        ALOGE("Port len is too large");
+        MLOGE("Port len is too large");
         return -1;
     }
     strcpy(port, mAddress.data()+p+1);
     strncpy(hostAddress, mAddress.data(), p);
 
-    ALOGV("hostAddress:%s, port:%s", hostAddress, port);
+    MLOGV("hostAddress:%s, port:%s", hostAddress, port);
 
     struct addrinfo hints{};
     hints.ai_family = AF_INET;
@@ -70,7 +72,7 @@ int UdpSource::initCheck()
     struct addrinfo* result = nullptr;
     ret = getaddrinfo(hostAddress, port, &hints, &result);
     if (ret != 0) {
-        ALOGE("getaddrinfo failed, %s", gai_strerror(ret));
+        MLOGE("getaddrinfo failed, %s", gai_strerror(ret));
         return -1;
     }
 
@@ -87,14 +89,14 @@ int UdpSource::start()
 {
     mSocket = ::socket(mAddrInfo->ai_family, mAddrInfo->ai_socktype, mAddrInfo->ai_protocol);
     if (mSocket < 0) {
-        ALOGE("create socket failed! %s", strerror(errno));
+        MLOGE("create socket failed! %s", strerror(errno));
         return -1;
     }
 
     int reuseAddr = 1;
     int ret = setsockopt(mSocket, SOL_SOCKET, SO_REUSEADDR, &reuseAddr, sizeof(reuseAddr));
     if (ret < 0) {
-        ALOGE("reuse sockaddr failed! %s", strerror(errno));
+        MLOGE("reuse sockaddr failed! %s", strerror(errno));
         return -1;
     }
 
@@ -102,20 +104,20 @@ int UdpSource::start()
     int bufferSize = 1 * 1024 * 1024;
     ret = setsockopt(mSocket, SOL_SOCKET, SO_RCVBUF, &bufferSize, sizeof(bufferSize));
     if (ret < 0) {
-        ALOGE("set recvbuf failed! %s", strerror(errno));
+        MLOGE("set recvbuf failed! %s", strerror(errno));
     }
 
     int actualBufferSize = 0;
     int len = sizeof(actualBufferSize);
     getsockopt(mSocket, SOL_SOCKET, SO_RCVBUF, &actualBufferSize, &len);
     if (actualBufferSize != bufferSize) {
-        ALOGE("actual set buffer size:%d", actualBufferSize);
+        MLOGE("actual set buffer size:%d", actualBufferSize);
     }
 #endif
 
     ret = bind(mSocket, mAddrInfo->ai_addr, sizeof(sockaddr));
     if (ret < 0) {
-        ALOGE("bind failed! %s", strerror(errno));
+        MLOGE("bind failed! %s", strerror(errno));
         return -1;
     }
 
@@ -125,32 +127,32 @@ int UdpSource::start()
     char port[10];
     ret = getsockname(mSocket, &localAddr, &localAddrLen);
     if (ret < 0) {
-        ALOGE("getsockname failed!\n");
+        MLOGE("getsockname failed!\n");
         return -1;
     }
 
     ret = getnameinfo(&localAddr, localAddrLen, hostAddress, sizeof(hostAddress), port, sizeof(port), NI_NUMERICHOST|NI_NUMERICSERV);
     if (ret != 0) {
-        ALOGE("getnameinfo failed! %s", gai_strerror(ret));
+        MLOGE("getnameinfo failed! %s", gai_strerror(ret));
         return -1;
     }
 
-    ALOGE("address:%s:%s", hostAddress, port);
+    MLOGE("address:%s:%s", hostAddress, port);
 
     struct ip_mreq_source multiSource{};
     multiSource.imr_multiaddr = ((struct sockaddr_in*)&localAddr)->sin_addr;
     multiSource.imr_interface.s_addr = htonl(INADDR_ANY);
     ret = setsockopt(mSocket,IPPROTO_IP, IP_ADD_MEMBERSHIP, &multiSource, sizeof(multiSource));
     if (ret < 0) {
-        ALOGE("join multicast failed! %s", strerror(errno));
+        MLOGE("join multicast failed! %s", strerror(errno));
         return -1;
     }
 
-    ALOGE("join multicast success!\n");
+    MLOGE("join multicast success!\n");
 
     mLooper = new Looper(Looper::PREPARE_ALLOW_NON_CALLBACKS);
     if (mLooper == nullptr) {
-        ALOGE("create looper failed!");
+        MLOGE("create looper failed!");
         return -1;
     }
 
@@ -158,7 +160,7 @@ int UdpSource::start()
     if (enableDump) {
         mDumpFd = ::open("/data/aml_dump.ts", O_WRONLY | O_TRUNC | O_CREAT, 0666);
         if (mDumpFd < 0) {
-            ALOGE("open dump fil failed! %s", strerror(errno));
+            MLOGE("open dump fil failed! %s", strerror(errno));
         }
     }
 
@@ -177,7 +179,7 @@ int UdpSource::stop()
 {
     signalQuit();
 
-    ALOGI("join...");
+    MLOGI("join...");
     if (mReadThread.joinable()) {
         mReadThread.join();
     }
@@ -191,7 +193,7 @@ int UdpSource::stop()
     multiSource.imr_interface.s_addr = htonl(INADDR_ANY);
     int ret = setsockopt(mSocket, IPPROTO_IP, IP_DROP_MEMBERSHIP, &multiSource, sizeof(multiSource));
     if (ret < 0) {
-        ALOGE("leave multicast failed!");
+        MLOGE("leave multicast failed!");
     }
 
     if (mDumpFd >= 0) {
@@ -199,7 +201,7 @@ int UdpSource::stop()
         mDumpFd = -1;
     }
 
-    ALOGI("stopped!");
+    MLOGI("stopped!");
     return 0;
 }
 
@@ -210,7 +212,7 @@ void UdpSource::signalQuit()
         mLooper->wake();
     }
 
-    ALOGI("sendFeedWorkCommand");
+    MLOGI("sendFeedWorkCommand");
     sendFeedWorkCommand(kWorkQuit);
 }
 
@@ -219,29 +221,29 @@ void UdpSource::readThreadLoop()
     int ret = 0;
 
     if (mLooper == nullptr) {
-        ALOGE("looper is NULL!");
+        MLOGE("looper is NULL!");
         return;
     }
     Looper::setForThread(mLooper);
 
     ret = mLooper->addFd(mSocket, SOCKET_FD_IDENTIFIER, Looper::EVENT_INPUT|Looper::EVENT_ERROR, nullptr, nullptr);
     if (ret < 0) {
-        ALOGE("looper addFd failed!");
+        MLOGE("looper addFd failed!");
         return;
     }
 
     for (;;) {
         if (mRequestQuit) {
-            ALOGE("Quit!");
+            MLOGE("Quit!");
             break;
         }
 
         ret = mLooper->pollOnce(1000);
         if (ret == Looper::POLL_WAKE) {
-            ALOGE("exit!");
+            MLOGE("exit!");
             break;
         } else if (ret == Looper::POLL_ERROR) {
-            ALOGE("error!");
+            MLOGE("error!");
             break;
         } else if (ret >= 0) {
             if (ret != SOCKET_FD_IDENTIFIER) {
@@ -251,31 +253,31 @@ void UdpSource::readThreadLoop()
             uint8_t buffer[4096];
             ret = read(mSocket, buffer, sizeof(buffer));
             if (ret < 0) {
-                ALOGE("read failed! %s", strerror(errno));
+                MLOGE("read failed! %s", strerror(errno));
                 break;
             } else if (ret == 0) {
-                ALOGE("eof!");
+                MLOGE("eof!");
             } else {
                 doStatistic(ret);
-                ALOGV("udp write data:%d", ret);
+                MLOGV("udp write data:%d", ret);
                 if (mDumpFd >= 0) {
                     if (::write(mDumpFd, buffer, ret) != ret) {
-                        ALOGE("write dump file failed!");
+                        MLOGE("write dump file failed!");
                     }
                 }
 
                 if (mFifo.put(buffer, ret) != ret) {
-                    ALOGW("fifo full, reset!");
+                    MLOGW("fifo full, reset!");
                     mFifo.reset();
                 } else {
-                    //ALOGI("sendFeedWorkCommand kWorkFeedData");
+                    //MLOGI("sendFeedWorkCommand kWorkFeedData");
                     sendFeedWorkCommand(kWorkFeedData);
                 }
             }
         }
     }
 
-    ALOGI("UdpSource readThreadLoop exited!");
+    MLOGI("UdpSource readThreadLoop exited!");
 }
 
 void UdpSource::feedThreadLoop()
@@ -292,9 +294,9 @@ void UdpSource::feedThreadLoop()
             mFeedCond.wait(_l, [this, &work] { return (work = mFeedWork) != 0;});
         }
 
-        //ALOGI("feedWork = %#x", work);
+        //MLOGI("feedWork = %#x", work);
         if (work & kWorkQuit) {
-            ALOGI("quit feed thread!");
+            MLOGI("quit feed thread!");
             signalFeedWorkDone(kWorkQuit);
             break;
         }
@@ -316,7 +318,7 @@ void UdpSource::feedThreadLoop()
         }
     }
 
-    ALOGI("UdpSource feedThreadLoop exited!");
+    MLOGI("UdpSource feedThreadLoop exited!");
 }
 
 void UdpSource::doStatistic(int size)
@@ -329,7 +331,7 @@ void UdpSource::doStatistic(int size)
         int64_t period = nowUs - mLastBitRateMeasureTime;
         if (period >= 2000000) {
             int64_t bitrate = mBitRateMeasureSize * 1000000 / period;
-            ALOGI("receive bitrate:%.2fMB/s, fifoSize:%d", (bitrate>>10)/1024.0, mFifo.size());
+            MLOGI("receive bitrate:%.2fMB/s, fifoSize:%d", (bitrate>>10)/1024.0, mFifo.size());
 
             mBitRateMeasureSize = 0;
             mLastBitRateMeasureTime = nowUs;

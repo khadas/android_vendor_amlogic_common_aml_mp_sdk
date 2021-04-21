@@ -9,7 +9,7 @@
 
 #define LOG_NDEBUG 0
 #define LOG_TAG "AmlMpPlayerDemo_AmlHwDemux"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include <Aml_MP/Aml_MP.h>
 #include "AmlHwDemux.h"
 #include <utils/AmlMpHandle.h>
@@ -23,7 +23,8 @@ extern "C" {
 #include <dmx.h>
 }
 
-#define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 class HwTsParser : public AmlDemuxBase::ITsParser, public LooperCallback
@@ -72,7 +73,7 @@ int AmlHwDemux::open(bool isHardwareSource, Aml_MP_DemuxId demuxId)
     std::stringstream s;
     s << "/dev/dvb0.demux" << mDemuxId;
     mDemuxName = s.str();
-    ALOGI("mDemuxName:%s", mDemuxName.c_str());
+    MLOGI("mDemuxName:%s", mDemuxName.c_str());
 
     if (mTsParser == nullptr) {
         mTsParser = new HwTsParser([this](int pid, const sptr<AmlMpBuffer>& data, int version) {
@@ -98,7 +99,7 @@ int AmlHwDemux::start()
     if (mLooper == nullptr) {
         mLooper = new Looper(Looper::PREPARE_ALLOW_NON_CALLBACKS);
         if (mLooper == nullptr) {
-            ALOGE("create looper failed!");
+            MLOGE("create looper failed!");
             return -1;
         }
     }
@@ -123,14 +124,14 @@ int AmlHwDemux::stop()
         mLooper->wake();
     }
 
-    ALOGI("join...");
+    MLOGI("join...");
     if (mThread.joinable()) {
         mThread.join();
     }
 
     mTsParser->dvr_close();
 
-    ALOGI("stopped!");
+    MLOGI("stopped!");
     return 0;
 }
 
@@ -162,7 +163,7 @@ int AmlHwDemux::addPSISection(int pid, bool checkCRC)
             (void*)pid);
 
     if (ret <= 0) {
-        ALOGE("addFd failed! fd:%d", channelFd);
+        MLOGE("addFd failed! fd:%d", channelFd);
     }
 
     return ret;
@@ -173,7 +174,7 @@ int AmlHwDemux::removePSISection(int pid)
     int channelFd = mTsParser->getPSISectionData(pid);
     int ret = mLooper->removeFd(channelFd);
     if (ret <= 0) {
-        ALOGE("removeFd failed! fd:%d", channelFd);
+        MLOGE("removeFd failed! fd:%d", channelFd);
     }
 
     mTsParser->removePSISection(pid);
@@ -191,7 +192,7 @@ void AmlHwDemux::threadLoop()
     int ret = 0;
 
     if (mLooper == nullptr) {
-        ALOGE("looper is NULL!");
+        MLOGE("looper is NULL!");
         return;
     }
     Looper::setForThread(mLooper);
@@ -199,18 +200,18 @@ void AmlHwDemux::threadLoop()
     for (;;) {
         ret = mLooper->pollOnce(10 * 1000);
         if (ret == Looper::POLL_ERROR) {
-            ALOGE("error!");
+            MLOGE("error!");
             break;
         }
 
         bool stopped = mStopped.load(std::memory_order_relaxed);
         if (stopped) {
-            ALOGE("request stop...");
+            MLOGE("request stop...");
             break;
         }
     }
 
-    ALOGI("AmlHwDemux threadLoop exited!");
+    MLOGI("AmlHwDemux threadLoop exited!");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -233,21 +234,21 @@ int HwTsParser::dvr_open(int demuxId, bool isHardwareSource) {
     snprintf(name, sizeof(name), "/dev/dvb0.dvr%d", demuxId);
     mDvrFd = open(name, O_WRONLY);
     if (mDvrFd == -1) {
-        ALOGE("cannot open \"%s\" (%s)", name, strerror(errno));
+        MLOGE("cannot open \"%s\" (%s)", name, strerror(errno));
         return -1;
     }
-    ALOGI("open %s  ok \n", name);
+    MLOGI("open %s  ok \n", name);
 
     if (!isHardwareSource) {
-        ALOGI("set ---> INPUT_LOCAL \n");
+        MLOGI("set ---> INPUT_LOCAL \n");
         ret = ioctl(mDvrFd, DMX_SET_INPUT, INPUT_LOCAL);
     } else {
-        ALOGI("set ---> INPUT_DEMOD \n" );
+        MLOGI("set ---> INPUT_DEMOD \n" );
         ret = ioctl(mDvrFd, DMX_SET_INPUT, INPUT_DEMOD);
     }
-    ALOGI("DMX_SET_INPUT ret:%d\n", ret);
+    MLOGI("DMX_SET_INPUT ret:%d\n", ret);
     if (ret < 0) {
-        ALOGE("dvr_open ioctl failed %s\n", strerror(errno));
+        MLOGE("dvr_open ioctl failed %s\n", strerror(errno));
         return -1;
     }
     return 0;
@@ -273,7 +274,7 @@ int HwTsParser::feedTs(const uint8_t* buffer, size_t size)
         ret = write(mDvrFd, buffer + off, left);
         if (ret == -1) {
             if (errno != EINTR) {
-                ALOGE("Write DVR data failed: %s", strerror(errno));
+                MLOGE("Write DVR data failed: %s", strerror(errno));
                 break;
             }
             ret = 0;
@@ -373,7 +374,7 @@ int HwTsParser::handleEvent(int fd, int events, void* data)
     if (events & Looper::EVENT_INPUT) {
         int len = ::read(fd, buffer->base(), buffer->size());
         if (len < 0) {
-            ALOGE("read failed, %s", strerror(errno));
+            MLOGE("read failed, %s", strerror(errno));
             return 0;
         }
 

@@ -19,7 +19,7 @@
 
 //#include <media/stagefright/foundation/ADebug.h>
 
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/time.h>
@@ -29,6 +29,8 @@
 #include "AmlMpEventHandler.h"
 #include "AmlMpEventLooperRoster.h"
 #include "AmlMpMessage.h"
+
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 
@@ -43,7 +45,7 @@ struct AmlMpEventLooper::LooperThread : public AmlMpThread {
 
     virtual int readyToRun() {
         mThreadId = getTid();
-        ALOGI("readyToRun mThreadId:%d", mThreadId);
+        MLOGI("readyToRun mThreadId:%d", mThreadId);
 
         return AmlMpThread::readyToRun();
     }
@@ -125,7 +127,7 @@ int AmlMpEventLooper::start(
     mThread = new LooperThread(this, canCallJava);
 
     int err = mThread->run(
-            mName.empty() ? "AmlMpEventLooper" : mName.c_str());
+            mLooperName.empty() ? "AmlMpEventLooper" : mLooperName.c_str());
     if (err != 0) {
         mThread.clear();
     }
@@ -165,7 +167,7 @@ int AmlMpEventLooper::stop() {
         // the loop() function will return and never be called again.
         thread->requestExitAndWait();
     } else {
-        ALOGE("CHECK!!!! runningLocally:%d", runningLocally);
+        MLOGE("CHECK!!!! runningLocally:%d", runningLocally);
     }
 
     return 0;

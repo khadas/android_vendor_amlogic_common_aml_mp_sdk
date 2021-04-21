@@ -8,12 +8,12 @@
  */
 
 #define LOG_NDEBUG 0
-#define LOG_TAG "AmlMp"
-#define mName LOG_TAG
+#define LOG_TAG "AMP"
 #include <utils/AmlMpLog.h>
 #include <Aml_MP/Aml_MP.h>
 #include <utils/AmlMpUtils.h>
 
+static const char* mName = LOG_TAG;
 ///////////////////////////////////////////////////////////////////////////////
 #define AML_MP_VERSION_MAJOR   1
 #define AML_MP_VERSION_MINOR   0

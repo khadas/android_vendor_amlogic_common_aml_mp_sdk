@@ -14,18 +14,20 @@
 #include "vmx_iptvcas/AmlVMXIptvCas.h"
 #include <utils/AmlMpUtils.h>
 
+static const char* mName = LOG_TAG;
+
 namespace aml_mp {
 
 sptr<AmlCasBase> AmlCasBase::create(const Aml_MP_IptvCasParams* casParams, int instanceId)
 {
     sptr<AmlCasBase> cas = nullptr;
 
-    ALOGI("%s, casParams->type=%d", __func__, casParams->type);
+    MLOGI("%s, casParams->type=%d", __func__, casParams->type);
     switch (casParams->type) {
     case AML_MP_CAS_VERIMATRIX_IPTV:
     {
 #ifdef HAVE_VMXIPTV_CAS
-        ALOGI("%s, iptv vmxcas support", __func__);
+        MLOGI("%s, iptv vmxcas support", __func__);
         cas = new AmlVMXIptvCas(casParams, instanceId);
 #endif
     }
@@ -34,7 +36,7 @@ sptr<AmlCasBase> AmlCasBase::create(const Aml_MP_IptvCasParams* casParams, int i
     case AML_MP_CAS_WIDEVINE:
     {
 #ifdef HAVE_WVIPTV_CAS
-        ALOGI("%s, iptv wvcas support", __func__);
+        MLOGI("%s, iptv wvcas support", __func__);
         cas = new AmlWVIptvCas(casParams, instanceId);
 #endif
     }
@@ -45,7 +47,7 @@ sptr<AmlCasBase> AmlCasBase::create(const Aml_MP_IptvCasParams* casParams, int i
     }
 
     if (casParams->type == AML_MP_CAS_UNKNOWN) {
-        ALOGE("unsupported ca type!");
+        MLOGE("unsupported ca type!");
         return nullptr;
     }
 

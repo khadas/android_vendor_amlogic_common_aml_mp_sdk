@@ -9,12 +9,13 @@
 
 #define LOG_NDEBUG 0
 #define LOG_TAG "AmlMpPlayerDemo"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include <AmlMpTestSupporter.h>
 #include <unistd.h>
 #include <getopt.h>
 #include "TestUtils.h"
 
+static const char* mName = LOG_TAG;
 using namespace aml_mp;
 
 struct Argument
@@ -200,6 +201,6 @@ int main(int argc, char *argv[])
     mpTestSupporter->stop();
     mpTestSupporter.clear();
 
-    ALOGI("exited!");
+    MLOGI("exited!");
     return 0;
 }

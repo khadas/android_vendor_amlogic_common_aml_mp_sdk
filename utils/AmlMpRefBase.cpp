@@ -15,7 +15,6 @@
  */
 
 #define LOG_TAG "AmlMpRefBase"
-#define mName LOG_TAG
 // #define LOG_NDEBUG 0
 
 #include <memory>
@@ -28,6 +27,8 @@
 //#include <utils/CallStack.h>
 
 //#include <utils/Mutex.h>
+
+static const char* mName = LOG_TAG;
 
 #ifndef __unused
 #define __unused __attribute__((__unused__))
@@ -193,11 +194,11 @@ public:
         bool dumpStack = false;
         if (!mRetain && mStrongRefs != NULL) {
             dumpStack = true;
-            ALOGE("Strong references remain:");
+            MLOGE("Strong references remain:");
             ref_entry* refs = mStrongRefs;
             while (refs) {
                 char inc = refs->ref >= 0 ? '+' : '-';
-                ALOGD("\t%c ID %p (ref %d):", inc, refs->id, refs->ref);
+                MLOGD("\t%c ID %p (ref %d):", inc, refs->id, refs->ref);
 #if DEBUG_REFS_CALLSTACK_ENABLED
                 CallStack::logStack(LOG_TAG, refs->stack.get());
 #endif
@@ -207,11 +208,11 @@ public:
 
         if (!mRetain && mWeakRefs != NULL) {
             dumpStack = true;
-            ALOGE("Weak references remain!");
+            MLOGE("Weak references remain!");
             ref_entry* refs = mWeakRefs;
             while (refs) {
                 char inc = refs->ref >= 0 ? '+' : '-';
-                ALOGD("\t%c ID %p (ref %d):", inc, refs->id, refs->ref);
+                MLOGD("\t%c ID %p (ref %d):", inc, refs->id, refs->ref);
 #if DEBUG_REFS_CALLSTACK_ENABLED
                 CallStack::logStack(LOG_TAG, refs->stack.get());
 #endif
@@ -219,19 +220,19 @@ public:
             }
         }
         if (dumpStack) {
-            ALOGE("above errors at:");
+            MLOGE("above errors at:");
             CallStack::logStack(LOG_TAG);
         }
     }
 
     void addStrongRef(const void* id) {
-        //ALOGD_IF(mTrackEnabled,
+        //MLOGD_IF(mTrackEnabled,
         //        "addStrongRef: RefBase=%p, id=%p", mBase, id);
         addRef(&mStrongRefs, id, mStrong.load(std::memory_order_relaxed));
     }
 
     void removeStrongRef(const void* id) {
-        //ALOGD_IF(mTrackEnabled,
+        //MLOGD_IF(mTrackEnabled,
         //        "removeStrongRef: RefBase=%p, id=%p", mBase, id);
         if (!mRetain) {
             removeRef(&mStrongRefs, id);
@@ -241,7 +242,7 @@ public:
     }
 
     void renameStrongRefId(const void* old_id, const void* new_id) {
-        //ALOGD_IF(mTrackEnabled,
+        //MLOGD_IF(mTrackEnabled,
         //        "renameStrongRefId: RefBase=%p, oid=%p, nid=%p",
         //        mBase, old_id, new_id);
         renameRefsId(mStrongRefs, old_id, new_id);
@@ -296,9 +297,9 @@ public:
             if (rc >= 0) {
                 (void)write(rc, text.string(), text.length());
                 close(rc);
-                ALOGD("STACK TRACE for %p saved in %s", this, name);
+                MLOGD("STACK TRACE for %p saved in %s", this, name);
             }
-            else ALOGE("FAILED TO PRINT STACK TRACE for %p in %s: %s", this,
+            else MLOGE("FAILED TO PRINT STACK TRACE for %p in %s: %s", this,
                       name, strerror(errno));
         }
     }
@@ -350,14 +351,14 @@ private:
                 ref = *refs;
             }
 
-            ALOGE("AmlMpRefBase: removing id %p on AmlMpRefBase %p"
+            MLOGE("AmlMpRefBase: removing id %p on AmlMpRefBase %p"
                     "(weakref_type %p) that doesn't exist!",
                     id, mBase, this);
 
             ref = head;
             while (ref) {
                 char inc = ref->ref >= 0 ? '+' : '-';
-                ALOGD("\t%c ID %p (ref %d):", inc, ref->id, ref->ref);
+                MLOGD("\t%c ID %p (ref %d):", inc, ref->id, ref->ref);
                 ref = ref->next;
             }
 
@@ -419,7 +420,7 @@ void AmlMpRefBase::incStrong(const void* id) const
     const int32_t c = refs->mStrong.fetch_add(1, std::memory_order_relaxed);
     ALOG_ASSERT(c > 0, "incStrong() called on %p after last strong ref", refs);
 #if PRINT_REFS
-    ALOGD("incStrong of %p from %p: cnt=%d\n", this, id, c);
+    MLOGD("incStrong of %p from %p: cnt=%d\n", this, id, c);
 #endif
     if (c != INITIAL_STRONG_VALUE)  {
         return;
@@ -437,7 +438,7 @@ void AmlMpRefBase::decStrong(const void* id) const
     refs->removeStrongRef(id);
     const int32_t c = refs->mStrong.fetch_sub(1, std::memory_order_release);
 #if PRINT_REFS
-    ALOGD("decStrong of %p from %p: cnt=%d\n", this, id, c);
+    MLOGD("decStrong of %p from %p: cnt=%d\n", this, id, c);
 #endif
     LOG_ALWAYS_FATAL_IF(BAD_STRONG(c), "decStrong() called on %p too many times",
             refs);
@@ -476,7 +477,7 @@ void AmlMpRefBase::forceIncStrong(const void* id) const
     ALOG_ASSERT(c >= 0, "forceIncStrong called on %p after ref count underflow",
                refs);
 #if PRINT_REFS
-    ALOGD("forceIncStrong of %p from %p: cnt=%d\n", this, id, c);
+    MLOGD("forceIncStrong of %p from %p: cnt=%d\n", this, id, c);
 #endif
 
     switch (c) {
@@ -535,10 +536,10 @@ void AmlMpRefBase::weakref_type::decWeak(const void* id)
             // Thus we no longer do anything here.  We log this case, since it
             // seems to be extremely rare, and should not normally occur. We
             // used to deallocate mBase here, so this may now indicate a leak.
-            ALOGW("AmlMpRefBase: Object at %p lost last weak reference "
+            MLOGW("AmlMpRefBase: Object at %p lost last weak reference "
                     "before it had a strong reference", impl->mBase);
         } else {
-            // ALOGV("Freeing refs %p of old AmlMpRefBase %p\n", this, impl->mBase);
+            // MLOGV("Freeing refs %p of old AmlMpRefBase %p\n", this, impl->mBase);
             delete impl;
         }
     } else {
@@ -630,7 +631,7 @@ bool AmlMpRefBase::weakref_type::attemptIncStrong(const void* id)
     impl->addStrongRef(id);
 
 #if PRINT_REFS
-    ALOGD("attemptIncStrong of %p from %p: cnt=%d\n", this, id, curCount);
+    MLOGD("attemptIncStrong of %p from %p: cnt=%d\n", this, id, curCount);
 #endif
 
     // curCount is the value of mStrong before we incremented it.
@@ -720,7 +721,7 @@ AmlMpRefBase::~AmlMpRefBase()
 #if DEBUG_REFBASE_DESTRUCTION
         // Treating this as fatal is prone to causing boot loops. For debugging, it's
         // better to treat as non-fatal.
-        ALOGD("AmlMpRefBase: Explicit destruction, weak count = %d (in %p)", mRefs->mWeak.load(), this);
+        MLOGD("AmlMpRefBase: Explicit destruction, weak count = %d (in %p)", mRefs->mWeak.load(), this);
         //CallStack::logStack(LOG_TAG);
 #else
         LOG_ALWAYS_FATAL("AmlMpRefBase: Explicit destruction, weak count = %d", mRefs->mWeak.load());

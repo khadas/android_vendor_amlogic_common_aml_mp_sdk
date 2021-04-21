@@ -18,13 +18,14 @@
  */
 
 #define LOG_TAG "AmlMpThread"
-#define mName LOG_TAG
 #include "AmlMpThread.h"
 #include "AmlMpLog.h"
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <pthread.h>
 #include <string.h>
+
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 AmlMpThread::AmlMpThread()
@@ -100,7 +101,7 @@ int AmlMpThread::run(const char* name)
     int result = pthread_create(&thread, &attr, &ThreadData::trampoline, t);
     pthread_attr_destroy(&attr);
     if (result != 0) {
-        ALOGE("pthread create failed %d", result);
+        MLOGE("pthread create failed %d", result);
 
         if (t->threadName) {
             free(t->threadName);
@@ -159,7 +160,7 @@ int AmlMpThread::_threadLoop(void* user)
         strong = weak.promote();
     } while (strong != nullptr);
 
-    ALOGI("thread exited!!!");
+    MLOGI("thread exited!!!");
 
     return 0;
 }
@@ -174,7 +175,7 @@ int AmlMpThread::requestExitAndWait()
 {
     std::unique_lock<std::mutex> _l(mLock);
     if (mThread == pthread_self()) {
-        ALOGE("don't call waitForExit from this thread!");
+        MLOGE("don't call waitForExit from this thread!");
         return -EWOULDBLOCK;
     }
 
@@ -193,7 +194,7 @@ int AmlMpThread::join()
 {
     std::unique_lock<std::mutex> _l(mLock);
     if (mThread == pthread_self()) {
-        ALOGE("don't call waitForExit from this thread!");
+        MLOGE("don't call waitForExit from this thread!");
         return -EWOULDBLOCK;
     }
 

@@ -55,7 +55,7 @@ struct AmlMpEventLooper : public AmlMpRefBase {
     static int64_t GetNowUs();
 
     const char *getName() const {
-        return mName.c_str();
+        return mLooperName.c_str();
     }
 
 protected:
@@ -72,7 +72,7 @@ private:
     std::mutex mLock;
     std::condition_variable mQueueChangedCondition;
 
-    std::string mName;
+    std::string mLooperName;
 
     std::list<Event> mEventQueue;
 

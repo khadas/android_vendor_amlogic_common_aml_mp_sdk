@@ -10,7 +10,7 @@
 #ifndef _AML_MP_UTILS_H_
 #define _AML_MP_UTILS_H_
 
-#include <utils/Log.h>
+#include "AmlMpLog.h"
 #include <chrono>
 #include <amports/vformat.h>
 #include <amports/aformat.h>
@@ -38,7 +38,7 @@ namespace aml_mp {
 #define RETURN_IF(error, cond)                                                       \
     do {                                                                             \
         if (cond) {                                                                  \
-            ALOGE("%s:%d return %s <- %s", __FUNCTION__, __LINE__, #error, #cond);   \
+            MLOGE("%s:%d return %s <- %s", __FUNCTION__, __LINE__, #error, #cond);   \
             return error;                                                            \
         }                                                                            \
     } while (0)
@@ -46,7 +46,7 @@ namespace aml_mp {
 #define RETURN_VOID_IF(cond)                                                         \
     do {                                                                             \
         if (cond) {                                                                  \
-            ALOGE("%s:%d return <- %s", __FUNCTION__, __LINE__, #cond);              \
+            MLOGE("%s:%d return <- %s", __FUNCTION__, __LINE__, #cond);              \
             return;                                                                  \
         }                                                                            \
     } while (0)

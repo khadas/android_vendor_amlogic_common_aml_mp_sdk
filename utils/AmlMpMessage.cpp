@@ -23,7 +23,7 @@
 #include "AmlMpMessage.h"
 
 //#include <binder/Parcel.h>
-#include <log/log.h>
+#include <utils/AmlMpLog.h>
 
 #include "AmlMpAtomizer.h"
 #include "AmlMpBuffer.h"
@@ -36,13 +36,15 @@
 #include <media/stagefright/foundation/ADebug.h>
 #endif
 
+static const char* mName = LOG_TAG;
+
 namespace aml_mp {
 
 extern AmlMpEventLooperRoster gLooperRoster;
 
 int AReplyToken::setReply(const sptr<AmlMpMessage> &reply) {
     if (mReplied) {
-        ALOGE("trying to post a duplicate reply");
+        MLOGE("trying to post a duplicate reply");
         return -EBUSY;
     }
 #ifndef ANDROID
@@ -139,7 +141,7 @@ static void reportStats() {
     int32_t time = (AmlMpEventLooper::GetNowUs() / 1000);
     if (time / 1000 != gLastChecked / 1000) {
         gLastChecked = time;
-        ALOGI("called findItemIx %zu times (for len=%.1f i=%.1f/%.1f mem) dup %zu times (for len=%.1f)",
+        MLOGI("called findItemIx %zu times (for len=%.1f i=%.1f/%.1f mem) dup %zu times (for len=%.1f)",
                 gFindItemCalls,
                 gAverageNumItems / (float)gFindItemCalls,
                 gAverageNumChecks / (float)gFindItemCalls,
@@ -400,7 +402,7 @@ bool AmlMpMessage::findRect(
 void AmlMpMessage::deliver() {
     sptr<AmlMpEventHandler> handler = mHandler.promote();
     if (handler == NULL) {
-        ALOGW("failed to deliver message as target handler %d is gone.", mTarget);
+        MLOGW("failed to deliver message as target handler %d is gone.", mTarget);
         return;
     }
 
@@ -410,7 +412,7 @@ void AmlMpMessage::deliver() {
 int AmlMpMessage::post(int64_t delayUs) {
     sptr<AmlMpEventLooper> looper = mLooper.promote();
     if (looper == NULL) {
-        ALOGW("failed to post message as target looper for handler %d is gone.", mTarget);
+        MLOGW("failed to post message as target looper for handler %d is gone.", mTarget);
         return -ENOENT;
     }
 
@@ -421,13 +423,13 @@ int AmlMpMessage::post(int64_t delayUs) {
 int AmlMpMessage::postAndAwaitResponse(sptr<AmlMpMessage> *response) {
     sptr<AmlMpEventLooper> looper = mLooper.promote();
     if (looper == NULL) {
-        ALOGW("failed to post message as target looper for handler %d is gone.", mTarget);
+        MLOGW("failed to post message as target looper for handler %d is gone.", mTarget);
         return -ENOENT;
     }
 
     sptr<AReplyToken> token = looper->createReplyToken();
     if (token == NULL) {
-        ALOGE("failed to create reply token");
+        MLOGE("failed to create reply token");
         return -ENOMEM;
     }
     setObject("replyID", token);
@@ -438,12 +440,12 @@ int AmlMpMessage::postAndAwaitResponse(sptr<AmlMpMessage> *response) {
 
 int AmlMpMessage::postReply(const sptr<AReplyToken> &replyToken) {
     if (replyToken == NULL) {
-        ALOGW("failed to post reply to a NULL token");
+        MLOGW("failed to post reply to a NULL token");
         return -ENOENT;
     }
     sptr<AmlMpEventLooper> looper = replyToken->getLooper();
     if (looper == NULL) {
-        ALOGW("failed to post reply as target looper is gone.");
+        MLOGW("failed to post reply as target looper is gone.");
         return -ENOENT;
     }
     return looper->postReply(replyToken, this);
@@ -657,7 +659,7 @@ sptr<AmlMpMessage> AmlMpMessage::FromParcel(const Parcel &parcel, size_t maxNest
 
     msg->mNumItems = static_cast<size_t>(parcel.readInt32());
     if (msg->mNumItems > kMaxNumItems) {
-        ALOGE("Too large number of items clipped.");
+        MLOGE("Too large number of items clipped.");
         msg->mNumItems = kMaxNumItems;
     }
 
@@ -666,7 +668,7 @@ sptr<AmlMpMessage> AmlMpMessage::FromParcel(const Parcel &parcel, size_t maxNest
 
         const char *name = parcel.readCString();
         if (name == NULL) {
-            ALOGE("Failed reading name for an item. Parsing aborted.");
+            MLOGE("Failed reading name for an item. Parsing aborted.");
             msg->mNumItems = i;
             break;
         }
@@ -709,7 +711,7 @@ sptr<AmlMpMessage> AmlMpMessage::FromParcel(const Parcel &parcel, size_t maxNest
             {
                 const char *stringValue = parcel.readCString();
                 if (stringValue == NULL) {
-                    ALOGE("Failed reading string value from a parcel. "
+                    MLOGE("Failed reading string value from a parcel. "
                         "Parsing aborted.");
                     msg->mNumItems = i;
                     continue;
@@ -723,7 +725,7 @@ sptr<AmlMpMessage> AmlMpMessage::FromParcel(const Parcel &parcel, size_t maxNest
             case kTypeMessage:
             {
                 if (maxNestingLevel == 0) {
-                    ALOGE("Too many levels of AmlMpMessage nesting.");
+                    MLOGE("Too many levels of AmlMpMessage nesting.");
                     return NULL;
                 }
                 sptr<AmlMpMessage> subMsg = AmlMpMessage::FromParcel(
@@ -743,7 +745,7 @@ sptr<AmlMpMessage> AmlMpMessage::FromParcel(const Parcel &parcel, size_t maxNest
 
             default:
             {
-                ALOGE("This type of object cannot cross process boundaries.");
+                MLOGE("This type of object cannot cross process boundaries.");
                 return NULL;
             }
         }
@@ -809,7 +811,7 @@ void AmlMpMessage::writeToParcel(Parcel *parcel) const {
 
             default:
             {
-                ALOGE("This type of object cannot cross process boundaries.");
+                MLOGE("This type of object cannot cross process boundaries.");
                 TRESPASS();
             }
         }
@@ -929,7 +931,7 @@ sptr<AmlMpMessage> AmlMpMessage::changesFrom(const sptr<const AmlMpMessage> &oth
 
             default:
             {
-                ALOGE("Unknown type %d", item.mType);
+                MLOGE("Unknown type %d", item.mType);
                 TRESPASS();
             }
         }

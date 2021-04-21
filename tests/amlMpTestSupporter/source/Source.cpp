@@ -9,11 +9,13 @@
 
 #define LOG_NDEBUG 0
 #define LOG_TAG "AmlMpPlayerDemo_Source"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include "Source.h"
 #include "UdpSource.h"
 #include "DvbSource.h"
 #include "FileSource.h"
+
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 
@@ -45,7 +47,7 @@ sptr<Source> Source::create(const char* url)
             pos = arguments.find_first_of('&', prev);
             if (pos != std::string::npos) {
                 equal = arguments.find_first_of('=', prev);
-                //ALOGI("pos:%d, equal:%d prev:%d", pos, equal, prev);
+                //MLOGI("pos:%d, equal:%d prev:%d", pos, equal, prev);
                 key = arguments.substr(prev, equal-prev);
                 value = arguments.substr(equal+1, pos-equal-1);
 
@@ -56,7 +58,7 @@ sptr<Source> Source::create(const char* url)
                 value = arguments.substr(equal+1);
             }
 
-            ALOGI("key[%s], value[%s]", key.c_str(), value.c_str());
+            MLOGI("key[%s], value[%s]", key.c_str(), value.c_str());
             if (key == "demuxid") {
                 demuxId = (Aml_MP_DemuxId)std::stoi(value);
             } else if (key == "program") {
@@ -69,7 +71,7 @@ sptr<Source> Source::create(const char* url)
         strncpy(address, p, sizeof(address)-1);
     }
 
-    ALOGV("proto:%s, address:%s, programNumber:%d, demuxId:%d, sourceid:%d", proto, address, programNumber, demuxId, sourceId);
+    MLOGV("proto:%s, address:%s, programNumber:%d, demuxId:%d, sourceid:%d", proto, address, programNumber, demuxId, sourceId);
 
     bool isUdpSource = false;
     bool isDvbSource = false;
@@ -84,7 +86,7 @@ sptr<Source> Source::create(const char* url)
     } else if (!strncmp(proto, "dvr", 3)) {
         isDVRSource = true;
     } else {
-        ALOGE("unsupported proto:%s\n", proto);
+        MLOGE("unsupported proto:%s\n", proto);
         return nullptr;
     }
 

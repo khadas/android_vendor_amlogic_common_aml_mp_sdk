@@ -8,13 +8,15 @@
  */
 
 #define LOG_TAG "AmlMpPlayerDemo_TestUtils"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include "TestUtils.h"
 #include <signal.h>
 #include <thread>
 #include <media/stagefright/foundation/ADebug.h>
 #include <poll.h>
 #include <unistd.h>
+
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 using namespace android;
@@ -36,7 +38,7 @@ NativeUI::NativeUI()
 
     mSurfaceWidth = mDisplayWidth >> 1;
     mSurfaceHeight = mDisplayHeight >> 1;
-    ALOGI("mSurfaceWidth: %d, mSurfaceHeight: %d", mSurfaceWidth, mSurfaceHeight);
+    MLOGI("mSurfaceWidth: %d, mSurfaceHeight: %d", mSurfaceWidth, mSurfaceHeight);
 
     mSurfaceControl = mComposerClient->createSurface(android::String8("AmlMpPlayer"), mSurfaceWidth, mSurfaceHeight, android::PIXEL_FORMAT_RGB_565, 0);
     CHECK(mSurfaceControl->isValid());
@@ -54,7 +56,7 @@ NativeUI::NativeUI()
 
     int ret = native_window_api_connect(mSurfaceUi.get(), NATIVE_WINDOW_API_CPU);
     if (ret < 0) {
-        ALOGE("mSurfaceUi connect failed with %d!", ret);
+        MLOGE("mSurfaceUi connect failed with %d!", ret);
         return;
     }
 
@@ -72,7 +74,7 @@ NativeUI::NativeUI()
     ANativeWindowBuffer* buf;
     err = nativeWindow->dequeueBuffer_DEPRECATED(nativeWindow, &buf);
     if (err != 0) {
-        ALOGE("dequeueBuffer failed:%d\n", err);
+        MLOGE("dequeueBuffer failed:%d\n", err);
         return;
     }
 
@@ -201,7 +203,7 @@ int CommandProcessor::fetchAndProcessCommands()
             //printf("poll STDIN_FILENO failed! %d\n", -errno);
         } else if (ret > 0) {
             if (fds.revents & POLL_ERR) {
-                ALOGE("poll error!");
+                MLOGE("poll error!");
                 continue;
             } else if (!(fds.revents & POLL_IN)) {
                 continue;
@@ -212,7 +214,7 @@ int CommandProcessor::fetchAndProcessCommands()
             char buffer[100]{0};
             int len = ::read(STDIN_FILENO, buffer, sizeof(buffer));
             if (len <= 0) {
-                ALOGE("read failed! %d", -errno);
+                MLOGE("read failed! %d", -errno);
                 continue;
             }
             buffer[len-1] = '\0';

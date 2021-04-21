@@ -8,14 +8,14 @@
  */
 
 #define LOG_TAG "AmlMpPlayerDemo_Playback"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include "Playback.h"
 #include <Aml_MP/Aml_MP.h>
 #include <cutils/properties.h>
 #include <vector>
 #include <string>
 
-#define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 
@@ -33,7 +33,7 @@ Playback::Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, co
     createParams.drmMode = programInfo->scrambled ? AML_MP_INPUT_STREAM_ENCRYPTED : AML_MP_INPUT_STREAM_NORMAL;
     int ret = Aml_MP_Player_Create(&createParams, &mPlayer);
     if (ret < 0) {
-        ALOGE("create player failed!");
+        MLOGE("create player failed!");
         return;
     }
 }
@@ -47,18 +47,18 @@ Playback::~Playback()
         mPlayer = AML_MP_INVALID_HANDLE;
     }
 
-    ALOGI("dtor playback end!");
+    MLOGI("dtor playback end!");
 }
 
 int Playback::setSubtitleDisplayWindow(int x, int y, int width, int height) {
-    ALOGI("setSubtitleDisplayWindow, x:%d, y: %d, width: %d, height: %d", x, y, width, height);
+    MLOGI("setSubtitleDisplayWindow, x:%d, y: %d, width: %d, height: %d", x, y, width, height);
     int ret = Aml_MP_Player_SetSubtitleWindow(mPlayer, x, y,width, height);
     return ret;
 }
 
 int Playback::setVideoWindow(int x, int y, int width, int height)
 {
-    ALOGI("setVideoWindow, x:%d, y: %d, width: %d, height: %d", x, y, width, height);
+    MLOGI("setVideoWindow, x:%d, y: %d, width: %d, height: %d", x, y, width, height);
     int ret = Aml_MP_Player_SetVideoWindow(mPlayer, x, y,width, height);
     return ret;
 }
@@ -71,7 +71,7 @@ int Playback::setParameter(Aml_MP_PlayerParameterKey key, void* parameter)
 
 void Playback::setANativeWindow(const android::sp<ANativeWindow>& window)
 {
-    ALOGI("setANativeWindow");
+    MLOGI("setANativeWindow");
     Aml_MP_Player_SetANativeWindow(mPlayer, window.get());
 }
 
@@ -147,11 +147,11 @@ int Playback::start(PlayMode playMode)
         }
         ret |= Aml_MP_Player_StartSubtitleDecoding(mPlayer);
     } else {
-        ALOGE("unknown playmode:%d", mPlayMode);
+        MLOGE("unknown playmode:%d", mPlayMode);
     }
 
     if (ret != 0) {
-        ALOGE("player start failed!");
+        MLOGE("player start failed!");
     }
 
     return ret;
@@ -217,7 +217,7 @@ int Playback::stop()
     if (mPlayMode == PlayMode::START_ALL_STOP_ALL || mPlayMode == PlayMode::START_SEPARATELY_STOP_ALL) {
         ret = Aml_MP_Player_Stop(mPlayer);
         if (ret < 0) {
-            ALOGE("player stop failed!");
+            MLOGE("player stop failed!");
         }
     } else {
         if (mPlayMode == PlayMode::START_VIDEO_START_AUDIO) {
@@ -230,7 +230,7 @@ int Playback::stop()
         ret |= Aml_MP_Player_StopSubtitleDecoding(mPlayer);
 
         if (ret != 0) {
-            ALOGE("player stop separately failed!");
+            MLOGE("player stop separately failed!");
         }
     }
 
@@ -247,7 +247,7 @@ int Playback::stop()
 
 void Playback::signalQuit()
 {
-    ALOGI("signalQuit!");
+    MLOGI("signalQuit!");
 }
 
 int Playback::writeData(const uint8_t* buffer, size_t size)
@@ -266,19 +266,19 @@ int Playback::startDVBDescrambling()
     Aml_MP_CAS_SetEmmPid(mDemuxId, mProgramInfo->emmPid);
 
     if (!Aml_MP_CAS_IsSystemIdSupported(mProgramInfo->caSystemId)) {
-        ALOGE("unsupported caSystemId:%#x", mProgramInfo->caSystemId);
+        MLOGE("unsupported caSystemId:%#x", mProgramInfo->caSystemId);
         return -1;
     }
 
     int ret = Aml_MP_CAS_OpenSession(&mCasSession, AML_MP_CAS_SERVICE_LIVE_PLAY);
     if (ret < 0) {
-        ALOGE("open session failed!");
+        MLOGE("open session failed!");
         return -1;
     }
 
 
     Aml_MP_CAS_RegisterEventCallback(mCasSession, [](AML_MP_CASSESSION session, const char* json) {
-        ALOGI("ca_cb:%s", json);
+        MLOGI("ca_cb:%s", json);
         return 0;
     }, this);
 
@@ -293,13 +293,13 @@ int Playback::startDVBDescrambling()
     casServiceInfo.ca_private_data_len = 0;
     ret = Aml_MP_CAS_StartDescrambling(mCasSession, &casServiceInfo);
     if (ret < 0) {
-        ALOGE("start descrambling failed with %d", ret);
+        MLOGE("start descrambling failed with %d", ret);
         return ret;
     }
 
     mSecMem = Aml_MP_CAS_CreateSecmem(mCasSession, AML_MP_CAS_SERVICE_LIVE_PLAY, nullptr, nullptr);
     if (mSecMem == nullptr) {
-        ALOGE("create secmem failed!");
+        MLOGE("create secmem failed!");
     }
 
     return 0;
@@ -335,7 +335,7 @@ int Playback::startIPTVDescrambling()
     switch (mProgramInfo->caSystemId) {
     case 0x5601:
     {
-        ALOGI("verimatrix iptv!");
+        MLOGI("verimatrix iptv!");
         casParams.type = AML_MP_CAS_VERIMATRIX_IPTV;
         casParams.videoCodec = mProgramInfo->videoCodec;
         casParams.audioCodec = mProgramInfo->audioCodec;
@@ -358,7 +358,7 @@ int Playback::startIPTVDescrambling()
 
     case 0x1724:
     {
-        ALOGI("VMX DVB");
+        MLOGI("VMX DVB");
 #if 0
         casParams.type = AML_MP_CAS_VERIMATRIX_DVB;
         casParams.dvbCasParam.demuxId = mDemuxId;
@@ -374,7 +374,7 @@ int Playback::startIPTVDescrambling()
     case 0x4AD4:
     case 0x4AD5:
     {
-        ALOGI("wvcas iptv, systemid=0x%x!", mProgramInfo->caSystemId);
+        MLOGI("wvcas iptv, systemid=0x%x!", mProgramInfo->caSystemId);
         casParams.type = AML_MP_CAS_WIDEVINE;
         casParams.caSystemId = mProgramInfo->caSystemId;
         casParams.videoCodec = mProgramInfo->videoCodec;
@@ -390,12 +390,12 @@ int Playback::startIPTVDescrambling()
             memcpy(casParams.private_data, mProgramInfo->privateData, mProgramInfo->privateDataLength);
             casParams.private_size =  mProgramInfo->privateDataLength;
         }
-        ALOGI("wvcas iptv, private_size=%d", casParams.private_size);
+        MLOGI("wvcas iptv, private_size=%d", casParams.private_size);
     }
     break;
 
     default:
-        ALOGI("unknown caSystemId:%#x", mProgramInfo->caSystemId);
+        MLOGI("unknown caSystemId:%#x", mProgramInfo->caSystemId);
         break;
     }
 

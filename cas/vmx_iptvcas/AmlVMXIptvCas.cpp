@@ -24,7 +24,7 @@ AmlVMXIptvCas::AmlVMXIptvCas(const Aml_MP_IptvCasParams* param, int instanceId)
 :mIptvCasParam(*param)
 ,mInstanceId(instanceId)
 {
-    ALOGI("ctor AmlVMXIptvCas");
+    MLOGI("ctor AmlVMXIptvCas");
     //AML_MP_UNUSED(mIptvCasParam);
 #if 0
     CasStreamInfo initPara;
@@ -40,7 +40,7 @@ AmlVMXIptvCas::AmlVMXIptvCas(const Aml_MP_IptvCasParams* param, int instanceId)
         initPara.av_diff_ecm = true;
     }
 
-    ALOGI("%s,vpid=0x%x,apid=0x%x,ecmpid=0x%x,0x%x", __func__, initPara.video_pid, initPara.audio_pid,
+    MLOGI("%s,vpid=0x%x,apid=0x%x,ecmpid=0x%x,0x%x", __func__, initPara.video_pid, initPara.audio_pid,
         initPara.ecm_pid[0], initPara.ecm_pid[1]);
 
     bool useThirdPartyLicServer = false;
@@ -48,10 +48,10 @@ AmlVMXIptvCas::AmlVMXIptvCas(const Aml_MP_IptvCasParams* param, int instanceId)
     property_get("wvcas.proxy.vendor", value, "GOOGLE");
     if (!memcmp(value, "GOOGLE",6)) {
         useThirdPartyLicServer = false;
-        ALOGI("wvcas use google default license server.\n");
+        MLOGI("wvcas use google default license server.\n");
     } else {
         useThirdPartyLicServer = true;
-        ALOGI("wvcas use third-party license server.\n");
+        MLOGI("wvcas use third-party license server.\n");
     }
 
     if (useThirdPartyLicServer) {
@@ -65,7 +65,7 @@ AmlVMXIptvCas::AmlVMXIptvCas(const Aml_MP_IptvCasParams* param, int instanceId)
 
     pIptvCas = new AmCasIPTV();
     if (pIptvCas == nullptr) {
-        ALOGE(" call AmCasIPTV() failed");
+        MLOGE(" call AmCasIPTV() failed");
         return;
     }
 
@@ -74,16 +74,16 @@ AmlVMXIptvCas::AmlVMXIptvCas(const Aml_MP_IptvCasParams* param, int instanceId)
 
     int ret = 0;
     ret = pIptvCas->provision();
-    ALOGE(" after call AmCasIPTV() provision, ret=%d", ret);
+    MLOGE(" after call AmCasIPTV() provision, ret=%d", ret);
     if (ret != 0) {
-        ALOGI("provision failed, ret =%d", ret);
+        MLOGI("provision failed, ret =%d", ret);
         return;
     }
 
     ret = pIptvCas->setPrivateData((void *)&initPara, sizeof(CasStreamInfo));
-    ALOGE(" after call AmCasIPTV() setPrivateData, ret=%d", ret);
+    MLOGE(" after call AmCasIPTV() setPrivateData, ret=%d", ret);
     if (ret != 0) {
-        ALOGI("setPrivateData failed, ret =%d", ret);
+        MLOGI("setPrivateData failed, ret =%d", ret);
         return;
     }
 #endif
@@ -91,13 +91,13 @@ AmlVMXIptvCas::AmlVMXIptvCas(const Aml_MP_IptvCasParams* param, int instanceId)
 
 AmlVMXIptvCas::~AmlVMXIptvCas()
 {
-    ALOGI("dtor AmlVMXIptvCas");
+    MLOGI("dtor AmlVMXIptvCas");
     int ret = 0;
 
     if (mDscFd) {
         ret = close(mDscFd);
         if (ret)
-            ALOGE("~AmlVMXIptvCas fd= %d error=%d \n", mDscFd, errno);
+            MLOGE("~AmlVMXIptvCas fd= %d error=%d \n", mDscFd, errno);
     }
 
 
@@ -110,12 +110,12 @@ AmlVMXIptvCas::~AmlVMXIptvCas()
 
 int AmlVMXIptvCas::openSession()
 {
-    ALOGI("openSession");
+    MLOGI("openSession");
     int ret = 0;
 
     if (pIptvCas) {
         setDscSource();
-        ALOGI("%s, vpid=0x%x, apid=0x%x", __func__, mIptvCasParam.videoPid, mIptvCasParam.audioPid);
+        MLOGI("%s, vpid=0x%x, apid=0x%x", __func__, mIptvCasParam.videoPid, mIptvCasParam.audioPid);
         pIptvCas->setPids(mIptvCasParam.videoPid, mIptvCasParam.audioPid);
         ret = pIptvCas->openSession(&sessionId[0]);
     }
@@ -125,7 +125,7 @@ int AmlVMXIptvCas::openSession()
 
 int AmlVMXIptvCas::closeSession()
 {
-    ALOGI("closeSession");
+    MLOGI("closeSession");
     int ret = 0;
 
     if (pIptvCas) {
@@ -143,7 +143,7 @@ int AmlVMXIptvCas::setPrivateData(const uint8_t* data, size_t size)
         uint8_t *pdata = const_cast<uint8_t *>(data);
         ret = pIptvCas->setPrivateData((void*)pdata, size);
         if (ret != 0) {
-            ALOGI("setPrivateData failed, ret =%d", ret);
+            MLOGI("setPrivateData failed, ret =%d", ret);
             return ret;
         }
     }
@@ -184,12 +184,12 @@ int AmlVMXIptvCas::checkEcmProcess(uint8_t* pBuffer, uint32_t vEcmPid, uint32_t 
                       ecmDataStr.append(hex);
                       ecmDataStr.append(" ");
                     }
-                  ALOGI("checkEcmProcess, ecmDataStr.c_str()=%s", ecmDataStr.c_str());
+                  MLOGI("checkEcmProcess, ecmDataStr.c_str()=%s", ecmDataStr.c_str());
                   if (pIptvCas)
                       ret = pIptvCas->processEcm(0, pid, mEcmTsPacket, TS_PACKET_SIZE);
               }
               if (mFirstEcm != 1) {
-                  ALOGI("first_SetECM find\n");
+                  MLOGI("first_SetECM find\n");
                   mFirstEcm = 1;
               }
           }
@@ -209,7 +209,7 @@ int AmlVMXIptvCas::processEcm(const uint8_t* data, size_t size)
     //==============FIXME=============
     if (pIptvCas) {
         uint8_t *pdata = const_cast<uint8_t *>(data);
-        ALOGI("%s, pid=0x%x, size=%zu", __func__, mIptvCasParam.videoPid, size);
+        MLOGI("%s, pid=0x%x, size=%zu", __func__, mIptvCasParam.videoPid, size);
         if (size < 188) {
             ret = pIptvCas->processEcm(1, mIptvCasParam.ecmPid[0] ,pdata, size);
         } else {
@@ -247,12 +247,12 @@ retry_open:
         {
             goto retry_open;
         }
-        ALOGI("retry_open [%s] failed,ret = %d error=%d used_times=%d*10(ms)\n", port_addr, r, errno, retry_open_times);
+        MLOGI("retry_open [%s] failed,ret = %d error=%d used_times=%d*10(ms)\n", port_addr, r, errno, retry_open_times);
         return r;
     }
     if (retry_open_times > 0)
     {
-        ALOGI("retry_open [%s] success\n", port_addr);
+        MLOGI("retry_open [%s] success\n", port_addr);
     }
 #endif
     return (int)r;
@@ -265,22 +265,22 @@ int AmlVMXIptvCas::setDscSource()
     bool use_hw_multi_demux = false;
 #if 0
     if (access("/sys/module/dvb_demux/", F_OK) == 0) {
-        ALOGI("Work with Hw Multi Demux.");
+        MLOGI("Work with Hw Multi Demux.");
         use_hw_multi_demux = true;
     } else {
-        ALOGI("Work with Hw Demux.");
+        MLOGI("Work with Hw Demux.");
         use_hw_multi_demux = false;
     }
 #if 1
     if (!use_hw_multi_demux) {
         ret = amsysfs_set_sysfs_str(DMX0_SOURCE_PATH, DMX_SRC);
         if (ret)
-            ALOGI("Error ret 0x%x\n", ret);
+            MLOGI("Error ret 0x%x\n", ret);
         mDscFd = dscDevOpen(DSC_DEVICE, O_RDWR);
-        ALOGI("%s, dsc_fd=%d\n", __func__, mDscFd);
+        MLOGI("%s, dsc_fd=%d\n", __func__, mDscFd);
         ret = amsysfs_set_sysfs_str(DSC0_SOURCE_PATH, DSC_SRC);
         if (ret)
-            ALOGI("Error ret 0x%x\n", ret);
+            MLOGI("Error ret 0x%x\n", ret);
     }
     else
     {
@@ -292,7 +292,7 @@ int AmlVMXIptvCas::setDscSource()
         */
         ret = amsysfs_set_sysfs_str(TSN_PATH, TSN_IPTV);
         if (ret)
-            ALOGI("hw multi demux Error ret 0x%x\n", ret);
+            MLOGI("hw multi demux Error ret 0x%x\n", ret);
     }
 #endif
 #endif
