@@ -59,12 +59,12 @@ int AmlDVRRecorder::registerEventCallback(Aml_MP_DVRRecorderEventCallback cb, vo
 
 int AmlDVRRecorder::setStreams(Aml_MP_DVRStreamArray* streams)
 {
-    ALOGI("Recording PIDs:");
+    MLOGI("Recording PIDs:");
 
     int count = 0;
     DVR_StreamPid_t pids[DVR_MAX_RECORD_PIDS_COUNT];
     for (int i = 0; i < streams->nbStreams; ++i) {
-        ALOGI("streamType:%d(%s), codecId:%d(%s), pid:%d", streams->streams[i].type,
+        MLOGI("streamType:%d(%s), codecId:%d(%s), pid:%d", streams->streams[i].type,
                 mpStreamType2Str(streams->streams[i].type),
                 streams->streams[i].codecId,
                 mpCodecId2Str(streams->streams[i].codecId),
@@ -76,7 +76,7 @@ int AmlDVRRecorder::setStreams(Aml_MP_DVRStreamArray* streams)
                 convertToDVRVideoFormat(streams->streams[i].codecId));
             pids[count].pid = streams->streams[i].pid;
             count++;
-            ALOGI("  VIDEO %d", streams->streams[i].pid);
+            MLOGI("  VIDEO %d", streams->streams[i].pid);
             break;
 
         case AML_MP_STREAM_TYPE_AUDIO:
@@ -85,32 +85,32 @@ int AmlDVRRecorder::setStreams(Aml_MP_DVRStreamArray* streams)
                 convertToDVRAudioFormat(streams->streams[i].codecId));
             pids[count].pid = streams->streams[i].pid;
             count++;
-            ALOGI("  AUDIO %d", streams->streams[i].pid);
+            MLOGI("  AUDIO %d", streams->streams[i].pid);
             break;
 
         case AML_MP_STREAM_TYPE_SUBTITLE:
             pids[count].type = (DVR_StreamType_t)(convertToDVRStreamType(streams->streams[i].type) << 24);
             pids[count].pid = streams->streams[i].pid;
             count++;
-            ALOGI("  SUBTITLE %d", streams->streams[i].pid);
+            MLOGI("  SUBTITLE %d", streams->streams[i].pid);
             break;
 
         case AML_MP_STREAM_TYPE_TELETEXT:
             pids[count].type = (DVR_StreamType_t)(convertToDVRStreamType(streams->streams[i].type) << 24);
             pids[count].pid = streams->streams[i].pid;
             count++;
-            ALOGI("  TELETEXT %d", streams->streams[i].pid);
+            MLOGI("  TELETEXT %d", streams->streams[i].pid);
             break;
 
         case AML_MP_STREAM_TYPE_SECTION:
             pids[count].type = (DVR_StreamType_t)(convertToDVRStreamType(streams->streams[i].type) << 24);
             pids[count].pid = streams->streams[i].pid;
             count++;
-            ALOGI("  SECTION %d", streams->streams[i].pid);
+            MLOGI("  SECTION %d", streams->streams[i].pid);
             break;
 
         default:
-            ALOGI("  Not recording %d, type %s", streams->streams[i].pid, mpStreamType2Str(streams->streams[i].type));
+            MLOGI("  Not recording %d, type %s", streams->streams[i].pid, mpStreamType2Str(streams->streams[i].type));
             break;
         }
     }
@@ -136,7 +136,7 @@ int AmlDVRRecorder::setStreams(Aml_MP_DVRStreamArray* streams)
                 if (updatePidParams.pids[j].pid == mRecordPids.pids[i].pid) {
                     found = true;
                     updatePidParams.pid_action[j] = DVR_RECORD_PID_KEEP;
-                    ALOGI("keep %d", mRecordPids.pids[i].pid);
+                    MLOGI("keep %d", mRecordPids.pids[i].pid);
 
                     break;
                 }
@@ -149,14 +149,14 @@ int AmlDVRRecorder::setStreams(Aml_MP_DVRStreamArray* streams)
                     updatePidParams.pids[updatePidParams.nb_pids].pid = mRecordPids.pids[i].pid;
                     updatePidParams.pids[updatePidParams.nb_pids].type = mRecordPids.pids[i].type;
                     updatePidParams.nb_pids++;
-                    ALOGI("close %d", mRecordPids.pids[i].pid);
+                    MLOGI("close %d", mRecordPids.pids[i].pid);
                 }
             }
         }
 
         int ret =dvr_wrapper_update_record_pids(mRecoderHandle, &updatePidParams);
         if (ret < 0) {
-            ALOGE("Update record pids fail");
+            MLOGE("Update record pids fail");
 
             //if update pids failed, we don't update mRecordPids.
             return -1;
@@ -172,7 +172,7 @@ int AmlDVRRecorder::setStreams(Aml_MP_DVRStreamArray* streams)
 
 int AmlDVRRecorder::start()
 {
-    ALOGI("Call DVRRecorderStart");
+    MLOGI("Call DVRRecorderStart");
 
     mRecOpenParams.event_fn = [] (DVR_RecordEvent_t event, void* params, void* userData) {
         AmlDVRRecorder* recorder = static_cast<AmlDVRRecorder*>(userData);
@@ -182,12 +182,12 @@ int AmlDVRRecorder::start()
 
     int ret = dvr_wrapper_open_record(&mRecoderHandle, &mRecOpenParams);
     if (ret < 0) {
-        ALOGE("Open dvr record fail");
+        MLOGE("Open dvr record fail");
         return -1;
     }
 
     if (mIsEncryptStream) {
-        ALOGI("set secureBuffer:%p, secureBufferSize:%d", mSecureBuffer, mSecureBufferSize);
+        MLOGI("set secureBuffer:%p, secureBufferSize:%d", mSecureBuffer, mSecureBufferSize);
         dvr_wrapper_set_record_secure_buffer(mRecoderHandle, mSecureBuffer, mSecureBufferSize);
     }
 
@@ -195,11 +195,11 @@ int AmlDVRRecorder::start()
         ret = dvr_wrapper_start_record(mRecoderHandle, &mRecStartParams);
         if (ret < 0) {
             dvr_wrapper_close_record(mRecoderHandle);
-            ALOGE("Failed to start recording.");
+            MLOGE("Failed to start recording.");
             return -1;
         }
     } else {
-        ALOGE("Need set start params before start");
+        MLOGE("Need set start params before start");
         ret = 0;
     }
 
@@ -208,11 +208,11 @@ int AmlDVRRecorder::start()
 
 int AmlDVRRecorder::stop()
 {
-    ALOGI("Call DVRRecorderStop");
+    MLOGI("Call DVRRecorderStop");
 
     int ret = dvr_wrapper_stop_record(mRecoderHandle);
     if (ret) {
-        ALOGI("Stop recoder fail");
+        MLOGI("Stop recoder fail");
     }
     //Add support cas
     ret = dvr_wrapper_close_record(mRecoderHandle);
@@ -225,7 +225,7 @@ int AmlDVRRecorder::getStatus(Aml_MP_DVRRecorderStatus* status)
     DVR_WrapperRecordStatus_t dvrStatus;
     int ret = dvr_wrapper_get_record_status(mRecoderHandle, &dvrStatus);
     if (ret < 0) {
-        ALOGW("get record status failed!");
+        MLOGW("get record status failed!");
         return -1;
     }
 
@@ -242,7 +242,7 @@ int AmlDVRRecorder::setBasicParams(Aml_MP_DVRRecorderBasicParams* basicParams)
     mRecOpenParams.segment_size = basicParams->segmentSize;
     mRecOpenParams.flags = (DVR_RecordFlag_t)basicParams->flags;
     mRecOpenParams.flush_size = basicParams->bufferSize;
-    ALOGI("location:%s", basicParams->location);
+    MLOGI("location:%s", basicParams->location);
 
     return 0;
 }

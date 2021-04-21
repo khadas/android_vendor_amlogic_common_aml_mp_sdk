@@ -102,9 +102,11 @@ am_tsplayer_avsync_mode AVSyncSourceTypeConvert(Aml_MP_AVSyncSource avSyncSource
 AmlTsPlayer::AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId)
 : aml_mp::AmlPlayerBase(instanceId)
 {
+    snprintf(mName, sizeof(mName), "%s_%d", LOG_TAG, instanceId);
+
     AmlMpPlayerRoster::instance().signalAmTsPlayerId(instanceId);
 
-    ALOGI("demuxId: %d", createParams->demuxId);
+    MLOGI("demuxId: %d", createParams->demuxId);
     if (createParams->demuxId == AML_MP_DEMUX_ID_DEFAULT) {
         createParams->demuxId = AML_MP_HW_DEMUX_ID_0;
     }
@@ -123,7 +125,7 @@ AmlTsPlayer::AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId
 
 AmlTsPlayer::~AmlTsPlayer()
 {
-    ALOGI("%s:%d", __FUNCTION__, __LINE__);
+    MLOGI("%s:%d", __FUNCTION__, __LINE__);
 
     if (mPlayer) {
         AmTsPlayer_release(mPlayer);
@@ -135,7 +137,7 @@ AmlTsPlayer::~AmlTsPlayer()
 
 int AmlTsPlayer::setANativeWindow(ANativeWindow* nativeWindow)
 {
-    ALOGI("AmlTsPlayer::setANativeWindow: %p", nativeWindow);
+    MLOGI("AmlTsPlayer::setANativeWindow: %p", nativeWindow);
 
     int ret = 0;
     if (AmlMpConfig::instance().mTsPlayerNonTunnel) {
@@ -144,36 +146,36 @@ int AmlTsPlayer::setANativeWindow(ANativeWindow* nativeWindow)
         if (nativeWindow != nullptr) {
             surface = (android::Surface*)nativeWindow;
         }
-        ALOGI("setANativeWindow nativeWindow: %p, surface: %p", nativeWindow, surface);
+        MLOGI("setANativeWindow nativeWindow: %p, surface: %p", nativeWindow, surface);
         ret = AmTsPlayer_setSurface(mPlayer, surface);
 #else
         if (mVideoTunnelId != -1) {
-            ALOGE("setANativeWindow mVideoTunnelId:%d", mVideoTunnelId);
+            MLOGE("setANativeWindow mVideoTunnelId:%d", mVideoTunnelId);
         }
         if (nativeWindow) {
             int type = AM_FIXED_TUNNEL;
             int mesonVtFd = meson_vt_open();
             if (mesonVtFd < 0) {
-                ALOGI("meson_vt_open failed!");
+                MLOGI("meson_vt_open failed!");
                 return -1;
             }
             if (meson_vt_alloc_id(mesonVtFd, &mVideoTunnelId) < 0) {
-                ALOGI("meson_vt_alloc_id failed!");
+                MLOGI("meson_vt_alloc_id failed!");
                 meson_vt_close(mesonVtFd);
                 return -1;
             }
-            ALOGI("setAnativeWindow: allocId: %d", mVideoTunnelId);
+            MLOGI("setAnativeWindow: allocId: %d", mVideoTunnelId);
             meson_vt_free_id(mesonVtFd, mVideoTunnelId);
             meson_vt_close(mesonVtFd);
 
             native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(type, mVideoTunnelId);
             mSidebandHandle = NativeHandle::create(sidebandHandle, true);
 
-            ALOGI("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
+            MLOGI("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
 
             ret = native_window_set_sideband_stream(nativeWindow, sidebandHandle);
             if (ret < 0) {
-                ALOGE("set sideband stream failed!");
+                MLOGE("set sideband stream failed!");
                 return ret;
             }
             AmTsPlayer_setSurface(mPlayer, (void*)&mVideoTunnelId);
@@ -189,7 +191,7 @@ int AmlTsPlayer::setVideoParams(const Aml_MP_VideoParams* params) {
     am_tsplayer_result ret;
     am_tsplayer_video_params video_params = {videoCodecConvert(params->videoCodec), params->pid};
 
-    ALOGI("amtsplayer handle:%#x, video codec:%d, pid:%d", mPlayer, video_params.codectype, video_params.pid);
+    MLOGI("amtsplayer handle:%#x, video codec:%d, pid:%d", mPlayer, video_params.codectype, video_params.pid);
     ret = AmTsPlayer_setVideoParams(mPlayer, &video_params);
     if (ret != AM_TSPLAYER_OK) {
         return -1;
@@ -201,7 +203,7 @@ int AmlTsPlayer::setAudioParams(const Aml_MP_AudioParams* params) {
     am_tsplayer_result ret;
     am_tsplayer_audio_params audio_params = {audioCodecConvert(params->audioCodec), params->pid, 0};
 
-    ALOGI("amtsplayer handle:%#x, audio codec:%d, pid:%d", mPlayer, audio_params.codectype, audio_params.pid);
+    MLOGI("amtsplayer handle:%#x, audio codec:%d, pid:%d", mPlayer, audio_params.codectype, audio_params.pid);
     ret = AmTsPlayer_setAudioParams(mPlayer, &audio_params);
     if (ret != AM_TSPLAYER_OK) {
         return -1;
@@ -212,7 +214,7 @@ int AmlTsPlayer::setAudioParams(const Aml_MP_AudioParams* params) {
 int AmlTsPlayer::start() {
     int ret = 0;
 
-    ALOGI("Call start");
+    MLOGI("Call start");
     AmTsPlayer_setTrickMode(mPlayer, AV_VIDEO_TRICK_MODE_NONE);
 
     ret += startVideoDecoding();
@@ -227,7 +229,7 @@ int AmlTsPlayer::start() {
 int AmlTsPlayer::stop() {
     int ret = 0;
 
-    ALOGI("Call stop");
+    MLOGI("Call stop");
     AmlPlayerBase::stop();
 
     ret += stopVideoDecoding();
@@ -239,7 +241,7 @@ int AmlTsPlayer::stop() {
 int AmlTsPlayer::pause() {
     int ret = 0;
 
-    ALOGI("Call pause");
+    MLOGI("Call pause");
     ret += pauseVideoDecoding();
     ret += pauseAudioDecoding();
     return ret;
@@ -248,7 +250,7 @@ int AmlTsPlayer::pause() {
 int AmlTsPlayer::resume() {
     int ret = 0;
 
-    ALOGI("Call resume");
+    MLOGI("Call resume");
     ret += resumeVideoDecoding();
     ret += resumeAudioDecoding();
     return ret;
@@ -258,7 +260,7 @@ int AmlTsPlayer::flush() {return -1;}
 
 int AmlTsPlayer::setPlaybackRate(float rate){
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
-    ALOGI("setPlaybackRate, rate: %f", rate);
+    MLOGI("setPlaybackRate, rate: %f", rate);
     if (rate == 1.0f) {
         ret = AmTsPlayer_stopFast(mPlayer);
     } else {
@@ -273,17 +275,17 @@ int AmlTsPlayer::switchAudioTrack(const Aml_MP_AudioParams* params){
     int ret = 0;
     ret = stopAudioDecoding();
     if (ret) {
-        ALOGE("Stop Audio Decoding fail");
+        MLOGE("Stop Audio Decoding fail");
         return -1;
     }
     ret = setAudioParams(params);
     if (ret) {
-        ALOGE("Set Audio Params fail");
+        MLOGE("Set Audio Params fail");
         return -1;
     }
     ret = startAudioDecoding();
     if (ret) {
-        ALOGE("Strat Audio Decoding fail");
+        MLOGE("Strat Audio Decoding fail");
         return -1;
     }
     return 0;
@@ -295,7 +297,7 @@ int AmlTsPlayer::writeData(const uint8_t* buffer, size_t size) {
     am_tsplayer_input_buffer buf ={init_param.drmmode, (void*)buffer, (int32_t)size};
 
     ret = AmTsPlayer_writeData(mPlayer, &buf, kRwTimeout);
-    //ALOGI("writedata, buffer:%p, size:%d, ret:%d", buffer, size, ret);
+    //MLOGI("writedata, buffer:%p, size:%d, ret:%d", buffer, size, ret);
     if (ret != AM_TSPLAYER_OK) {
         return -1;
     }
@@ -316,7 +318,7 @@ int AmlTsPlayer::getCurrentPts(Aml_MP_StreamType type, int64_t* pts) {
     am_tsplayer_result ret;
 
     ret = AmTsPlayer_getPts(mPlayer, convertToTsplayerStreamType(type), (uint64_t*)pts);
-    ALOGI("getCurrentPts type: %d, pts: 0x%llx, ret: %d", type, *pts, ret);
+    MLOGI("getCurrentPts type: %d, pts: 0x%llx, ret: %d", type, *pts, ret);
     if (ret != AM_TSPLAYER_OK) {
         return -1;
     }
@@ -329,7 +331,7 @@ int AmlTsPlayer::getBufferStat(Aml_MP_BufferStat* bufferStat) {
 
     ret = AmTsPlayer_getBufferStat(mPlayer, TS_STREAM_AUDIO, &buffer_stat);
     if (ret != AM_TSPLAYER_OK) {
-        ALOGE("Get audio buffer error, ret = %d", ret);
+        MLOGE("Get audio buffer error, ret = %d", ret);
         return -1;
     }
     bufferStat->audioBuffer.size = buffer_stat.size;
@@ -339,7 +341,7 @@ int AmlTsPlayer::getBufferStat(Aml_MP_BufferStat* bufferStat) {
     bufferStat->videoBuffer.size = buffer_stat.size;
     bufferStat->videoBuffer.dataLen = buffer_stat.data_len;
     if (ret != AM_TSPLAYER_OK) {
-        ALOGE("Get video buffer error, ret = %d", ret);
+        MLOGE("Get video buffer error, ret = %d", ret);
         return -1;
     }
     return 0;
@@ -349,7 +351,7 @@ int AmlTsPlayer::getBufferStat(Aml_MP_BufferStat* bufferStat) {
 int AmlTsPlayer::setVideoWindow(int x, int y, int width, int height) {
     am_tsplayer_result ret;
 
-    ALOGI("setVideoWindow, x: %d, y: %d, width: %d, height: %d", x, y, width, height);
+    MLOGI("setVideoWindow, x: %d, y: %d, width: %d, height: %d", x, y, width, height);
     ret = AmTsPlayer_setVideoWindow(mPlayer, x, y, width, height);
     if (ret != AM_TSPLAYER_OK) {
         return -1;
@@ -361,7 +363,7 @@ int AmlTsPlayer::setVolume(float volume) {
     am_tsplayer_result ret;
     int32_t tsplayer_volume = volume;
 
-    ALOGI("setVolume, tsplayer_volume: %d", tsplayer_volume);
+    MLOGI("setVolume, tsplayer_volume: %d", tsplayer_volume);
     ret = AmTsPlayer_setAudioVolume(mPlayer, tsplayer_volume);
     if (ret != AM_TSPLAYER_OK) {
         return -1;
@@ -374,7 +376,7 @@ int AmlTsPlayer::getVolume(float* volume) {
     int32_t tsplayer_volume;
 
     ret = AmTsPlayer_getAudioVolume(mPlayer, &tsplayer_volume);
-    ALOGI("getVolume volume: %d, ret: %d", tsplayer_volume, ret);
+    MLOGI("getVolume volume: %d, ret: %d", tsplayer_volume, ret);
     if (ret != AM_TSPLAYER_OK) {
         return -1;
     }
@@ -407,15 +409,15 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
     Aml_MP_ADVolume* ADVolume;
     int isEnable;
 
-    ALOGI("Call setParameter, key is 0x%x", key);
+    MLOGI("Call setParameter, key is 0x%x", key);
     switch (key) {
         case AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE:
-            //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE, value is %d", *(am_tsplayer_video_match_mode*)parameter);
+            //MLOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE, value is %d", *(am_tsplayer_video_match_mode*)parameter);
             ret = AmTsPlayer_setVideoMatchMode(mPlayer, convertToTsPlayerVideoMatchMode(*(Aml_MP_VideoDisplayMode*)parameter));
             break;
 
         case AML_MP_PLAYER_PARAMETER_BLACK_OUT:
-            //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_BLACK_OUT, value is %d", *(bool_t*)parameter);
+            //MLOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_BLACK_OUT, value is %d", *(bool_t*)parameter);
             ret = AmTsPlayer_setVideoBlackOut(mPlayer, *(bool_t*)parameter);
             break;
 
@@ -427,7 +429,7 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             break;
 
         case AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE:
-            //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE, value is %d", *(Aml_MP_AudioOutputMode*)parameter);
+            //MLOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE, value is %d", *(Aml_MP_AudioOutputMode*)parameter);
             ret = AmTsPlayer_setAudioOutMode(mPlayer, convertToTsPlayerAudioOutMode(*(Aml_MP_AudioOutputMode*)parameter));
             break;
 
@@ -461,12 +463,12 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
 
         case AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL:
             ADVolume = (Aml_MP_ADVolume*)parameter;
-            //ALOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL, AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE, value is master %d, slave %d", ADVolume->masterVolume, ADVolume->slaveVolume);
+            //MLOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL, AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE, value is master %d, slave %d", ADVolume->masterVolume, ADVolume->slaveVolume);
             ret = AmTsPlayer_setADMixLevel(mPlayer, ADVolume->masterVolume, ADVolume->slaveVolume);
             break;
 
         case AML_MP_PLAYER_PARAMETER_WORK_MODE:
-            ALOGI("Call AmTsPlayer_setWorkMode, set workmode: %d", *(am_tsplayer_work_mode*)(parameter));
+            MLOGI("Call AmTsPlayer_setWorkMode, set workmode: %d", *(am_tsplayer_work_mode*)(parameter));
             ret = AmTsPlayer_setWorkMode(mPlayer, *(am_tsplayer_work_mode*)(parameter));
             break;
 
@@ -486,7 +488,7 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
 #if ANDROID_PLATFORM_SDK_VERSION >= 30
             // this is video tunnel id, must be a member variable address
             mVideoTunnelId = (int)parameter;
-            ALOGI("set videoTunnelId: %d", mVideoTunnelId);
+            MLOGI("set videoTunnelId: %d", mVideoTunnelId);
             ret = AmTsPlayer_setSurface(mPlayer, &mVideoTunnelId);
 #else
             void* surface = parameter;
@@ -507,7 +509,7 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
 int AmlTsPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
 
-    ALOGI("Call getParameter, key is %d", key);
+    MLOGI("Call getParameter, key is %d", key);
     if (!parameter) {
         return -1;
     }
@@ -517,37 +519,37 @@ int AmlTsPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             am_tsplayer_video_info videoInfo;
             ret = AmTsPlayer_getVideoInfo(mPlayer, &videoInfo);
             convertToMpVideoInfo((Aml_MP_VideoInfo*)parameter, &videoInfo);
-            //ALOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_VIDEO_INFO, width: %d, height: %d, framerate: %d, bitrate: %d, ratio64: %llu", videoInfo.width, videoInfo.height, videoInfo.framerate, videoInfo.bitrate, videoInfo.ratio64);
+            //MLOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_VIDEO_INFO, width: %d, height: %d, framerate: %d, bitrate: %d, ratio64: %llu", videoInfo.width, videoInfo.height, videoInfo.framerate, videoInfo.bitrate, videoInfo.ratio64);
             break;
         case AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_STAT:
             ret = AmTsPlayer_getVideoStat(mPlayer, (am_tsplayer_vdec_stat*)parameter);
             //am_tsplayer_vdec_stat* vdec_stat;
             //vdec_stat = (am_tsplayer_vdec_stat*)parameter;
-            //ALOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_STAT, frame_width: %d, frame_height: %d, frame_rate: %d", vdec_stat->frame_width, vdec_stat->frame_height, vdec_stat->frame_rate);
+            //MLOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_STAT, frame_width: %d, frame_height: %d, frame_rate: %d", vdec_stat->frame_width, vdec_stat->frame_height, vdec_stat->frame_rate);
             break;
         case AML_MP_PLAYER_PARAMETER_AUDIO_INFO:
             ret = AmTsPlayer_getAudioInfo(mPlayer, (am_tsplayer_audio_info*)parameter);
             //am_tsplayer_audio_info* audioInfo;
             //audioInfo = (am_tsplayer_audio_info*)parameter;
-            //ALOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_AUDIO_INFO, sample_rate: %d, channels: %d, channel_mask: %d, bitrate: %d", audioInfo->sample_rate, audioInfo->channels, audioInfo->channel_mask, audioInfo->bitrate);
+            //MLOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_AUDIO_INFO, sample_rate: %d, channels: %d, channel_mask: %d, bitrate: %d", audioInfo->sample_rate, audioInfo->channels, audioInfo->channel_mask, audioInfo->bitrate);
             break;
         case AML_MP_PLAYER_PARAMETER_AUDIO_DECODE_STAT:
             ret = AmTsPlayer_getAudioStat(mPlayer, (am_tsplayer_adec_stat*) parameter);
             //am_tsplayer_adec_stat* adec_stat;
             //adec_stat = (am_tsplayer_adec_stat*)parameter;
-            //ALOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_AUDIO_DECODE_STAT, frame_count: %d, error_frame_count: %d, drop_frame_count: %d", adec_stat->frame_count, adec_stat->error_frame_count, adec_stat->drop_frame_count);
+            //MLOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_AUDIO_DECODE_STAT, frame_count: %d, error_frame_count: %d, drop_frame_count: %d", adec_stat->frame_count, adec_stat->error_frame_count, adec_stat->drop_frame_count);
             break;
         case AML_MP_PLAYER_PARAMETER_AD_INFO:
             ret = AmTsPlayer_getADInfo(mPlayer, (am_tsplayer_audio_info*)parameter);
             //am_tsplayer_audio_info* adInfo;
             //adInfo = (am_tsplayer_audio_info*)parameter;
-            //ALOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_AUDIO_INFO, sample_rate: %d, channels: %d, channel_mask: %d, bitrate: %d", adInfo->sample_rate, adInfo->channels, adInfo->channel_mask, adInfo->bitrate);
+            //MLOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_AUDIO_INFO, sample_rate: %d, channels: %d, channel_mask: %d, bitrate: %d", adInfo->sample_rate, adInfo->channels, adInfo->channel_mask, adInfo->bitrate);
             break;
         case AML_MP_PLAYER_PARAMETER_AD_DECODE_STAT:
             ret = AmTsPlayer_getADStat(mPlayer, (am_tsplayer_adec_stat*)parameter);
             //am_tsplayer_adec_stat* ad_stat;
             //ad_stat = (am_tsplayer_adec_stat*)parameter;
-            //ALOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_AUDIO_DECODE_STAT, frame_count: %d, error_frame_count: %d, drop_frame_count: %d", ad_stat->frame_count, ad_stat->error_frame_count, ad_stat->drop_frame_count);
+            //MLOGI("trace getParameter, AML_MP_PLAYER_PARAMETER_AUDIO_DECODE_STAT, frame_count: %d, error_frame_count: %d, drop_frame_count: %d", ad_stat->frame_count, ad_stat->error_frame_count, ad_stat->drop_frame_count);
             break;
 
         case AML_MP_PLAYER_PARAMETER_INSTANCE_ID:
@@ -570,8 +572,8 @@ int AmlTsPlayer::setAVSyncSource(Aml_MP_AVSyncSource syncSource)
 {
     am_tsplayer_result ret = AM_TSPLAYER_OK;
 
-    ALOGI("setsyncmode, syncSource %d!!!", syncSource);
-    ALOGI("converted syncSoource is: %d", AVSyncSourceTypeConvert(syncSource));
+    MLOGI("setsyncmode, syncSource %d!!!", syncSource);
+    MLOGI("converted syncSoource is: %d", AVSyncSourceTypeConvert(syncSource));
     ret = AmTsPlayer_setSyncMode(mPlayer, AVSyncSourceTypeConvert(syncSource));
     if (ret != AM_TSPLAYER_OK) {
         return -1;
@@ -701,7 +703,7 @@ void AmlTsPlayer::eventCallback(am_tsplayer_event* event)
     switch (event->type) {
     case AM_TSPLAYER_EVENT_TYPE_VIDEO_CHANGED:
     {
-        ALOGE("[evt] AML_MP_PLAYER_EVENT_VIDEO_CHANGED");
+        MLOGE("[evt] AML_MP_PLAYER_EVENT_VIDEO_CHANGED");
 
         Aml_MP_PlayerEventVideoFormat videoFormatEvent;
         videoFormatEvent.frame_width = event->event.video_format.frame_width;
@@ -718,13 +720,13 @@ void AmlTsPlayer::eventCallback(am_tsplayer_event* event)
         break;
 
     case AM_TSPLAYER_EVENT_TYPE_FIRST_FRAME:
-        ALOGE("[evt] AM_TSPLAYER_EVENT_TYPE_FIRST_FRAME\n");
+        MLOGE("[evt] AM_TSPLAYER_EVENT_TYPE_FIRST_FRAME\n");
 
         notifyListener(AML_MP_PLAYER_EVENT_FIRST_FRAME);
         break;
 
     case AM_TSPLAYER_EVENT_TYPE_AV_SYNC_DONE:
-        ALOGE("[evt] AML_MP_PLAYER_EVENT_AV_SYNC_DONE");
+        MLOGE("[evt] AML_MP_PLAYER_EVENT_AV_SYNC_DONE");
 
         notifyListener(AML_MP_PLAYER_EVENT_AV_SYNC_DONE);
         break;
@@ -768,7 +770,7 @@ void AmlTsPlayer::eventCallback(am_tsplayer_event* event)
     break;
 
     default:
-        ALOGE("unhandled event:%d", event->type);
+        MLOGE("unhandled event:%d", event->type);
         break;
     }
 }

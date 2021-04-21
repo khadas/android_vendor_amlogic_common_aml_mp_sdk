@@ -8,10 +8,12 @@
  */
 
 #define LOG_TAG "AmlMpPlayerDemo_FileSource"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include "FileSource.h"
+
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 FileSource::FileSource(const char* filepath, const InputParameter& inputParameter, uint32_t flags)
@@ -31,7 +33,7 @@ int FileSource::initCheck()
     struct stat s;
     int ret = stat(mFilePath.c_str(), &s);
     if (ret < 0) {
-        ALOGE("stat file failed!");
+        MLOGE("stat file failed!");
         return ret;
     }
 
@@ -42,7 +44,7 @@ int FileSource::start()
 {
     mFd = ::open(mFilePath.c_str(), O_RDONLY);
     if (mFd < 0) {
-        ALOGE("open %s failed, %s", mFilePath.c_str(), strerror(errno));
+        MLOGE("open %s failed, %s", mFilePath.c_str(), strerror(errno));
         return -1;
     }
 
@@ -60,9 +62,9 @@ int FileSource::stop()
     signalQuit();
 
     if (mThread.joinable()) {
-        ALOGI("join...");
+        MLOGI("join...");
         mThread.join();
-        ALOGI("join done!");
+        MLOGI("join done!");
     }
 
     if (mFd >= 0) {
@@ -101,23 +103,23 @@ void FileSource::threadLoop()
         }
 
         if (work & kWorkQuit) {
-            ALOGI("Quit!");
+            MLOGI("Quit!");
             signalWorkDone(kWorkQuit);
             break;
         }
 
         if (work & kWorkRestart) {
-            ALOGI("restart!");
+            MLOGI("restart!");
             size = 0;
             signalWorkDone(kWorkRestart);
 
             ret = ::lseek64(mFd, SEEK_SET, 0);
             if (ret < 0) {
-                ALOGE("seek to begin failed! %s", strerror(errno));
+                MLOGE("seek to begin failed! %s", strerror(errno));
                 break;
             }
 
-            ALOGE("seek to begin!");
+            MLOGE("seek to begin!");
         }
 
         if (size == 0) {
@@ -126,7 +128,7 @@ void FileSource::threadLoop()
         }
 
         if (size < 0) {
-            ALOGE("read return %d", size);
+            MLOGE("read return %d", size);
             break;
         } else if (size == 0) {
             sendWorkCommand(kWorkRestart);
@@ -135,13 +137,13 @@ void FileSource::threadLoop()
             receiver = sourceReceiver();
             if (receiver == nullptr) {
                 usleep(100*1000);
-                ALOGI("receiver null!");
+                MLOGI("receiver null!");
                 continue;
             }
 
             written = receiver->writeData(data, size);
             if (written < 0) {
-                //ALOGI("written < 0");
+                //MLOGI("written < 0");
                 written = 0;
                 usleep(10*1000);
             } else if (written == 0) {

@@ -8,7 +8,7 @@
  */
 
 #define LOG_TAG "AmlMpPlayerDemo_AmlDemuxBase"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include "AmlDemuxBase.h"
 #include "AmlHwDemux.h"
 #include "AmlSwDemux.h"
@@ -17,7 +17,7 @@
 #include <sstream>
 #include <set>
 
-#define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 
@@ -96,7 +96,7 @@ AmlDemuxBase::Filter::~Filter()
 void AmlDemuxBase::Filter::notifyListener(int pid, const sptr<AmlMpBuffer>& data, int version)
 {
     if (mCb == nullptr) {
-        ALOGW("user cb is NULL!");
+        MLOGW("user cb is NULL!");
         return;
     }
 
@@ -106,7 +106,7 @@ void AmlDemuxBase::Filter::notifyListener(int pid, const sptr<AmlMpBuffer>& data
 
     mVersion = version;
     if (mVersion >= 0) {
-        ALOGI("notify filter:%d, version:%d", mId, mVersion);
+        MLOGI("notify filter:%d, version:%d", mId, mVersion);
     }
 
     mCb(pid, data->size(), data->base(), pUserData);
@@ -139,7 +139,7 @@ bool AmlDemuxBase::Channel::attachFilter(const sptr<Filter>& filter)
     {
         std::lock_guard<std::mutex> _l(mLock);
         mFilters.insert(filter);
-        ALOGV("attach filter:%d to channel:%d, totoal filters num:%d",
+        MLOGV("attach filter:%d to channel:%d, totoal filters num:%d",
             filter->id(), mPid, mFilters.size());
     }
 
@@ -155,7 +155,7 @@ bool AmlDemuxBase::Channel::detachFilter(const sptr<Filter>& filter)
     if (mFilters.find(filter) != mFilters.end()) {
         filter->setOwner(nullptr);
         mFilters.erase(filter);
-        ALOGV("detach filter:%d from channel:%d, total filters num:%d",
+        MLOGV("detach filter:%d from channel:%d, total filters num:%d",
             filter->id(), mPid, mFilters.size());
     }
 
@@ -227,26 +227,26 @@ AmlDemuxBase::CHANNEL AmlDemuxBase::createChannel(int pid, bool checkCRC)
     {
         std::lock_guard<std::mutex> _l(mLock);
         if (isStopped()) {
-            ALOGE("can't create channel for pid:%d, mStopped:%d", pid, isStopped());
+            MLOGE("can't create channel for pid:%d, mStopped:%d", pid, isStopped());
             return NULL;
         }
 
         auto it = mChannels.find(pid);
         if (it != mChannels.end()) {
-            ALOGV("return exist channel:%p", channel);
+            MLOGV("return exist channel:%p", channel);
             channel = it->second;
             goto exit;
         }
 
         if (addPSISection(pid, checkCRC) < 0) {
-            ALOGE("openHardwareChannel failed!");
+            MLOGE("openHardwareChannel failed!");
             return nullptr;
         }
 
         channel = new Channel(pid);
         auto ret = mChannels.emplace(pid, channel);
         if (ret.second) {
-            //ALOGI("create channel success!");
+            //MLOGI("create channel success!");
         }
     }
 
@@ -267,7 +267,7 @@ int AmlDemuxBase::destroyChannel(CHANNEL _channel)
     MLOG("channel:%d", pid);
 
     if (channel->hasFilter()) {
-        ALOGI("channel:%d has filter, don't do destroy!", channel->pid());
+        MLOGI("channel:%d has filter, don't do destroy!", channel->pid());
         return -1;
     }
 
@@ -290,7 +290,7 @@ int AmlDemuxBase::openChannel(CHANNEL _channel)
         return -1;
     }
 
-    ALOGV("enable channel:%d", channel->pid());
+    MLOGV("enable channel:%d", channel->pid());
     return 0;
 }
 
@@ -301,7 +301,7 @@ int AmlDemuxBase::closeChannel(CHANNEL _channel)
         return -1;
     }
 
-    ALOGV("disable channel:%d", channel->pid());
+    MLOGV("disable channel:%d", channel->pid());
 
     return 0;
 }
@@ -322,7 +322,7 @@ int AmlDemuxBase::destroyFilter(FILTER _filter)
     }
 
     if (filter->hasOwner()) {
-        ALOGW("filter has not been detached before!!!");
+        MLOGW("filter has not been detached before!!!");
         sptr<Channel> channel = filter->getOwner().promote();
         if (channel != nullptr) {
             channel->detachFilter(filter);
@@ -357,7 +357,7 @@ int AmlDemuxBase::detachFilter(FILTER _filter, CHANNEL _channel)
     }
 
     if (!channel->hasFilter()) {
-        ALOGW("channel has no filter!!!");
+        MLOGW("channel has no filter!!!");
         return -1;
     }
 

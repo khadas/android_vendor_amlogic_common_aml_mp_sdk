@@ -15,22 +15,24 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <strings.h>
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include <sys/ioctl.h>
 #include "Amlsysfsutils.h"
 #include <unistd.h>
 #include <cutils/properties.h>
 #include <string.h>
 
+static const char* mName = LOG_TAG;
+
 namespace aml_mp {
 
 
 #ifndef LOGD
-#define LOGV ALOGV
-#define LOGD ALOGD
-#define LOGI ALOGI
-#define LOGW ALOGW
-#define LOGE ALOGE
+#define LOGV MLOGV
+#define LOGD MLOGD
+#define LOGI MLOGI
+#define LOGW MLOGW
+#define LOGE MLOGE
 #endif
 
 //#define USE_SYSWRITE
@@ -51,7 +53,7 @@ int amsysfs_set_sysfs_str(const char *path, const char *val) {
 #if (ANDROID_PLATFORM_SDK_VERSION >= 21) && (ANDROID_PLATFORM_SDK_VERSION <= 25)
         return amSystemWriteWriteSysfs(path, (char *) val);
 #else
-        ALOGW("[%s] %s failed!",__FUNCTION__,path);
+        MLOGW("[%s] %s failed!",__FUNCTION__,path);
         return -1;
 #endif
 
@@ -72,7 +74,7 @@ int amsysfs_get_sysfs_str(const char *path, char *valstr, unsigned size) {
             return 0;
         }
 #endif
-        ALOGW("[%s] %s failed!",__FUNCTION__,path);
+        MLOGW("[%s] %s failed!",__FUNCTION__,path);
         sprintf(valstr, "%s", "fail");
         return -1;
     }
@@ -93,7 +95,7 @@ int amsysfs_set_sysfs_int(const char *path, int val) {
 #if (ANDROID_PLATFORM_SDK_VERSION >= 21) && (ANDROID_PLATFORM_SDK_VERSION <= 25)
         return amSystemWriteWriteSysfs(path, bcmd);
 #else
-        ALOGW("[%s] %s failed!",__FUNCTION__,path);
+        MLOGW("[%s] %s failed!",__FUNCTION__,path);
         return -1;
 #endif
 
@@ -115,7 +117,7 @@ int amsysfs_get_sysfs_int(const char *path) {
             val = strtol(bcmd, NULL, 10);
         }
 #else
-        ALOGW("[%s] %s failed!",__FUNCTION__,path);
+        MLOGW("[%s] %s failed!",__FUNCTION__,path);
 #endif
     }
     return val;
@@ -136,7 +138,7 @@ int amsysfs_set_sysfs_int16(const char *path, int val) {
         sprintf(bcmd, "0x%x", val);
         return amSystemWriteWriteSysfs(path, bcmd);
 #else
-        ALOGW("[%s] %s failed!",__FUNCTION__,path);
+        MLOGW("[%s] %s failed!",__FUNCTION__,path);
         return -1;
 #endif
     }
@@ -157,7 +159,7 @@ int amsysfs_get_sysfs_int16(const char *path) {
             val = strtol(bcmd, NULL, 16);
         }
 #else
-        ALOGW("[%s] %s failed!",__FUNCTION__,path);
+        MLOGW("[%s] %s failed!",__FUNCTION__,path);
 #endif
 
     }
@@ -178,7 +180,7 @@ unsigned long amsysfs_get_sysfs_ulong(const char *path) {
             num = strtoul(bcmd, NULL, 0);
         }
 #else
-        ALOGW("[%s] %s failed!",__FUNCTION__,path);
+        MLOGW("[%s] %s failed!",__FUNCTION__,path);
 #endif
 
     }

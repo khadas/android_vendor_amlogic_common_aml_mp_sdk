@@ -14,6 +14,8 @@
 #include <utils/AmlMpHandle.h>
 #include <utils/AmlMpUtils.h>
 
+static const char* mName = LOG_TAG;
+
 using namespace aml_mp;
 //using namespace android;
 

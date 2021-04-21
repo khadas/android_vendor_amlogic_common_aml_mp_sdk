@@ -16,7 +16,7 @@
 
 //#define LOG_NDEBUG 0
 #define LOG_TAG "AmlMpEventLooperRoster"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include <string>
 #include <unistd.h>
 
@@ -25,6 +25,8 @@
 //#include "ADebug.h"
 #include "AmlMpEventHandler.h"
 #include "AmlMpMessage.h"
+
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 
@@ -39,7 +41,7 @@ AmlMpEventLooper::handler_id AmlMpEventLooperRoster::registerHandler(
     std::lock_guard<std::mutex> autoLock(mLock);
 
     if (handler->id() != 0) {
-        ALOGE("A handler must only be registered once.");
+        MLOGE("A handler must only be registered once.");
         return -EINVAL;
     }
 
@@ -85,7 +87,7 @@ void AmlMpEventLooperRoster::unregisterStaleHandlers() {
 
             sptr<AmlMpEventLooper> looper = info.mLooper.promote();
             if (looper == NULL) {
-                ALOGI("Unregistering stale handler:%d", it->first);
+                MLOGI("Unregistering stale handler:%d", it->first);
                 it = mHandlers.erase(it);
             } else {
                 // At this point 'looper' might be the only sp<> keeping

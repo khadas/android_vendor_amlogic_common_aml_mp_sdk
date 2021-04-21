@@ -8,7 +8,7 @@
  */
 
 #define LOG_TAG "AmlMpPlayerDemo_DvbSource"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include <Aml_MP/Common.h>
 #include "DvbSource.h"
 #include <sys/stat.h>
@@ -16,6 +16,8 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 
+
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 
@@ -60,7 +62,7 @@ DvbSource::DvbSource(const char* proto, const char* address, const InputParamete
 , mDeviceType((dmd_device_type_t)0)
 , mDelivery{}
 {
-    ALOGI("proto:%s, address:%s, demuxId:%d, programNumber:%d, sourceId:%d",
+    MLOGI("proto:%s, address:%s, demuxId:%d, programNumber:%d, sourceId:%d",
             proto, address, inputParameter.demuxId, inputParameter.programNumber, inputParameter.sourceId);
 }
 
@@ -72,7 +74,7 @@ DvbSource::~DvbSource()
 int DvbSource::initCheck()
 {
     if (getProtoHandler(mProto.c_str()) == nullptr) {
-        ALOGE("unknown proto:%s", mProto.c_str());
+        MLOGE("unknown proto:%s", mProto.c_str());
         return -1;
     }
 
@@ -80,7 +82,7 @@ int DvbSource::initCheck()
 
     char* address = strdup(mAddress.c_str());
     if (address == nullptr) {
-        ALOGE("dup address failed!");
+        MLOGE("dup address failed!");
         return -1;
     }
 
@@ -102,7 +104,7 @@ int DvbSource::initCheck()
             case 0:
             {
                 double freq = std::stod(token);
-                ALOGI("freq: %.2f", freq);
+                MLOGI("freq: %.2f", freq);
                 mDelivery.delivery.terrestrial.desc.dvbt.frequency = freq * 1000;
                 break;
             }
@@ -110,7 +112,7 @@ int DvbSource::initCheck()
             //bandwidth
             case 1:
             {
-                ALOGI("bandwith:%s", token);
+                MLOGI("bandwith:%s", token);
                 if (strcasecmp(token, "8M") == 0) {
                     mDelivery.delivery.terrestrial.desc.dvbt.bandwidth = DMD_BANDWIDTH_8M;
                 } else if (strcasecmp(token, "7M") == 0) {
@@ -136,7 +138,7 @@ int DvbSource::initCheck()
             case 0:
             {
                 double freq = std::stod(token);
-                ALOGI("freq: %.2f", freq);
+                MLOGI("freq: %.2f", freq);
                 mDelivery.delivery.cable.frequency = freq *1000;
                 break;
             }
@@ -145,7 +147,7 @@ int DvbSource::initCheck()
             case 1:
             {
                 double symbolRate = std::stod(token);
-                ALOGI("symbol rate: %.2f", symbolRate);
+                MLOGI("symbol rate: %.2f", symbolRate);
                 mDelivery.delivery.cable.symbol_rate = symbolRate;
                 break;
             }
@@ -153,7 +155,7 @@ int DvbSource::initCheck()
             //modulation
             case 2:
             {
-                ALOGI("modulation: %s", token);
+                MLOGI("modulation: %s", token);
                 if (strcasecmp(token, "16qam") == 0) {
                     mDelivery.delivery.cable.modulation = DMD_MOD_16QAM;
                 } else if (strcasecmp(token, "32qam") == 0) {
@@ -182,7 +184,7 @@ int DvbSource::initCheck()
 
     int fendIndex = 0;
     if (openFend(fendIndex) < 0) {
-        ALOGE("openFend failed!\n");
+        MLOGE("openFend failed!\n");
         return -1;
     }
 
@@ -194,7 +196,7 @@ int DvbSource::start()
     DvbLockHandler lockHandler = getProtoHandler(mProto.c_str());
     int ret = lockHandler(mFendFd, &mDelivery);
     if (ret < 0) {
-        ALOGE("dvb lock (%s) failed!", mProto.c_str());
+        MLOGE("dvb lock (%s) failed!", mProto.c_str());
         return -1;
     }
 
@@ -207,7 +209,7 @@ int DvbSource::start()
         usleep(10 * 1000);
     }
 
-    ALOGI("start, fendState:%d", fendState);
+    MLOGI("start, fendState:%d", fendState);
     if (fendState != FEND_STATE_LOCKED) {
         return -1;
     }
@@ -235,17 +237,17 @@ int DvbSource::openFend(int fendIndex)
 
    snprintf(fe_name, sizeof(fe_name), "/dev/dvb0.frontend%u", fendIndex);
    if (stat(fe_name, &file_status) == 0) {
-       ALOGE("Found FE[%s]\n", fe_name);
+       MLOGE("Found FE[%s]\n", fe_name);
    } else {
-       ALOGE("No FE found [%s]!", fe_name);
+       MLOGE("No FE found [%s]!", fe_name);
 	   return -1;
    }
 
    if ((mFendFd = open(fe_name, O_RDWR | O_NONBLOCK)) < 0) {
-	 ALOGE("Failed to open [%s], errno %d\n", fe_name, errno);
+	 MLOGE("Failed to open [%s], errno %d\n", fe_name, errno);
       return -1;
    } else {
-      ALOGE("Open %s frontend_fd:%d \n", fe_name, mFendFd);
+      MLOGE("Open %s frontend_fd:%d \n", fe_name, mFendFd);
    }
 
    return 0;
@@ -253,7 +255,7 @@ int DvbSource::openFend(int fendIndex)
 
 void DvbSource::closeFend()
 {
-    ALOGI("closeFend! mFendFd:%d", mFendFd);
+    MLOGI("closeFend! mFendFd:%d", mFendFd);
 
     if (mFendFd < 0)
         return;
@@ -282,7 +284,7 @@ DvbSource::FendLockState DvbSource::queryFendLockState() const
         return FEND_STATE_ERROR;
     }
 
-    ALOGI("current tuner status=0x%02x \n", feStatus);
+    MLOGI("current tuner status=0x%02x \n", feStatus);
    if ((feStatus& FE_HAS_LOCK) != 0) {
        printf("current tuner status [locked]\n");
        return FEND_STATE_LOCKED;
@@ -345,7 +347,7 @@ static int setFendProp(int fendFd, const struct dtv_properties *prop)
 
 static int lockDvb_T(int fendFd, const dmd_delivery_t * pDelivery)
 {
-    ALOGI("%s", __FUNCTION__);
+    MLOGI("%s", __FUNCTION__);
 
    int tmp = 0;
    int cmd_num = 0;
@@ -443,7 +445,7 @@ static int lockDvb_T(int fendFd, const dmd_delivery_t * pDelivery)
 
 static int lockDvb_C(int fendFd, const dmd_delivery_t * pDelivery)
 {
-    ALOGI("%s", __FUNCTION__);
+    MLOGI("%s", __FUNCTION__);
 
    int tmp = 0;
    int cmd_num = 0;

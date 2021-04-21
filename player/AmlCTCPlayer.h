@@ -70,6 +70,7 @@ public:
 
 
 private:
+    char mName[50];
     aml::CTC_MediaProcessor* mCtcPlayer = nullptr;
     void eventCtcCallback(aml::IPTV_PLAYER_EVT_E event, uint32_t param1, uint32_t param2);
     Ctc_Player_Stat mPlayerStat = CTC_STAT_ASTOP_VSTOP;

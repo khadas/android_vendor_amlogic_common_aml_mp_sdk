@@ -8,7 +8,7 @@
  */
 
 #define LOG_TAG "AmlMpPlayerDemo_AmlSwDemux"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include "AmlSwDemux.h"
 #include <utils/AmlMpUtils.h>
 #include <map>
@@ -23,13 +23,14 @@
 #include <inttypes.h>
 #include <Aml_MP/Aml_MP.h>
 
+static const char* mName = LOG_TAG;
+
 namespace aml_mp {
 
 #define ERROR_SIZE (-1)
 #define ERROR_CRC  (-2)
 #define MY_LOGV(x, y) \
-    do { unsigned tmp = y; ALOGV(x, tmp); } while (0)
-#define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+    do { unsigned tmp = y; MLOGV(x, tmp); } while (0)
 
 const size_t kTSPacketSize = 188;
 
@@ -148,7 +149,7 @@ AmlSwDemux::~AmlSwDemux()
 int AmlSwDemux::open(bool isHardwareSource, Aml_MP_DemuxId demuxId)
 {
     if (isHardwareSource) {
-        ALOGE("swdemux don't support hw source!!!");
+        MLOGE("swdemux don't support hw source!!!");
         return -1;
     }
 
@@ -185,7 +186,7 @@ int AmlSwDemux::start()
         mLooper->setName("swDemux");
         mLooper->registerHandler(mHandler);
         int ret = mLooper->start();
-        ALOGI("start swDemux looper, ret = %d", ret);
+        MLOGI("start swDemux looper, ret = %d", ret);
     }
 
     return 0;
@@ -267,7 +268,7 @@ void AmlSwDemux::onMessageReceived(const sptr<AmlMpMessage>& msg)
         CHECK(msg->findBuffer("buffer", &data));
         CHECK(msg->findInt32("generation", &generation));
         if (generation != mBufferGeneration) {
-            ALOGW("kWhatFeedData break, %d %d", generation, mBufferGeneration.load());
+            MLOGW("kWhatFeedData break, %d %d", generation, mBufferGeneration.load());
             break;
         }
 
@@ -329,7 +330,7 @@ void AmlSwDemux::onFeedData(const sptr<AmlMpBuffer>& entry)
             err = mTsParser->feedTs(mRemainingBytesBuffer->data(), kTSPacketSize);
             if (err != 0) {
                 const uint8_t* p = mRemainingBytesBuffer->data();
-                ALOGI("%d %lld, feedTSPacket err:%d, %#x, %#x, %#x, %#x, %#x", __LINE__, mOutBufferCount.load(), err,
+                MLOGI("%d %lld, feedTSPacket err:%d, %#x, %#x, %#x, %#x, %#x", __LINE__, mOutBufferCount.load(), err,
                         p[0], p[1], p[2], p[3], p[4]);
             }
             mRemainingBytesBuffer->setRange(0, 0);
@@ -342,30 +343,30 @@ void AmlSwDemux::onFeedData(const sptr<AmlMpBuffer>& entry)
                 memcpy(mRemainingBytesBuffer->data(), entry->data(), entry->size());
                 mRemainingBytesBuffer->setRange(mRemainingBytesBuffer->offset(), mRemainingBytesBuffer->size() + entry->size());
             } else {
-                ALOGW("left data doesn't start with 0x47, discard it!");
+                MLOGW("left data doesn't start with 0x47, discard it!");
             }
             break;
         }
 
         if (*entry->data() != 0x47) {
-            ALOGV("mOutBufferCount:%lld, entry start bytes:%#x, offset:%d, size:%d",
+            MLOGV("mOutBufferCount:%lld, entry start bytes:%#x, offset:%d, size:%d",
                   mOutBufferCount.load(), *entry->data(), entry->offset(), entry->size());
             const uint8_t* p = entry->data();
-            ALOGV("entry bytes: %#x %#x %#x %#x %#x", p[0], p[1], p[2], p[3], p[4]);
+            MLOGV("entry bytes: %#x %#x %#x %#x %#x", p[0], p[1], p[2], p[3], p[4]);
 
             err = resync(entry);
             if (err < 0) {
-                ALOGE("resync ts buffer failed! %d, size:%zu", err, entry->size());
+                MLOGE("resync ts buffer failed! %d, size:%zu", err, entry->size());
                 return;
             } else {
-                ALOGV("resync add offset:%d", err);
+                MLOGV("resync add offset:%d", err);
                 continue;
             }
         }
 
         err = mTsParser->feedTs(entry->data(), kTSPacketSize);
         if (err != 0) {
-            ALOGE("%d feedTSPacket failed, err:%d", __LINE__, err);
+            MLOGE("%d feedTSPacket failed, err:%d", __LINE__, err);
         }
         entry->setRange(entry->offset() + kTSPacketSize, entry->size() - kTSPacketSize);
     }
@@ -390,7 +391,7 @@ int AmlSwDemux::resync(const sptr<AmlMpBuffer>& buffer)
         if (offset + kTSPacketSize < size) {
             if (p[offset + kTSPacketSize] != 0x47) {
                 ++offset;
-                ALOGV("next ts packet header check failed, try sync again...");
+                MLOGV("next ts packet header check failed, try sync again...");
                 continue;
             }
         }
@@ -421,7 +422,7 @@ void AmlSwDemux::onFlush()
 void AmlSwDemux::onAddFilterPid(int pid, bool checkCRC)
 {
     if (mTsParser != nullptr) {
-        ALOGI("add section pid:%d(%#x)", pid, pid);
+        MLOGI("add section pid:%d(%#x)", pid, pid);
         mTsParser->addPSISection(pid, checkCRC);
     }
 }
@@ -429,7 +430,7 @@ void AmlSwDemux::onAddFilterPid(int pid, bool checkCRC)
 void AmlSwDemux::onRemoveFilterPid(int pid)
 {
     if (mTsParser != nullptr) {
-        ALOGI("remove section pid:%d(%#x)", pid, pid);
+        MLOGI("remove section pid:%d(%#x)", pid, pid);
         mTsParser->removePSISection(pid);
     }
 }
@@ -526,7 +527,7 @@ int SwTsParser::addPSISection(int pid, bool checkCRC)
         return -1;
 
     if (mPSISections.find(pid) == mPSISections.end()) {
-        ALOGW("add section pid:%d(%#x)", pid, pid);
+        MLOGW("add section pid:%d(%#x)", pid, pid);
         mPSISections.emplace(pid, new PSISection(pid, this));
     }
 
@@ -547,7 +548,7 @@ void SwTsParser::removePSISection(int pid)
         return;
     }
 
-    ALOGW("remove section pid:%d(%#x)", pid, pid);
+    MLOGW("remove section pid:%d(%#x)", pid, pid);
     mPSISections.erase(pid);
 }
 
@@ -559,7 +560,7 @@ void SwTsParser::parseAdaptationField(AmlMpBitReader *br, unsigned PID)
         unsigned discontinuity_indicator = br->getBits(1);
 
         if (discontinuity_indicator) {
-            ALOGV("PID 0x%04x: discontinuity_indicator = 1 (!!!)", PID);
+            MLOGV("PID 0x%04x: discontinuity_indicator = 1 (!!!)", PID);
         }
 
         br->skipBits(2);
@@ -585,7 +586,7 @@ void SwTsParser::parseAdaptationField(AmlMpBitReader *br, unsigned PID)
 
             int64_t PCR = PCR_base * 300 + PCR_ext;
 
-            ALOGV("PID 0x%04x: PCR = 0x%016" PRIx64 " (%.2f)",
+            MLOGV("PID 0x%04x: PCR = 0x%016" PRIx64 " (%.2f)",
                   PID, PCR, PCR / 27E6);
 
             // The number of bytes received by this parser up to and
@@ -608,11 +609,11 @@ void SwTsParser::parseAdaptationField(AmlMpBitReader *br, unsigned PID)
 
 int SwTsParser::parseTS(AmlMpBitReader *br)
 {
-    ALOGV("---");
+    MLOGV("---");
 
     unsigned sync_byte = br->getBits(8);
     if (sync_byte != 0x47u) {
-        ALOGE("[error] parseTS: return error as sync_byte=0x%x", sync_byte);
+        MLOGE("[error] parseTS: return error as sync_byte=0x%x", sync_byte);
         return -EINVAL;
     }
 
@@ -622,22 +623,22 @@ int SwTsParser::parseTS(AmlMpBitReader *br)
     }
 
     unsigned payload_unit_start_indicator = br->getBits(1);
-    ALOGV("payload_unit_start_indicator = %u", payload_unit_start_indicator);
+    MLOGV("payload_unit_start_indicator = %u", payload_unit_start_indicator);
 
     MY_LOGV("transport_priority = %u", br->getBits(1));
 
     unsigned PID = br->getBits(13);
-    ALOGV("PID = 0x%04x", PID);
+    MLOGV("PID = 0x%04x", PID);
 
     MY_LOGV("transport_scrambling_control = %u", br->getBits(2));
 
     unsigned adaptation_field_control = br->getBits(2);
-    ALOGV("adaptation_field_control = %u", adaptation_field_control);
+    MLOGV("adaptation_field_control = %u", adaptation_field_control);
 
     unsigned continuity_counter = br->getBits(4);
-    ALOGV("PID = 0x%04x, continuity_counter = %u", PID, continuity_counter);
+    MLOGV("PID = 0x%04x, continuity_counter = %u", PID, continuity_counter);
 
-    // ALOGI("PID = 0x%04x, continuity_counter = %u", PID, continuity_counter);
+    // MLOGI("PID = 0x%04x, continuity_counter = %u", PID, continuity_counter);
 
     if (adaptation_field_control == 2 || adaptation_field_control == 3) {
         parseAdaptationField(br, PID);
@@ -658,13 +659,13 @@ int SwTsParser::parseTS(AmlMpBitReader *br)
 void SwTsParser::parseProgramAssociationTable(AmlMpBitReader *br)
 {
     unsigned table_id = br->getBits(8);
-    ALOGV("  table_id = %u", table_id);
+    MLOGV("  table_id = %u", table_id);
     if (table_id != 0x00u) {
-        ALOGE("PAT data error!");
+        MLOGE("PAT data error!");
         return ;
     }
     unsigned section_syntax_indictor = br->getBits(1);
-    ALOGV("  section_syntax_indictor = %u", section_syntax_indictor);
+    MLOGV("  section_syntax_indictor = %u", section_syntax_indictor);
     //CHECK_EQ(section_syntax_indictor, 1u);
 
     //CHECK_EQ(br->getBits(1), 0u);
@@ -672,7 +673,7 @@ void SwTsParser::parseProgramAssociationTable(AmlMpBitReader *br)
     MY_LOGV("  reserved = %u", br->getBits(2));
 
     unsigned section_length = br->getBits(12);
-    ALOGV("  section_length = %u", section_length);
+    MLOGV("  section_length = %u", section_length);
     //CHECK_EQ(section_length & 0xc00, 0u);
 
     MY_LOGV("  transport_stream_id = %u", br->getBits(16));
@@ -687,7 +688,7 @@ void SwTsParser::parseProgramAssociationTable(AmlMpBitReader *br)
 
     for (size_t i = 0; i < numProgramBytes / 4; ++i) {
         unsigned program_number = br->getBits(16);
-        ALOGV("    program_number = %u", program_number);
+        MLOGV("    program_number = %u", program_number);
 
         MY_LOGV("    reserved = %u", br->getBits(3));
 
@@ -696,10 +697,10 @@ void SwTsParser::parseProgramAssociationTable(AmlMpBitReader *br)
         } else {
             unsigned programMapPID = br->getBits(13);
 
-            ALOGV("    program_map_PID = 0x%04x, %d", programMapPID, programMapPID);
+            MLOGV("    program_map_PID = 0x%04x, %d", programMapPID, programMapPID);
 
             if (mProgramMapPID == 0x1FFF) {
-                ALOGE("first update programMapPID:%d", programMapPID);
+                MLOGE("first update programMapPID:%d", programMapPID);
             }
             mProgramMapPID = programMapPID;
 
@@ -738,7 +739,7 @@ int SwTsParser::parsePID(
         sptr<PSISection> section = mPSISections.at(PID);
 
         if (!section->parse(PID, continuity_counter, payload_unit_start_indicator, br)) {
-            ALOGW("pre parse failed!!!! PID = %d", PID);
+            MLOGW("pre parse failed!!!! PID = %d", PID);
             return 0;
         }
 
@@ -746,7 +747,7 @@ int SwTsParser::parsePID(
         int err = section->append(br->data(), br->numBitsLeft() / 8);
 
         if (err != 0) {
-            ALOGW("section append data %d size failed!", br->numBitsLeft()/8);
+            MLOGW("section append data %d size failed!", br->numBitsLeft()/8);
             return err;
         }
 
@@ -765,21 +766,21 @@ int SwTsParser::parsePID(
         if (err != 0) {
             notifyListener = false;
 
-            ALOGE("parse failed:%d, section pid:%d, buffer size:%d, section length:%d", err, PID,
+            MLOGE("parse failed:%d, section pid:%d, buffer size:%d, section length:%d", err, PID,
                     section->size(), section->sectionLength());
 #if 0
             //
-            ALOGE("Dump data:");
+            MLOGE("Dump data:");
             hexdump(section->data(), std::min(section->size(), (size_t)184));
 
             char path[50];
             sprintf(path, "/data/crc_err_%d.bin", PID);
             int fd = ::open(path, O_RDONLY);
             if (fd < 0) {
-                ALOGI("dump to %s", path);
+                MLOGI("dump to %s", path);
                 FILE* fp = fopen(path, "w");
                 if (fp == NULL) {
-                    ALOGE("open %s failed!", path);
+                    MLOGE("open %s failed!", path);
                 } else {
                     fwrite(section->data(), 1, section->size(), fp);
                     fclose(fp);
@@ -793,12 +794,12 @@ int SwTsParser::parsePID(
 #if 0
             if (err == ERROR_CRC) {
                 notifyListener = true;
-                ALOGW("crc error ignored!");
+                MLOGW("crc error ignored!");
             }
 #endif
 
         } else {
-            ALOGV("section pid:%d, set range:%d", PID, section->sectionLength());
+            MLOGV("section pid:%d, set range:%d", PID, section->sectionLength());
             //section->setRange(0, section->sectionLength());
         }
 
@@ -867,7 +868,7 @@ int SwTsParser::parsePID(
     }
 
     if (!handled) {
-        ALOGV("PID 0x%04x not handled.", PID);
+        MLOGV("PID 0x%04x not handled.", PID);
     }
 #endif
 
@@ -928,7 +929,7 @@ bool SwTsParser::PSISection::isComplete() const {
 
     unsigned sectionLength = U16_AT(mBuffer->data() + 1) & 0xfff;
     if (sectionLength > 4093) {
-        ALOGE("section size error:%d", sectionLength);
+        MLOGE("section size error:%d", sectionLength);
         return true;
     }
 
@@ -950,7 +951,7 @@ size_t SwTsParser::PSISection::size() const {
 void SwTsParser::PSISection::setRange(size_t offset, size_t length)
 {
     if (mBuffer == nullptr || mBuffer->capacity() < length) {
-        ALOGE("section setRange failed! length:%d", length);
+        MLOGE("section setRange failed! length:%d", length);
         return;
     }
 
@@ -992,7 +993,7 @@ bool SwTsParser::PSISection::parse(int PID, unsigned continuity_counter,
     (void)continuity_counter;
 #if 0
     if (mExpectedContinuityCounter >= 0 && (unsigned)mExpectedContinuityCounter != continuity_counter) {
-        ALOGW("section discontinuity on stream pid 0x%04x(%d)", PID, PID);
+        MLOGW("section discontinuity on stream pid 0x%04x(%d)", PID, PID);
 
         mPayloadStarted = false;
         mBuffer->setRange(0, 0);
@@ -1011,13 +1012,13 @@ bool SwTsParser::PSISection::parse(int PID, unsigned continuity_counter,
         // of a section packet that we never saw the start of and assuming
         // we have a a complete section packet.
         if (!isEmpty()) {
-            ALOGW("parsePID encounters payload_unit_start_indicator when section is not empty");
+            MLOGW("parsePID encounters payload_unit_start_indicator when section is not empty");
             clear();
         }
 
         unsigned skip = br->getBits(8);
         if (skip > 0) {
-            ALOGW("skip %d bytes!", skip);
+            MLOGW("skip %d bytes!", skip);
         }
         br->skipBits(skip * 8);
 
@@ -1034,22 +1035,24 @@ bool SwTsParser::PSISection::parse(int PID, unsigned continuity_counter,
 int SwTsParser::PSISection::parseSection(AmlMpBitReader* br)
 {
     unsigned table_id = br->getBits(8);
-    ALOGV("  table_id = %u", table_id);
+    MLOGV("  table_id = %u", table_id);
 
     unsigned section_syntax_indicator = br->getBits(1);
-    ALOGV("  section_syntax_indicator = %u", section_syntax_indicator);
+    MLOGV("  section_syntax_indicator = %u", section_syntax_indicator);
 
     unsigned private_indicator =  br->getBits(1);
 
     if ((section_syntax_indicator ^ private_indicator) != 1) {
-        ALOGW_IF(!mGuessed, "HAVE DSM-CC data!!!");
+        if (!mGuessed) {
+            MLOGW("HAVE DSM-CC data!!!");
+        }
         mGuessed = true;
     }
 
     MY_LOGV("  reserved = %u", br->getBits(2));
 
     unsigned section_length = br->getBits(12);
-    ALOGV("  section_length = %u", section_length);
+    MLOGV("  section_length = %u", section_length);
     //CHECK_EQ(section_length & 0xc00, 0u);
     //CHECK_LE(section_length, 4093u);
     if (section_length > 4093) {
@@ -1071,11 +1074,11 @@ int SwTsParser::PSISection::parseSection(AmlMpBitReader* br)
             if (index == mSectionVersions.end()) {
                 mChanged = true;
                 mSectionVersions.emplace(sectionNumber, versionNumber);
-                ALOGE("section FIRST changed, PID:%d, sectionNumber:%d, versionNumber:%d", mPid, sectionNumber, versionNumber);
+                MLOGE("section FIRST changed, PID:%d, sectionNumber:%d, versionNumber:%d", mPid, sectionNumber, versionNumber);
             } else {
                 int &lastVersionNumber = mSectionVersions.at(sectionNumber);
                 if (lastVersionNumber != versionNumber) {
-                    ALOGE("section changed, PID:%d, sectionNumber:%d, versionNumber:%d, lastVersionNumber:%d", mPid, sectionNumber, versionNumber, lastVersionNumber);
+                    MLOGE("section changed, PID:%d, sectionNumber:%d, versionNumber:%d, lastVersionNumber:%d", mPid, sectionNumber, versionNumber, lastVersionNumber);
                     mChanged = true;
                     lastVersionNumber = versionNumber;
                 }
@@ -1084,7 +1087,7 @@ int SwTsParser::PSISection::parseSection(AmlMpBitReader* br)
 
         uint32_t crc = mTsParser->crc32(mBuffer->data(), section_length + 3);
         if (crc != 0) {
-            ALOGE("crc error: %#x", crc);
+            MLOGE("crc error: %#x", crc);
             return ERROR_CRC;
         }
     }

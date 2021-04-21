@@ -8,14 +8,14 @@
  */
 
 #define LOG_TAG "TestUrlList"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include "TestUrlList.h"
 #include <dirent.h>
 #include <unistd.h>
 #include <json/json.h>
 #include <fstream>
 
-#define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 TestUrlList::TestUrlList()
@@ -27,7 +27,7 @@ bool TestUrlList::getUrls(const std::string& testName, std::list<std::string>* r
 {
     if (results == nullptr) return false;
 
-    ALOGI("mUrlInfos size = %d, mSourceDir:%s\n", mUrlInfos.size(), mSourceDir.c_str());
+    MLOGI("mUrlInfos size = %d, mSourceDir:%s\n", mUrlInfos.size(), mSourceDir.c_str());
     bool found = false;
     for (auto& p : mUrlInfos) {
         if (p.testNames.empty() || (p.testNames.find(testName) != p.testNames.end())) {

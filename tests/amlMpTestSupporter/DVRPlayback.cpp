@@ -8,10 +8,10 @@
  */
 
 #define LOG_TAG "AmlMpPlayerDemo_DVRPlayback"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include "DVRPlayback.h"
 
-#define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 DVRPlayback::DVRPlayback(const std::string& url, bool cryptoMode, Aml_MP_DemuxId demuxId)
@@ -29,7 +29,7 @@ DVRPlayback::DVRPlayback(const std::string& url, bool cryptoMode, Aml_MP_DemuxId
     createParams.basicParams.isTimeShift = false;
     createParams.basicParams.drmMode = AML_MP_INPUT_STREAM_NORMAL;
 
-    ALOGI("mCryptoMode:%d", mCryptoMode);
+    MLOGI("mCryptoMode:%d", mCryptoMode);
     if (mCryptoMode) {
         if (initDVRDecryptPlayback(createParams.decryptParams) >= 0) {
             createParams.basicParams.blockSize = 256 * 1024;
@@ -39,7 +39,7 @@ DVRPlayback::DVRPlayback(const std::string& url, bool cryptoMode, Aml_MP_DemuxId
 
     int ret = Aml_MP_DVRPlayer_Create(&createParams, &mPlayer);
     if (ret < 0) {
-        ALOGE("create dvr player failed!");
+        MLOGE("create dvr player failed!");
         return;
     }
 }
@@ -53,7 +53,7 @@ DVRPlayback::~DVRPlayback()
         mPlayer = AML_MP_INVALID_HANDLE;
     }
 
-    ALOGI("dtor dvr playback end!");
+    MLOGI("dtor dvr playback end!");
 }
 
 void DVRPlayback::setANativeWindow(const android::sp<ANativeWindow>& window)
@@ -78,13 +78,13 @@ int DVRPlayback::start()
     Aml_MP_DVRSegmentInfo segmentInfo;
     int ret = Aml_MP_DVRRecorder_GetSegmentList(mUrl.c_str(), &segments, &pSegmentIds);
     if (ret < 0) {
-        ALOGE("getSegmentList for %s failed with %d", mUrl.c_str(), ret);
+        MLOGE("getSegmentList for %s failed with %d", mUrl.c_str(), ret);
         return -1;
     }
 
     ret = Aml_MP_DVRRecorder_GetSegmentInfo(mUrl.c_str(), pSegmentIds[segmentIndex], &segmentInfo);
     if (ret < 0) {
-        ALOGE("getSegmentInfo failed with %d", ret);
+        MLOGE("getSegmentInfo failed with %d", ret);
         goto exit;
     }
 
@@ -111,13 +111,13 @@ int DVRPlayback::start()
 
     ret = Aml_MP_DVRPlayer_SetStreams(mPlayer, &streams);
     if (ret < 0) {
-        ALOGE("dvr player set streams failed with %d", ret);
+        MLOGE("dvr player set streams failed with %d", ret);
         goto exit;
     }
 
     ret = Aml_MP_DVRPlayer_Start(mPlayer, false);
     if (ret < 0) {
-        ALOGE("dvr player start failed with %d", ret);
+        MLOGE("dvr player start failed with %d", ret);
         goto exit;
     }
 
@@ -166,7 +166,7 @@ std::string DVRPlayback::stripUrlIfNeeded(const std::string& url) const
         //result.erase(it);
     //}
 
-    ALOGI("result str:%s", result.c_str());
+    MLOGI("result str:%s", result.c_str());
     return result;
 }
 
@@ -178,7 +178,7 @@ int DVRPlayback::initDVRDecryptPlayback(Aml_MP_DVRPlayerDecryptParams& decryptPa
 
     int ret = Aml_MP_CAS_OpenSession(&mCasSession, AML_MP_CAS_SERVICE_PVR_PLAY);
     if (ret < 0) {
-        ALOGE("openSession failed! ret:%d", ret);
+        MLOGE("openSession failed! ret:%d", ret);
         return ret;
     }
 
@@ -187,7 +187,7 @@ int DVRPlayback::initDVRDecryptPlayback(Aml_MP_DVRPlayerDecryptParams& decryptPa
 
     ret = Aml_MP_CAS_StartDVRReplay(mCasSession, &params);
     if (ret < 0) {
-        ALOGE("start dvr replay failed with %d", ret);
+        MLOGE("start dvr replay failed with %d", ret);
         return ret;
     }
 
@@ -201,7 +201,7 @@ int DVRPlayback::initDVRDecryptPlayback(Aml_MP_DVRPlayerDecryptParams& decryptPa
     uint32_t secBufSize;
     mSecMem = Aml_MP_CAS_CreateSecmem(mCasSession, AML_MP_CAS_SERVICE_PVR_PLAY, (void**)&secBuf, &secBufSize);
     if (mSecMem == nullptr) {
-        ALOGE("create secMem failed");
+        MLOGE("create secMem failed");
         return -1;
     }
 
@@ -231,7 +231,7 @@ int DVRPlayback::uninitDVRDecryptPlayback()
 
 void DVRPlayback::signalQuit()
 {
-    ALOGI("signalQuit!");
+    MLOGI("signalQuit!");
 }
 
 ///////////////////////////////////////////////////////////////////////////////

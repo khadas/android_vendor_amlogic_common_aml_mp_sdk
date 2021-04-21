@@ -8,7 +8,7 @@
  */
 
 #define LOG_TAG "AmlMpPlayerTest"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include <gtest/gtest.h>
 #include "TestUrlList.h"
 #include <AmlMpTestSupporter.h>
@@ -17,13 +17,15 @@
 
 using namespace aml_mp;
 
+static const char* mName = LOG_TAG;
+
 static const int kWaitFirstVfameTimeOutMs = 2 * 1000ll;
 static const int kWaitPlayingErrorsMs = 5 * 1000ll;
 
 struct AmlMpPlayerTest : public testing::Test
 {
     void SetUp() override {
-        ALOGI("SetUp");
+        MLOGI("SetUp");
 
     }
 
@@ -55,7 +57,7 @@ protected:
 
 void AmlMpPlayerTest::startPlaying(const std::string& url)
 {
-    ALOGI("url:%s", url.c_str());
+    MLOGI("url:%s", url.c_str());
 
     mpTestSupporter = new AmlMpTestSupporter;
     mpTestSupporter->registerEventCallback([](void* userData, Aml_MP_PlayerEventType event, int64_t param) {

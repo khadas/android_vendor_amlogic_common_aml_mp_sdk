@@ -87,7 +87,7 @@ int AmlMpPlayerImpl::registerEventCallback(Aml_MP_PlayerEventCallback cb, void* 
     {
         std::unique_lock<std::mutex> _l(mLock);
         if (mState != STATE_IDLE) {
-            ALOGW("can't registerEventCallback now!");
+            MLOGW("can't registerEventCallback now!");
             return -1;
         }
     }
@@ -105,7 +105,7 @@ int AmlMpPlayerImpl::setVideoParams(const Aml_MP_VideoParams* params)
     std::unique_lock<std::mutex> _l(mLock);
 
     if (getStreamState_l(AML_MP_STREAM_TYPE_VIDEO) != STREAM_STATE_STOPPED) {
-        ALOGE("video started already!");
+        MLOGE("video started already!");
         return -1;
     }
 
@@ -117,7 +117,7 @@ int AmlMpPlayerImpl::setVideoParams(const Aml_MP_VideoParams* params)
     memcpy(mVideoParams.extraData, params->extraData, sizeof(mVideoParams.extraData));
     mVideoParams.extraDataSize = params->extraDataSize;
 
-    ALOGI("setVideoParams vpid:%d, fmt:%d", params->pid, params->videoCodec);
+    MLOGI("setVideoParams vpid:%d, fmt:%d", params->pid, params->videoCodec);
 
     return 0;
 }
@@ -128,7 +128,7 @@ int AmlMpPlayerImpl::setAudioParams(const Aml_MP_AudioParams* params)
     std::unique_lock<std::mutex> _l(mLock);
 
     if (getStreamState_l(AML_MP_STREAM_TYPE_AUDIO) != STREAM_STATE_STOPPED) {
-        ALOGE("audio started already!");
+        MLOGE("audio started already!");
         return -1;
     }
 
@@ -139,7 +139,7 @@ int AmlMpPlayerImpl::setAudioParams(const Aml_MP_AudioParams* params)
     memcpy(mAudioParams.extraData, params->extraData, sizeof(mAudioParams.extraData));
     mAudioParams.extraDataSize = params->extraDataSize;
 
-    ALOGI("setAudioParams apid:%d, fmt:%d", params->pid, params->audioCodec);
+    MLOGI("setAudioParams apid:%d, fmt:%d", params->pid, params->audioCodec);
 
     return 0;
 }
@@ -150,13 +150,13 @@ int AmlMpPlayerImpl::setSubtitleParams(const Aml_MP_SubtitleParams* params)
     std::unique_lock<std::mutex> _l(mLock);
 
     if (getStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE) != STREAM_STATE_STOPPED) {
-        ALOGE("subtitle started already!");
+        MLOGE("subtitle started already!");
         return -1;
     }
 
     memcpy(&mSubtitleParams, params, sizeof(Aml_MP_SubtitleParams));
 
-    ALOGI("setSubtitleParams spid:%d, fmt:%d", params->pid, params->subtitleCodec);
+    MLOGI("setSubtitleParams spid:%d, fmt:%d", params->pid, params->subtitleCodec);
     return 0;
 }
 
@@ -179,7 +179,7 @@ int AmlMpPlayerImpl::start()
 
     if (mState == STATE_IDLE) {
         if (prepare_l() < 0) {
-            ALOGE("prepare failed!");
+            MLOGE("prepare failed!");
             return -1;
         }
     }
@@ -207,7 +207,7 @@ int AmlMpPlayerImpl::start()
     setParams_l();
     int ret = mPlayer->start();
     if (ret < 0) {
-        ALOGE("%s failed!", __FUNCTION__);
+        MLOGE("%s failed!", __FUNCTION__);
     }
 
     setState_l(STATE_RUNNING);
@@ -411,7 +411,7 @@ void AmlMpPlayerImpl::writeDataFromBuffer_l()
         }
     }
     if (mTsBuffer.empty() && mTempBufferSize == 0) {
-        ALOGI("writeData from buffer done");
+        MLOGI("writeData from buffer done");
     }
 }
 
@@ -445,7 +445,7 @@ int AmlMpPlayerImpl::setANativeWindow(ANativeWindow* nativeWindow)
     std::unique_lock<std::mutex> _l(mLock);
 
     mNativeWindow = nativeWindow;
-    ALOGI("setAnativeWindow: %p, mNativewindow: %p", nativeWindow, mNativeWindow.get());
+    MLOGI("setAnativeWindow: %p, mNativewindow: %p", nativeWindow, mNativeWindow.get());
 
     if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         RETURN_IF(-1, mPlayer == nullptr);
@@ -463,12 +463,12 @@ int AmlMpPlayerImpl::setVideoWindow(int x, int y, int width, int height)
     std::unique_lock<std::mutex> _l(mLock);
 
     if (width < 0 || height < 0) {
-        ALOGI("Invalid windowsize: %dx%d, return fail", width, height);
+        MLOGI("Invalid windowsize: %dx%d, return fail", width, height);
         return -1;
     }
 #ifndef __ANDROID_VNDK__
     if (mNativeWindow == nullptr) {
-        ALOGI("Nativewindow is null, create it");
+        MLOGI("Nativewindow is null, create it");
         mComposerClient = new android::SurfaceComposerClient;
         mComposerClient->initCheck();
 
@@ -484,7 +484,7 @@ int AmlMpPlayerImpl::setVideoWindow(int x, int y, int width, int height)
     }
 
     if (mSurfaceControl != nullptr) {
-        ALOGI("Set video window size: x %d, y %d, width: %d, height: %d", x, y, width, height);
+        MLOGI("Set video window size: x %d, y %d, width: %d, height: %d", x, y, width, height);
         auto transcation = android::SurfaceComposerClient::Transaction();
         if (x >= 0 && y >= 0) {
             transcation.setPosition(mSurfaceControl, x, y);
@@ -508,7 +508,7 @@ int AmlMpPlayerImpl::setVolume(float volume)
 
     int ret = 0;
     if (volume < 0) {
-        ALOGI("volume is %f, set to 0.0", volume);
+        MLOGI("volume is %f, set to 0.0", volume);
         volume = 0.0;
     }
     mVolume = volume;
@@ -642,14 +642,14 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
     case AML_MP_PLAYER_PARAMETER_WORK_MODE:
     {
         mWorkMode = *(Aml_MP_PlayerWorkMode*)parameter;
-        ALOGI("Set work mode: %d", mWorkMode);
+        MLOGI("Set work mode: %d", mWorkMode);
     }
     break;
 
     case AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER:
     {
         mZorder = *(int*)parameter;
-        ALOGI("Set zorder: %d", mZorder);
+        MLOGI("Set zorder: %d", mZorder);
 
 #ifndef __ANDROID_VNDK__
         if (mSurfaceControl != nullptr) {
@@ -667,7 +667,7 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
     {
         RETURN_IF(-1, parameter == nullptr);
         mCreateParams = *(Aml_MP_PlayerCreateParams *)parameter;
-        ALOGI("Set mCreateParams drmmode:%d", mCreateParams.drmMode);
+        MLOGI("Set mCreateParams drmmode:%d", mCreateParams.drmMode);
         return 0;
     }
     break;
@@ -680,13 +680,13 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
 
     case AML_MP_PLAYER_PARAMETER_SURFACE_HANDLE:
     {
-        ALOGI("set surface handle: %p", parameter);
+        MLOGI("set surface handle: %p", parameter);
         mSurfaceHandle = parameter;
         break;
     }
 
     default:
-        ALOGW("unhandled key:%#x", key);
+        MLOGW("unhandled key:%#x", key);
         break;
     }
 
@@ -742,7 +742,7 @@ int AmlMpPlayerImpl::startVideoDecoding_l()
 
     if (mState == STATE_IDLE) {
         if (prepare_l() < 0) {
-            ALOGE("prepare failed!");
+            MLOGE("prepare failed!");
             return -1;
         }
     }
@@ -755,7 +755,7 @@ int AmlMpPlayerImpl::startVideoDecoding_l()
     setParams_l();
     int ret = mPlayer->startVideoDecoding();
     if (ret < 0) {
-        ALOGE("%s failed!", __FUNCTION__);
+        MLOGE("%s failed!", __FUNCTION__);
         return -1;
     }
 
@@ -804,7 +804,7 @@ int AmlMpPlayerImpl::startAudioDecoding_l()
     MLOG();
     if (mState == STATE_IDLE) {
         if (prepare_l() < 0) {
-            ALOGE("prepare failed!");
+            MLOGE("prepare failed!");
             return -1;
         }
     }
@@ -817,7 +817,7 @@ int AmlMpPlayerImpl::startAudioDecoding_l()
     setParams_l();
     int ret = mPlayer->startAudioDecoding();
     if (ret < 0) {
-        ALOGE("%s failed!", __FUNCTION__);
+        MLOGE("%s failed!", __FUNCTION__);
         return -1;
     }
 
@@ -866,7 +866,7 @@ int AmlMpPlayerImpl::startSubtitleDecoding_l()
 
     if (mState == STATE_IDLE) {
         if (prepare_l() < 0) {
-            ALOGE("prepare failed!");
+            MLOGE("prepare failed!");
             return -1;
         }
     }
@@ -879,7 +879,7 @@ int AmlMpPlayerImpl::startSubtitleDecoding_l()
     setParams_l();
     int ret = mPlayer->startSubtitleDecoding();
     if (ret < 0) {
-        ALOGE("%s failed!", __FUNCTION__);
+        MLOGE("%s failed!", __FUNCTION__);
         return -1;
     }
 
@@ -934,15 +934,15 @@ int AmlMpPlayerImpl::startDescrambling_l()
 {
     AML_MP_TRACE(10);
 
-    ALOGI("encrypted stream!, mCreateParams.sourceType=%d", mCreateParams.sourceType);
+    MLOGI("encrypted stream!, mCreateParams.sourceType=%d", mCreateParams.sourceType);
     if (mCASParams.type == AML_MP_CAS_UNKNOWN) {
-        ALOGE("unknown cas type!");
+        MLOGE("unknown cas type!");
         return -1;
     }
 
     mCasHandle = AmlCasBase::create(&mCASParams, mInstanceId);
     if (mCasHandle == nullptr) {
-        ALOGE("create CAS handle failed!");
+        MLOGE("create CAS handle failed!");
         return -1;
     }
 
@@ -976,7 +976,7 @@ int AmlMpPlayerImpl::setADParams(Aml_MP_AudioParams* params)
     memcpy(mADParams.extraData, params->extraData, sizeof(mADParams.extraData));
     mADParams.extraDataSize = params->extraDataSize;
 
-    ALOGI("setADParams apid:%d, fmt:%d", params->pid, params->audioCodec);
+    MLOGI("setADParams apid:%d, fmt:%d", params->pid, params->audioCodec);
 
     return 0;
 }
@@ -1035,7 +1035,7 @@ std::string AmlMpPlayerImpl::streamStateString(uint32_t streamState)
 void AmlMpPlayerImpl::setState_l(State state)
 {
     if (mState != state) {
-        ALOGI("%s -> %s", stateString(mState), stateString(state));
+        MLOGI("%s -> %s", stateString(mState), stateString(state));
         mState = state;
     }
 }
@@ -1045,7 +1045,7 @@ void AmlMpPlayerImpl::setStreamState_l(Aml_MP_StreamType streamType, int state)
     int offset = streamType * kStreamStateBits;
 
     if (offset > sizeof(mStreamState)*8) {
-        ALOGE("streamType(%d) is overflow!", streamType);
+        MLOGE("streamType(%d) is overflow!", streamType);
         return;
     }
 
@@ -1073,7 +1073,7 @@ int AmlMpPlayerImpl::prepare_l()
     }
 
     if (mPlayer == nullptr) {
-        ALOGE("AmlPlayerBase create failed!");
+        MLOGE("AmlPlayerBase create failed!");
         return -1;
     }
 
@@ -1081,7 +1081,7 @@ int AmlMpPlayerImpl::prepare_l()
         mParser = new Parser(mCreateParams.demuxId, mCreateParams.sourceType == AML_MP_INPUT_SOURCE_TS_DEMOD, true);
     }
 
-    ALOGI("mWorkMode: %d", mWorkMode);
+    MLOGI("mWorkMode: %d", mWorkMode);
     mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_WORK_MODE, &mWorkMode);
 
     mPlayer->registerEventCallback([](void* userData, Aml_MP_PlayerEventType event, int64_t param) {
@@ -1097,7 +1097,7 @@ int AmlMpPlayerImpl::prepare_l()
         mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_SURFACE_HANDLE, mSurfaceHandle);
     }
 
-    ALOGI("mNativeWindow:%p", mNativeWindow.get());
+    MLOGI("mNativeWindow:%p", mNativeWindow.get());
     if (mNativeWindow != nullptr) {
         mPlayer->setANativeWindow(mNativeWindow.get());
     }
@@ -1182,7 +1182,7 @@ void AmlMpPlayerImpl::programEventCallback(Parser::ProgramEventType event, int p
         case Parser::ProgramEventType::EVENT_PROGRAM_PARSED:
         {
             ProgramInfo* programInfo = (ProgramInfo*)data;
-            ALOGI("programEventCallback: program(programNumber=%d,pid=%d) parsed", programInfo->programNumber, programInfo->pmtPid);
+            MLOGI("programEventCallback: program(programNumber=%d,pid=%d) parsed", programInfo->programNumber, programInfo->pmtPid);
             programInfo->debugLog();
 
             std::lock_guard<std::mutex> _l(mLock);
@@ -1212,14 +1212,14 @@ void AmlMpPlayerImpl::programEventCallback(Parser::ProgramEventType event, int p
         case Parser::ProgramEventType::EVENT_AV_PID_CHANGED:
         {
             Aml_MP_PlayerEventPidChangeInfo* info = (Aml_MP_PlayerEventPidChangeInfo*)data;
-            ALOGI("programEventCallback: program(programNumber=%d,pid=%d) pidchangeInfo: oldPid:%d --> newPid:%d",
+            MLOGI("programEventCallback: program(programNumber=%d,pid=%d) pidchangeInfo: oldPid:%d --> newPid:%d",
                 info->programNumber, info->programPid, info->oldStreamPid, info->newStreamPid);
             notifyListener(AML_MP_PLAYER_EVENT_PID_CHANGED, (uint64_t)data);
             break;
         }
         case Parser::ProgramEventType::EVENT_ECM_DATA_PARSED:
         {
-            ALOGI("programEventCallback: ecmData parsed, size:%d", param2);
+            MLOGI("programEventCallback: ecmData parsed, size:%d", param2);
             uint8_t* ecmData = (uint8_t*)data;
             std::string ecmDataStr;
             char hex[3];
@@ -1228,7 +1228,7 @@ void AmlMpPlayerImpl::programEventCallback(Parser::ProgramEventType event, int p
                  ecmDataStr.append(hex);
                  ecmDataStr.append(" ");
             }
-            ALOGI("programEventCallback: ecmData: size:%d, hexStr:%s", param2, ecmDataStr.c_str());
+            MLOGI("programEventCallback: ecmData: size:%d, hexStr:%s", param2, ecmDataStr.c_str());
 
             {
                 std::unique_lock<std::mutex> _l(mLock);
@@ -1275,7 +1275,7 @@ int AmlMpPlayerImpl::resetIfNeeded_l()
         if (mStreamState == 0) {
             setState_l(STATE_STOPPED);
         } else {
-            ALOGI("current streamState:%s", streamStateString(mStreamState).c_str());
+            MLOGI("current streamState:%s", streamStateString(mStreamState).c_str());
         }
     }
 
@@ -1339,7 +1339,7 @@ void AmlMpPlayerImpl::notifyListener(Aml_MP_PlayerEventType eventType, int64_t p
     if (mEventCb) {
         mEventCb(mUserData, eventType, param);
     } else {
-        ALOGW("mEventCb is NULL, eventType:%d, param:%lld", eventType, param);
+        MLOGW("mEventCb is NULL, eventType:%d, param:%lld", eventType, param);
     }
 }
 
@@ -1382,7 +1382,7 @@ int AmlMpPlayerRoster::registerPlayer(void* player)
             mPlayers[i] = player;
             (void)++mPlayerNum;
 
-            //ALOGI("register player id:%d(%p)", i, player);
+            //MLOGI("register player id:%d(%p)", i, player);
             return i;
         }
     }

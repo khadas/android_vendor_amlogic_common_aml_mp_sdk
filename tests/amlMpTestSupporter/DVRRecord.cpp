@@ -8,12 +8,13 @@
  */
 
 #define LOG_TAG "AmlMpPlayerDemo_DVRRecord"
-#include <utils/Log.h>
+#include <utils/AmlMpLog.h>
 #include "DVRRecord.h"
 #include <Aml_MP/Dvr.h>
 #include "TestUtils.h"
 
-#define MLOG(fmt, ...) ALOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+
+static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 DVRRecord::DVRRecord(bool cryptoMode, Aml_MP_DemuxId demuxId, const sptr<ProgramInfo>& programInfo)
@@ -28,7 +29,7 @@ DVRRecord::DVRRecord(bool cryptoMode, Aml_MP_DemuxId demuxId, const sptr<Program
     createParams.basicParams.segmentSize = 100 * 1024 * 1024;
     createParams.basicParams.isTimeShift = false;
 
-    ALOGI("mCryptoMode:%d", mCryptoMode);
+    MLOGI("mCryptoMode:%d", mCryptoMode);
     if (mCryptoMode) {
         initDVREncryptRecord(createParams.encryptParams);
         createParams.basicParams.flags = Aml_MP_DVRRecorderFlag(createParams.basicParams.flags | AML_MP_DVRRECORDER_SCRAMBLED);
@@ -36,7 +37,7 @@ DVRRecord::DVRRecord(bool cryptoMode, Aml_MP_DemuxId demuxId, const sptr<Program
 
     int ret = Aml_MP_DVRRecorder_Create(&createParams, &mRecorder);
     if (ret < 0) {
-        ALOGE("create dvr recorder failed! ret=%d", ret);
+        MLOGE("create dvr recorder failed! ret=%d", ret);
     }
 }
 
@@ -49,7 +50,7 @@ DVRRecord::~DVRRecord()
         mRecorder = AML_MP_INVALID_HANDLE;
     }
 
-    ALOGI("dtor dvr record end!");
+    MLOGI("dtor dvr record end!");
 }
 
 int DVRRecord::start()
@@ -77,13 +78,13 @@ int DVRRecord::start()
 
     int ret = Aml_MP_DVRRecorder_SetStreams(mRecorder, &streams);
     if (ret < 0) {
-        ALOGE("set streams failed with %d", ret);
+        MLOGE("set streams failed with %d", ret);
         return ret;
     }
 
     ret = Aml_MP_DVRRecorder_Start(mRecorder);
     if (ret < 0) {
-        ALOGE("start recorder failed with %d", ret);
+        MLOGE("start recorder failed with %d", ret);
     }
 
     return 0;
@@ -106,7 +107,7 @@ int DVRRecord::stop()
 
 void DVRRecord::signalQuit()
 {
-    ALOGI("signalQuit!");
+    MLOGI("signalQuit!");
 }
 
 int DVRRecord::initDVREncryptRecord(Aml_MP_DVRRecorderEncryptParams& encryptParams)
@@ -117,7 +118,7 @@ int DVRRecord::initDVREncryptRecord(Aml_MP_DVRRecorderEncryptParams& encryptPara
 
     int ret = Aml_MP_CAS_OpenSession(&mCasSession, AML_MP_CAS_SERVICE_PVR_RECORDING);
     if (ret < 0) {
-        ALOGE("openSession failed! ret:%d", ret);
+        MLOGE("openSession failed! ret:%d", ret);
         return ret;
     }
 
@@ -134,7 +135,7 @@ int DVRRecord::initDVREncryptRecord(Aml_MP_DVRRecorderEncryptParams& encryptPara
     casServiceInfo.ca_private_data_len = 0;
     ret = Aml_MP_CAS_StartDVRRecord(mCasSession, &casServiceInfo);
     if (ret < 0) {
-        ALOGE("start DVRRecord failed with %d", ret);
+        MLOGE("start DVRRecord failed with %d", ret);
         return ret;
     }
 
@@ -148,7 +149,7 @@ int DVRRecord::initDVREncryptRecord(Aml_MP_DVRRecorderEncryptParams& encryptPara
     uint32_t secBufSize;
     mSecMem = Aml_MP_CAS_CreateSecmem(mCasSession, AML_MP_CAS_SERVICE_PVR_RECORDING, (void**)&secBuf, &secBufSize);
     if (mSecMem == nullptr) {
-        ALOGE("create secMem failed");
+        MLOGE("create secMem failed");
         return -1;
     }
 

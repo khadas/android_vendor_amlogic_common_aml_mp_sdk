@@ -15,6 +15,8 @@
 #include <vector>
 #include <utils/AmlMpUtils.h>
 
+static const char* mName = LOG_TAG;
+
 namespace aml_mp {
 ///////////////////////////////////////////////////////////////////////////////
 struct StreamType {
@@ -72,18 +74,18 @@ static const struct StreamType* getStreamTypeInfo(int esStreamType, const Stream
 
 void ProgramInfo::debugLog() const
 {
-    ALOGI("ProgramInfo: programNumber=%d, pid=%d", programNumber, pmtPid);
+    MLOGI("ProgramInfo: programNumber=%d, pid=%d", programNumber, pmtPid);
     for (auto it : videoStreams) {
-        ALOGI("ProgramInfo: videoStream: pid:%d, codecId:%d", it.pid, it.codecId);
+        MLOGI("ProgramInfo: videoStream: pid:%d, codecId:%d", it.pid, it.codecId);
     }
     for (auto it : audioStreams) {
-        ALOGI("ProgramInfo: audioStream: pid:%d, codecId:%d", it.pid, it.codecId);
+        MLOGI("ProgramInfo: audioStream: pid:%d, codecId:%d", it.pid, it.codecId);
     }
     for (auto it : subtitleStreams) {
-        ALOGI("ProgramInfo: subtitleStream: pid:%d, codecId:%d", it.pid, it.codecId);
+        MLOGI("ProgramInfo: subtitleStream: pid:%d, codecId:%d", it.pid, it.codecId);
     }
     if(scrambled) {
-        ALOGI("ProgramInfo: is scrambled, caSystemId:0x%04X, ecmPid:0x%04X, privateDataLength:%d", caSystemId, ecmPid[0], privateDataLength);
+        MLOGI("ProgramInfo: is scrambled, caSystemId:0x%04X, ecmPid:0x%04X, privateDataLength:%d", caSystemId, ecmPid[0], privateDataLength);
         std::string privateDataHex;
         char hex[3];
         for(int i = 0; i < privateDataLength; i++){
@@ -91,7 +93,7 @@ void ProgramInfo::debugLog() const
             privateDataHex.append(hex);
             privateDataHex.append(" ");
         }
-        ALOGI("ProgramInfo: privateData: %s", privateDataHex.c_str());
+        MLOGI("ProgramInfo: privateData: %s", privateDataHex.c_str());
     }
 }
 
@@ -119,19 +121,19 @@ int Parser::open()
 
     mDemux = AmlDemuxBase::create(isHardwareDemux);
     if (mDemux == nullptr) {
-        ALOGE("create demux failed!");
+        MLOGE("create demux failed!");
         return -1;
     }
 
     int ret = mDemux->open(mIsHardwareSource, mDemuxId);
     if (ret < 0) {
-        ALOGE("demux open failed!");
+        MLOGE("demux open failed!");
         return -1;
     }
 
     ret = mDemux->start();
     if (ret < 0) {
-        ALOGE("demux start failed!");
+        MLOGE("demux start failed!");
         return -1;
     }
 
@@ -175,7 +177,7 @@ int Parser::close()
         mDemux.clear();
     }
 
-    ALOGI("%s:%d", __FUNCTION__, __LINE__);
+    MLOGI("%s:%d", __FUNCTION__, __LINE__);
     return 0;
 }
 
@@ -212,7 +214,7 @@ sptr<ProgramInfo> Parser::getProgramInfo() const
 int Parser::writeData(const uint8_t* buffer, size_t size)
 {
     int wlen = -1;
-    //ALOGV("writeData:%p, size:%d", buffer, size);
+    //MLOGV("writeData:%p, size:%d", buffer, size);
     std::lock_guard<std::mutex> _l(mLock);
     sptr<AmlDemuxBase> demux = mDemux;
     if(demux){
@@ -226,7 +228,7 @@ int Parser::patCb(int pid, size_t size, const uint8_t* data, void* userData)
 {
     Parser* parser = (Parser*)userData;
 
-    ALOGI("pat cb, size:%d", size);
+    MLOGI("pat cb, size:%d", size);
     Section section(data, size);
     const uint8_t* p = section.data();
     //int table_id = p[0];
@@ -234,7 +236,7 @@ int Parser::patCb(int pid, size_t size, const uint8_t* data, void* userData)
     CHECK(section_syntax_indicator == 1);
     int section_length = (p[1] & 0x0F) << 4 | p[2];
     CHECK(section_length <= 4093);
-    ALOGI("section_length = %d, size:%d", section_length, size);
+    MLOGI("section_length = %d, size:%d", section_length, size);
 
     p = section.advance(3);
     //int transport_stream_id = p[0]<<8 | p[1];
@@ -247,7 +249,7 @@ int Parser::patCb(int pid, size_t size, const uint8_t* data, void* userData)
 
         if (program_number != 0) {
             int program_map_PID = (p[2]&0x01F) << 8 | p[3];
-			ALOGI("programNumber:%d, program_map_PID = %d\n", program_number, program_map_PID);
+			MLOGI("programNumber:%d, program_map_PID = %d\n", program_number, program_map_PID);
             results.push_back({program_number, program_map_PID});
         } else {
             //int network_PID = (p[2]&0x1F) << 8 | p[3];
@@ -267,18 +269,18 @@ int Parser::pmtCb(int pid, size_t size, const uint8_t* data, void* userData)
 {
     Parser* parser = (Parser*)userData;
 
-    ALOGI("pmt cb, pid:%d, size:%d", pid, size);
+    MLOGI("pmt cb, pid:%d, size:%d", pid, size);
     Section section(data, size);
     const uint8_t* p = section.data();
     //int table_id = p[0];
     int section_syntax_indicator = (p[1]&0x80) >> 7;
     if (section_syntax_indicator != 1) {
-        ALOGE("pmt section_syntax_indicator CHECK failed!");
+        MLOGE("pmt section_syntax_indicator CHECK failed!");
         return -1;
     }
     int section_length = (p[1] & 0x0F) << 4 | p[2];
     CHECK(section_length <= 4093);
-    ALOGI("section_length = %d, size:%d", section_length, size);
+    MLOGI("section_length = %d, size:%d", section_length, size);
 
     PMTSection results;
     results.pmtPid = pid;
@@ -289,9 +291,9 @@ int Parser::pmtCb(int pid, size_t size, const uint8_t* data, void* userData)
     //check version_number and current_next_indicator to skip same pmt
     results.version_number = p[2] & 0x3E;
     results.current_next_indicator = p[2] & 0x01;
-    //ALOGI("pmt cb, version_number:%d, current_next_indicator:%d", results.version_number, results.current_next_indicator);
+    //MLOGI("pmt cb, version_number:%d, current_next_indicator:%d", results.version_number, results.current_next_indicator);
     if (results.current_next_indicator == 0) {
-        //ALOGI("just skip this pmt, because the current_next_indicator is zero");
+        //MLOGI("just skip this pmt, because the current_next_indicator is zero");
         return 0;
     }
     if (parser) {
@@ -299,7 +301,7 @@ int Parser::pmtCb(int pid, size_t size, const uint8_t* data, void* userData)
         auto it = parser->mPidPmtMap.find(pid);
         if (it != parser->mPidPmtMap.end()) {
             if (results.version_number == it->second.version_number) {
-                //ALOGI("just skip this pmt, because the version_number(%d) is same", results.version_number);
+                //MLOGI("just skip this pmt, because the version_number(%d) is same", results.version_number);
                 return 0;
             }
         }
@@ -325,7 +327,7 @@ int Parser::pmtCb(int pid, size_t size, const uint8_t* data, void* userData)
             {
                 int ca_system_id = p2[2]<<8 | p2[3];
                 int ecm_pid = (p2[4]&0x1F)<<8 | p2[5];
-                ALOGI("ca_system_id:%#x, ecm_pid:%#x, count:%d, descriptor_length:%d\n", ca_system_id, ecm_pid, ++count, descriptor_length);
+                MLOGI("ca_system_id:%#x, ecm_pid:%#x, count:%d, descriptor_length:%d\n", ca_system_id, ecm_pid, ++count, descriptor_length);
 
                 results.scrambled = true;
                 results.caSystemId = ca_system_id;
@@ -338,14 +340,14 @@ int Parser::pmtCb(int pid, size_t size, const uint8_t* data, void* userData)
             case 0x65:
             {
                 int scrambleAlgorithm = p[2];
-                ALOGI("scrambleAlgorithm:%d", scrambleAlgorithm);
+                MLOGI("scrambleAlgorithm:%d", scrambleAlgorithm);
 
                 results.scrambleAlgorithm = scrambleAlgorithm;
             }
             break;
 
             default:
-                ALOGI("descriptor_tag:%#x", descriptor_tag);
+                MLOGI("descriptor_tag:%#x", descriptor_tag);
                 break;
             }
 
@@ -384,14 +386,14 @@ int Parser::pmtCb(int pid, size_t size, const uint8_t* data, void* userData)
                 {
                     int ca_system_id = p2[2]<<8 | p2[3];
                     int ecm_pid = (p2[4]&0x1F)<<8 | p2[4];
-                    ALOGI("streamType:%#x, pid:%d, ca_system_id:%#x, ecm_pid:%#x, count:%d, descriptor_length:%d\n",
+                    MLOGI("streamType:%#x, pid:%d, ca_system_id:%#x, ecm_pid:%#x, count:%d, descriptor_length:%d\n",
                             stream_type, elementary_pid, ca_system_id, ecm_pid, ++count, descriptor_length);
                     if (descriptor_length > 4) {
                         int has_iv = p2[6] & 0x1;
                         int aligned = ( p2[6] & 0x4 ) >> 2;
                         int scramble_mode = ( p2[6] & 0x8 ) >> 3;
                         int algorithm = ( p2[6] & 0xE0 ) >> 5;
-                        ALOGI("%s, @@this is ca_private_data, data:%#x, iv:%d, aligned:%d, mode:%d, algo:%d",
+                        MLOGI("%s, @@this is ca_private_data, data:%#x, iv:%d, aligned:%d, mode:%d, algo:%d",
                                   __FUNCTION__, p2[6], has_iv, aligned, scramble_mode, algorithm );
                         if ( algorithm == 1 ) {
                             results.scrambleInfo.algo = SCRAMBLE_ALGO_AES;
@@ -421,7 +423,7 @@ int Parser::pmtCb(int pid, size_t size, const uint8_t* data, void* userData)
                     if (language_count > 0) {
                         esStream.compositionPageId = p2[6] << 8 | p2[7];
                         esStream.ancillaryPageId = p2[7] << 8 | p2[9];
-                        ALOGI("compositionPageId:%#x, ancillaryPageId:%#x", esStream.compositionPageId, esStream.ancillaryPageId);
+                        MLOGI("compositionPageId:%#x, ancillaryPageId:%#x", esStream.compositionPageId, esStream.ancillaryPageId);
                     }
 
                 }
@@ -430,13 +432,13 @@ int Parser::pmtCb(int pid, size_t size, const uint8_t* data, void* userData)
                 case 0x05:
                 {
                     int32_t formatIdentifier = MKTAG(p2[2], p2[3], p2[4], p2[5]);
-                    ALOGI("formatIdentifier:%#x, %x %x %x %x", formatIdentifier, p2[2], p2[3], p2[4], p2[5]);
+                    MLOGI("formatIdentifier:%#x, %x %x %x %x", formatIdentifier, p2[2], p2[3], p2[4], p2[5]);
                     esStream.descriptorTags[esStream.descriptorCount-1] = formatIdentifier;
                 }
                 break;
 
                 default:
-                    ALOGI("unhandled stream descriptor_tag:%#x, length:%d", descriptor_tag, descriptor_length);
+                    MLOGI("unhandled stream descriptor_tag:%#x, length:%d", descriptor_tag, descriptor_length);
                     break;
                 }
 
@@ -450,7 +452,7 @@ int Parser::pmtCb(int pid, size_t size, const uint8_t* data, void* userData)
 
         results.streamCount++;
         results.streams.push_back(esStream);
-        ALOGE("programNumber:%d, stream pid:%d, type:%#x\n", programNumber, elementary_pid, stream_type);
+        MLOGE("programNumber:%d, stream pid:%d, type:%#x\n", programNumber, elementary_pid, stream_type);
 
     }
 
@@ -466,7 +468,7 @@ int Parser::catCb(int pid, size_t size, const uint8_t* data, void* userData)
 {
     Parser* parser = (Parser*)userData;
 
-    ALOGI("cat cb, size:%d", size);
+    MLOGI("cat cb, size:%d", size);
     Section section(data, size);
     const uint8_t* p = section.data();
 
@@ -475,7 +477,7 @@ int Parser::catCb(int pid, size_t size, const uint8_t* data, void* userData)
     CHECK(section_syntax_indicator == 1);
     int section_length = (p[1] & 0x0F) << 4 | p[2];
     CHECK(section_length <= 4093);
-    ALOGI("section_length = %d, size:%d", section_length, size);
+    MLOGI("section_length = %d, size:%d", section_length, size);
 
     p = section.advance(3);
 
@@ -495,7 +497,7 @@ int Parser::catCb(int pid, size_t size, const uint8_t* data, void* userData)
         {
             int ca_system_id = p[2]<<8 | p[3];
             int emm_pid = (p[4]&0x1F)<<8 | p[5];
-            ALOGI("ca_system_id:%#x, emm_pid:%#x, count:%d, descriptor_length:%d\n", ca_system_id, emm_pid, ++count, descriptor_length);
+            MLOGI("ca_system_id:%#x, emm_pid:%#x, count:%d, descriptor_length:%d\n", ca_system_id, emm_pid, ++count, descriptor_length);
 
             results.caSystemId = ca_system_id;
             results.emmPid = emm_pid;
@@ -503,7 +505,7 @@ int Parser::catCb(int pid, size_t size, const uint8_t* data, void* userData)
         break;
 
         default:
-            ALOGI("CAT descriptor_tag:%#x", descriptor_tag);
+            MLOGI("CAT descriptor_tag:%#x", descriptor_tag);
             break;
         }
 
@@ -512,7 +514,7 @@ int Parser::catCb(int pid, size_t size, const uint8_t* data, void* userData)
     }
 
     if (descriptorsRemaining != 0) {
-        ALOGW("descriptorsRemaining = %d\n", descriptorsRemaining);
+        MLOGW("descriptorsRemaining = %d\n", descriptorsRemaining);
     }
 
     if (parser) {
@@ -526,7 +528,7 @@ int Parser::ecmCb(int pid, size_t size, const uint8_t* data, void* userData)
 {
     Parser* parser = (Parser*)userData;
 
-    ALOGI("ecm cb, pid:0x%04X, size:%d", pid, size);
+    MLOGI("ecm cb, pid:0x%04X, size:%d", pid, size);
     ECMSection results;
     results.ecmPid = pid;
     results.size = size;
@@ -559,12 +561,12 @@ void Parser::onPatParsed(const std::vector<PATSection>& results)
         std::lock_guard<std::mutex> _l(mLock);
         if (!hasProgramHint_l()) {
             mProgramNumber = p.programNumber;
-            ALOGI("set default program number:%d, pmt pid:%d", mProgramNumber, p.pmtPid);
+            MLOGI("set default program number:%d, pmt pid:%d", mProgramNumber, p.pmtPid);
         }
     }
 
     if (programCount == 0) {
-        ALOGI("no valid program found!");
+        MLOGI("no valid program found!");
         std::lock_guard<std::mutex> _l(mLock);
         notifyParseDone_l();
     }
@@ -623,7 +625,7 @@ void Parser::onPmtParsed(const PMTSection& results)
     }
 
     if (!isProgramSeleted) {
-        ALOGI("not program selected");
+        MLOGI("not program selected");
         return;
     }
 
@@ -657,13 +659,13 @@ void Parser::onPmtParsed(const PMTSection& results)
             for (size_t j = 0; j < stream->descriptorCount; ++j) {
                 typeInfo = getStreamTypeInfo(stream->descriptorTags[j], g_descTypes);
                 if (typeInfo != nullptr) {
-                    ALOGI("stream pid:%d, found tag:%#x", stream->streamPid, stream->descriptorTags[j]);
+                    MLOGI("stream pid:%d, found tag:%#x", stream->streamPid, stream->descriptorTags[j]);
                     break;
                 }
 
                 typeInfo = getStreamTypeInfo(stream->descriptorTags[j], g_identifierTypes);
                 if (typeInfo != nullptr) {
-                    ALOGI("identified stream pid:%d, %.4s", stream->streamPid, (char*)&stream->descriptorTags[j]);
+                    MLOGI("identified stream pid:%d, %.4s", stream->streamPid, (char*)&stream->descriptorTags[j]);
                     break;
                 }
             }
@@ -688,7 +690,7 @@ void Parser::onPmtParsed(const PMTSection& results)
             streamInfo.pid = stream->streamPid;
             streamInfo.codecId = typeInfo->codecId;
             programInfo->audioStreams.push_back(streamInfo);
-            ALOGI("audio pid:%d(%#x), codec:%s", streamInfo.pid, streamInfo.pid, mpCodecId2Str(streamInfo.codecId));
+            MLOGI("audio pid:%d(%#x), codec:%s", streamInfo.pid, streamInfo.pid, mpCodecId2Str(streamInfo.codecId));
             break;
         }
 
@@ -706,7 +708,7 @@ void Parser::onPmtParsed(const PMTSection& results)
             streamInfo.pid = stream->streamPid;
             streamInfo.codecId = typeInfo->codecId;
             programInfo->videoStreams.push_back(streamInfo);
-            ALOGI("video pid:%d(%#x), codec:%s", streamInfo.pid, streamInfo.pid, mpCodecId2Str(streamInfo.codecId));
+            MLOGI("video pid:%d(%#x), codec:%s", streamInfo.pid, streamInfo.pid, mpCodecId2Str(streamInfo.codecId));
             break;
         }
 
@@ -732,7 +734,7 @@ void Parser::onPmtParsed(const PMTSection& results)
                 streamInfo.ancillaryPageId = stream->ancillaryPageId;
             }
             programInfo->subtitleStreams.push_back(streamInfo);
-            ALOGI("subtitle pid:%d(%#x), codec:%s", streamInfo.pid, streamInfo.pid, mpCodecId2Str(streamInfo.codecId));
+            MLOGI("subtitle pid:%d(%#x), codec:%s", streamInfo.pid, streamInfo.pid, mpCodecId2Str(streamInfo.codecId));
             break;
         }
 
@@ -829,25 +831,25 @@ int Parser::addSectionFilter(int pid, Aml_MP_Demux_SectionFilterCb cb, bool chec
     context->channel = mDemux->createChannel(pid, checkCRC);
     ret = mDemux->openChannel(context->channel);
     if (ret < 0) {
-        ALOGE("open channel pid:%d failed!", pid);
+        MLOGE("open channel pid:%d failed!", pid);
         return ret;
     }
 
     ret = mDemux->openChannel(context->channel);
     if (ret < 0) {
-        ALOGE("open channel pid:%d failed!", pid);
+        MLOGE("open channel pid:%d failed!", pid);
         return ret;
     }
 
     context->filter = mDemux->createFilter(cb, this);
     if (ret < 0) {
-        ALOGE("create filter for pid:%d failed!", pid);
+        MLOGE("create filter for pid:%d failed!", pid);
         return ret;
     }
 
     ret = mDemux->attachFilter(context->filter, context->channel);
     if (ret < 0) {
-        ALOGE("attach filter for pid:%d failed!", pid);
+        MLOGE("attach filter for pid:%d failed!", pid);
         return ret;
     }
 
@@ -883,7 +885,7 @@ int Parser::removeSectionFilter(int pid)
     }
 
     int ret = mSectionFilters.erase(context->mPid);
-    ALOGI("pid:%d, %d sections removed!", pid, ret);
+    MLOGI("pid:%d, %d sections removed!", pid, ret);
 
     return 0;
 }

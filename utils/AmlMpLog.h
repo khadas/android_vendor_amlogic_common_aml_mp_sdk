@@ -29,44 +29,5 @@
 #define MLOG(fmt, ...) MLOGI("[%s:%d] " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #endif
 
-#ifndef KEEP_ALOGX
-
-#ifdef ALOGV
-#undef ALOGV
-#define ALOGV MLOGV
-#endif
-
-#ifdef ALOGD
-#undef ALOGD
-#define ALOGD MLOGD
-#endif
-
-#ifdef ALOGI
-#undef ALOGI
-#define ALOGI MLOGI
-#endif
-
-#ifdef ALOGI_IF
-#undef ALOGI_IF
-#define ALOGI_IF(cond, fmt, ...) \
-({do { \
-    if ((cond)) \
-        (void)MLOGI(fmt, ##__VA_ARGS__); \
-} while(0);})
-#endif
-
-
-#ifdef ALOGW
-#undef ALOGW
-#define ALOGW MLOGW
-#endif
-
-
-#ifdef ALOGE
-#undef ALOGE
-#define ALOGE MLOGE
-#endif
-
-#endif //KEEP_ALOGX
 #endif
 

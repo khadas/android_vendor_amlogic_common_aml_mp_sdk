@@ -19,13 +19,15 @@
 using namespace aml_mp;
 using namespace android;
 
+static const char* mName = LOG_TAG;
+
 int Aml_MP_DVRRecorder_Create(Aml_MP_DVRRecorderCreateParams* createParams, AML_MP_DVRRECORDER* handle)
 {
     RETURN_IF(-1, createParams == nullptr);
 
     AmlDVRRecorder* recorder(new AmlDVRRecorder(&createParams->basicParams, &createParams->timeshiftParams, &createParams->encryptParams));
     if (recorder == nullptr) {
-        ALOGE("new AmlDVRRecorder failed!");
+        MLOGE("new AmlDVRRecorder failed!");
         return -1;
     }
 
@@ -107,11 +109,11 @@ int Aml_MP_DVRRecorder_GetSegmentInfo(const char* location, uint64_t segmentId, 
     memset(segmentInfo, 0, sizeof(*segmentInfo));
     segmentInfo->id = info.id;
     segmentInfo->streams.nbStreams = info.nb_pids;
-    ALOGI("nb_pids:%d", info.nb_pids);
+    MLOGI("nb_pids:%d", info.nb_pids);
     for (size_t i = 0; i < info.nb_pids; ++i) {
         convertToMpDVRStream(&segmentInfo->streams.streams[i], &info.pids[i]);
 
-        ALOGI("streamType:%d, pid:%d, codecId:%d(%s)", segmentInfo->streams.streams[i].type,
+        MLOGI("streamType:%d, pid:%d, codecId:%d(%s)", segmentInfo->streams.streams[i].type,
                 segmentInfo->streams.streams[i].pid,
                 segmentInfo->streams.streams[i].codecId,
                 mpCodecId2Str(segmentInfo->streams.streams[i].codecId));
@@ -136,7 +138,7 @@ int Aml_MP_DVRPlayer_Create(Aml_MP_DVRPlayerCreateParams* createParams, AML_MP_D
 
     AmlDVRPlayer* player(new AmlDVRPlayer(&createParams->basicParams, &createParams->decryptParams));
     if (player == nullptr) {
-        ALOGE("new AmlDVRPlayer failed!");
+        MLOGE("new AmlDVRPlayer failed!");
         return -1;
     }
 

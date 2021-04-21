@@ -68,6 +68,8 @@ public:
 
 private:
     void eventCallback(am_tsplayer_event* event);
+
+    char mName[50];
     am_tsplayer_handle mPlayer{0};
     am_tsplayer_init_params init_param = {TS_MEMORY, TS_INPUT_BUFFER_TYPE_NORMAL, 0, 0};
     const int kRwTimeout = 30000;
