@@ -1050,12 +1050,12 @@ int AmlMpPlayerImpl::stopADDecoding_l()
             mPlayer->setADParams(&dummyADParam, false);
         }
 
+        setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_STOPPED);
 
         if (getStreamState_l(AML_MP_STREAM_TYPE_AUDIO) == STREAM_STATE_STARTED) {
             resetAudioCodec_l(true);
         }
 
-        setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_STOPPED);
     }
 
     ret = resetIfNeeded_l();

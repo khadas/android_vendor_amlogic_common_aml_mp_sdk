@@ -225,7 +225,7 @@ int AmlDVRPlayer::setPlaybackRate(float rate)
 
     int ret = 0;
 
-    ret = dvr_wrapper_set_playback_speed(mDVRPlayerHandle, rate);
+    ret = dvr_wrapper_set_playback_speed(mDVRPlayerHandle, rate * 100);
     if (ret < 0) {
         MLOGE("set playback speed failed!");
     }
