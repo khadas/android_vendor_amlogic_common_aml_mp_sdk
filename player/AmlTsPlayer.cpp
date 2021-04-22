@@ -706,15 +706,15 @@ int AmlTsPlayer::setADParams(const Aml_MP_AudioParams* params, bool enableMix) {
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
     am_tsplayer_audio_params audioParams;
 
+    audioParams.pid = (int32_t)(params->pid);
+    audioParams.codectype = audioCodecConvert(params->audioCodec);
+
+    ret = AmTsPlayer_setADParams(mPlayer, &audioParams);
     if (enableMix) {
         AmTsPlayer_enableADMix(mPlayer);
     } else {
         AmTsPlayer_disableADMix(mPlayer);
     }
-    audioParams.pid = (int32_t)(params->pid);
-    audioParams.codectype = audioCodecConvert(params->audioCodec);
-
-    ret = AmTsPlayer_setADParams(mPlayer, &audioParams);
 
     if (ret != AM_TSPLAYER_OK) {
         return -1;
