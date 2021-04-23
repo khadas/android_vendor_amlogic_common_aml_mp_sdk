@@ -53,6 +53,8 @@ private:
     bool setVideoParams();
     bool setSubtitleParams();
 
+    void printStreamsInfo();
+
 private:
     const sptr<ProgramInfo> mProgramInfo;
     const Aml_MP_DemuxId mDemuxId;

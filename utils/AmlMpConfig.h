@@ -27,6 +27,7 @@ public:
 public:
     int mLogDebug;
     int mTsPlayerNonTunnel;
+    int mUseVideoTunnel;
 
 private:
     void reset();

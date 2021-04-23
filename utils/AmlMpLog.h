@@ -11,6 +11,7 @@
 #define _AML_MP_LOG_H_
 
 #include <utils/Log.h>
+#include "AmlMpConfig.h"
 
 #define AML_MP_LOG_TAG  "Aml_MP"
 
@@ -20,7 +21,7 @@
 #define MLOGV(fmt, ...) ALOG(LOG_VERBOSE, AML_MP_LOG_TAG, "%s " fmt, mName, ##__VA_ARGS__)
 #endif
 
-#define MLOGD(fmt, ...) ALOG(LOG_DEBUG, AML_MP_LOG_TAG, "%s " fmt, mName, ##__VA_ARGS__)
+#define MLOGD(fmt, ...) AmlMpConfig::instance().mLogDebug?ALOG(LOG_DEBUG, AML_MP_LOG_TAG, "%s " fmt, mName, ##__VA_ARGS__):0
 #define MLOGI(fmt, ...) ALOG(LOG_INFO, AML_MP_LOG_TAG, "%s " fmt, mName, ##__VA_ARGS__)
 #define MLOGW(fmt, ...) ALOG(LOG_WARN, AML_MP_LOG_TAG, "%s " fmt, mName, ##__VA_ARGS__)
 #define MLOGE(fmt, ...) ALOG(LOG_ERROR, AML_MP_LOG_TAG, "%s " fmt, mName, ##__VA_ARGS__)

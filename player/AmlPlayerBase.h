@@ -76,7 +76,7 @@ public:
     virtual int startADDecoding() {return 0;}
     virtual int stopADDecoding() {return 0;}
 
-    virtual int setADParams(Aml_MP_AudioParams* params, bool enableMix) = 0;
+    virtual int setADParams(const Aml_MP_AudioParams* params, bool enableMix) = 0;
 
 #ifdef HAVE_SUBTITLE
     //Subtitle Call back function
@@ -119,8 +119,6 @@ private:
     Aml_MP_SubtitleData mSubtitleData;
     Aml_MP_SubtitleDimension mSubtitleDimension;
     char mSubtitleIso639Code[4];
-
-    int mSubtitleShow;
 #endif
     Aml_MP_SubtitleParams mSubtitleParams;
 

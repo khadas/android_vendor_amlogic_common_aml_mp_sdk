@@ -38,6 +38,12 @@ void AmlMpConfig::reset()
 {
     mLogDebug = 0;
     mTsPlayerNonTunnel = 0;
+
+#if ANDROID_PLATFORM_SDK_VERSION == 29
+    mUseVideoTunnel = 0;
+#elif ANDROID_PLATFORM_SDK_VERSION >= 30
+    mUseVideoTunnel = 1;
+#endif
 }
 
 void AmlMpConfig::init()

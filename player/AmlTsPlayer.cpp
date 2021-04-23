@@ -106,7 +106,7 @@ AmlTsPlayer::AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId
 
     AmlMpPlayerRoster::instance().signalAmTsPlayerId(instanceId);
 
-    MLOGI("demuxId: %d", createParams->demuxId);
+    MLOGI("demuxId: %s", mpDemuxId2Str(createParams->demuxId));
     if (createParams->demuxId == AML_MP_DEMUX_ID_DEFAULT) {
         createParams->demuxId = AML_MP_HW_DEMUX_ID_0;
     }
@@ -132,12 +132,24 @@ AmlTsPlayer::~AmlTsPlayer()
         mPlayer = AML_MP_INVALID_HANDLE;
     }
 
+    MLOGI("mBlackOut: %d", mBlackOut);
+    if (mBlackOut) {
+        if (AmlMpConfig::instance().mTsPlayerNonTunnel == 0 || AmlMpConfig::instance().mUseVideoTunnel == 1) {
+#if 1
+            native_window_set_sideband_stream(mNativewindow, nullptr);
+#else
+            pushBlankBuffersToNativeWindow(mNativewindow);
+#endif
+        }
+    }
+
     AmlMpPlayerRoster::instance().signalAmTsPlayerId(-1);
 }
 
 int AmlTsPlayer::setANativeWindow(ANativeWindow* nativeWindow)
 {
     MLOGI("AmlTsPlayer::setANativeWindow: %p", nativeWindow);
+    mNativewindow = nativeWindow;
 
     int ret = 0;
     if (AmlMpConfig::instance().mTsPlayerNonTunnel) {
@@ -191,7 +203,7 @@ int AmlTsPlayer::setVideoParams(const Aml_MP_VideoParams* params) {
     am_tsplayer_result ret;
     am_tsplayer_video_params video_params = {videoCodecConvert(params->videoCodec), params->pid};
 
-    MLOGI("amtsplayer handle:%#x, video codec:%d, pid:%d", mPlayer, video_params.codectype, video_params.pid);
+    MLOGI("amtsplayer handle:%#x, video codec:%d, pid: 0x%x", mPlayer, video_params.codectype, video_params.pid);
     ret = AmTsPlayer_setVideoParams(mPlayer, &video_params);
     if (ret != AM_TSPLAYER_OK) {
         return -1;
@@ -203,7 +215,7 @@ int AmlTsPlayer::setAudioParams(const Aml_MP_AudioParams* params) {
     am_tsplayer_result ret;
     am_tsplayer_audio_params audio_params = {audioCodecConvert(params->audioCodec), params->pid, 0};
 
-    MLOGI("amtsplayer handle:%#x, audio codec:%d, pid:%d", mPlayer, audio_params.codectype, audio_params.pid);
+    MLOGI("amtsplayer handle:%#x, audio codec:%d, pid: 0x%x", mPlayer, audio_params.codectype, audio_params.pid);
     ret = AmTsPlayer_setAudioParams(mPlayer, &audio_params);
     if (ret != AM_TSPLAYER_OK) {
         return -1;
@@ -256,7 +268,10 @@ int AmlTsPlayer::resume() {
     return ret;
 }
 
-int AmlTsPlayer::flush() {return -1;}
+int AmlTsPlayer::flush() {
+    //flush need more info, will do in Aml_MP_PlayerImpl
+    return Aml_MP_DEAD_OBJECT;
+}
 
 int AmlTsPlayer::setPlaybackRate(float rate){
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
@@ -272,23 +287,9 @@ int AmlTsPlayer::setPlaybackRate(float rate){
 }
 
 int AmlTsPlayer::switchAudioTrack(const Aml_MP_AudioParams* params){
-    int ret = 0;
-    ret = stopAudioDecoding();
-    if (ret) {
-        MLOGE("Stop Audio Decoding fail");
-        return -1;
-    }
-    ret = setAudioParams(params);
-    if (ret) {
-        MLOGE("Set Audio Params fail");
-        return -1;
-    }
-    ret = startAudioDecoding();
-    if (ret) {
-        MLOGE("Strat Audio Decoding fail");
-        return -1;
-    }
-    return 0;
+    //switchAudioTrack need more info, will do in Aml_MP_PlayerImpl
+    AML_MP_UNUSED(params);
+    return Aml_MP_DEAD_OBJECT;
 }
 
 int AmlTsPlayer::writeData(const uint8_t* buffer, size_t size) {
@@ -306,19 +307,30 @@ int AmlTsPlayer::writeData(const uint8_t* buffer, size_t size) {
 
 int AmlTsPlayer::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size_t size, int64_t pts)
 {
-    AML_MP_UNUSED(type);
-    AML_MP_UNUSED(buffer);
-    AML_MP_UNUSED(size);
-    AML_MP_UNUSED(pts);
+    am_tsplayer_result ret;
+    am_tsplayer_input_frame_buffer buf;
+    buf.buf_type = init_param.drmmode;
+    buf.buf_data = (void *)buffer;
+    buf.buf_size = size;
+    buf.pts = pts;
+    buf.isvideo = 0;
+    if (type == AML_MP_STREAM_TYPE_VIDEO) {
+        buf.isvideo = 1;
+    }
 
-    return -1;
+    ret = AmTsPlayer_writeFrameData(mPlayer, &buf, kRwTimeout);
+
+    if (ret != AM_TSPLAYER_OK) {
+        return -1;
+    }
+    return size;
 }
 
 int AmlTsPlayer::getCurrentPts(Aml_MP_StreamType type, int64_t* pts) {
     am_tsplayer_result ret;
 
     ret = AmTsPlayer_getPts(mPlayer, convertToTsplayerStreamType(type), (uint64_t*)pts);
-    MLOGI("getCurrentPts type: %d, pts: 0x%llx, ret: %d", type, *pts, ret);
+    MLOGI("getCurrentPts type: %s, pts: 0x%llx, ret: %d", mpStreamType2Str(type), *pts, ret);
     if (ret != AM_TSPLAYER_OK) {
         return -1;
     }
@@ -406,10 +418,8 @@ int AmlTsPlayer::hideVideo() {
 
 int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
-    Aml_MP_ADVolume* ADVolume;
-    int isEnable;
 
-    MLOGI("Call setParameter, key is 0x%x", key);
+    MLOGI("Call setParameter, key is %s", mpPlayerParameterKey2Str(key));
     switch (key) {
         case AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE:
             //MLOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE, value is %d", *(am_tsplayer_video_match_mode*)parameter);
@@ -417,9 +427,13 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             break;
 
         case AML_MP_PLAYER_PARAMETER_BLACK_OUT:
+        {
             //MLOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_BLACK_OUT, value is %d", *(bool_t*)parameter);
-            ret = AmTsPlayer_setVideoBlackOut(mPlayer, *(bool_t*)parameter);
+            int blackOut = *(bool_t*)parameter;
+            ret = AmTsPlayer_setVideoBlackOut(mPlayer, blackOut);
+            mBlackOut = blackOut;
             break;
+        }
 
         case AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE:
             ret = AmTsPlayer_setTrickMode(mPlayer, convertToTsplayerVideoTrickMode(*(Aml_MP_VideoDecodeMode*)parameter));
@@ -454,18 +468,22 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             break;
 
         case AML_MP_PLAYER_PARAMETER_AD_STATE:
-            isEnable = *(int*)parameter;
+        {
+            int isEnable = *(int*)parameter;
             if (isEnable)
                 ret = AmTsPlayer_enableADMix(mPlayer);
             else
                 ret = AmTsPlayer_disableADMix(mPlayer);
-            break;
+        }
+        break;
 
         case AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL:
-            ADVolume = (Aml_MP_ADVolume*)parameter;
+        {
+            Aml_MP_ADVolume* ADVolume = (Aml_MP_ADVolume*)parameter;
             //MLOGI("trace setParameter, AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL, AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE, value is master %d, slave %d", ADVolume->masterVolume, ADVolume->slaveVolume);
             ret = AmTsPlayer_setADMixLevel(mPlayer, ADVolume->masterVolume, ADVolume->slaveVolume);
-            break;
+        }
+        break;
 
         case AML_MP_PLAYER_PARAMETER_WORK_MODE:
             MLOGI("Call AmTsPlayer_setWorkMode, set workmode: %d", *(am_tsplayer_work_mode*)(parameter));
@@ -509,7 +527,6 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
 int AmlTsPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
 
-    MLOGI("Call getParameter, key is %d", key);
     if (!parameter) {
         return -1;
     }
@@ -562,7 +579,10 @@ int AmlTsPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
 
         default:
             ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
-    } if (ret != AM_TSPLAYER_OK) {
+    }
+
+    MLOGD("Call getParameter, key is %s, ret: %d", mpPlayerParameterKey2Str(key), ret);
+    if (ret != AM_TSPLAYER_OK) {
         return -1;
     }
     return 0;
@@ -572,7 +592,7 @@ int AmlTsPlayer::setAVSyncSource(Aml_MP_AVSyncSource syncSource)
 {
     am_tsplayer_result ret = AM_TSPLAYER_OK;
 
-    MLOGI("setsyncmode, syncSource %d!!!", syncSource);
+    MLOGI("setsyncmode, syncSource %s!!!", mpAVSyncSource2Str(syncSource));
     MLOGI("converted syncSoource is: %d", AVSyncSourceTypeConvert(syncSource));
     ret = AmTsPlayer_setSyncMode(mPlayer, AVSyncSourceTypeConvert(syncSource));
     if (ret != AM_TSPLAYER_OK) {
@@ -707,7 +727,7 @@ int AmlTsPlayer::resumeAudioDecoding() {
 }
 
 
-int AmlTsPlayer::setADParams(Aml_MP_AudioParams* params, bool enableMix) {
+int AmlTsPlayer::setADParams(const Aml_MP_AudioParams* params, bool enableMix) {
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
     am_tsplayer_audio_params audioParams;
 

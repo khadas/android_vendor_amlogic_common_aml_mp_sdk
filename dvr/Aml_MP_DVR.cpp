@@ -109,11 +109,11 @@ int Aml_MP_DVRRecorder_GetSegmentInfo(const char* location, uint64_t segmentId, 
     memset(segmentInfo, 0, sizeof(*segmentInfo));
     segmentInfo->id = info.id;
     segmentInfo->streams.nbStreams = info.nb_pids;
-    MLOGI("nb_pids:%d", info.nb_pids);
+    MLOGD("nb_pids:%d", info.nb_pids);
     for (size_t i = 0; i < info.nb_pids; ++i) {
         convertToMpDVRStream(&segmentInfo->streams.streams[i], &info.pids[i]);
 
-        MLOGI("streamType:%d, pid:%d, codecId:%d(%s)", segmentInfo->streams.streams[i].type,
+        MLOGD("streamType:%d, pid:%d, codecId:%d(%s)", segmentInfo->streams.streams[i].type,
                 segmentInfo->streams.streams[i].pid,
                 segmentInfo->streams.streams[i].codecId,
                 mpCodecId2Str(segmentInfo->streams.streams[i].codecId));

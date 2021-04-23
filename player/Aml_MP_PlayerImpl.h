@@ -156,18 +156,26 @@ private:
 
     void notifyListener(Aml_MP_PlayerEventType eventType, int64_t param);
 
+    int start_l();
+    int stop_l();
+
     int startVideoDecoding_l();
     int startAudioDecoding_l();
     int startSubtitleDecoding_l();
     int startADDecoding_l();
+    int stopAudioDecoding_l();
     int stopADDecoding_l();
 
     int startDescrambling_l();
     int stopDescrambling_l();
 
+    int switchDecodeMode_l(Aml_MP_VideoDecodeMode decodeMode);
 
     int resetADCodec_l(bool callStart);
     int resetAudioCodec_l(bool callStart);
+
+    int setAudioParams_l(const Aml_MP_AudioParams* params);
+    int setSubtitleParams_l(const Aml_MP_SubtitleParams* params);
 
     const int mInstanceId;
     char mName[50];
