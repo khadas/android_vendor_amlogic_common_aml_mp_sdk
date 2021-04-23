@@ -514,8 +514,26 @@ typedef enum {
 
 ///////////////////////////////////////////////////////////////////////////////
 enum {
-    Aml_MP_ERROR_BASE = -2000,
+    Aml_MP_OK = 0,
 
+    Aml_MP_ERROR_BASE = -2000,
+    Aml_MP_NO_MEMORY,
+    Aml_MP_INVALID_OPERATION,
+    Aml_MP_BAD_VALUE,
+    Aml_MP_BAD_TYPE,
+    Aml_MP_NAME_NOT_FOUND,
+    Aml_MP_PERMISSION_DENIED,
+    Aml_MP_NO_INIT,
+    Aml_MP_ALREADY_EXISTS,
+    Aml_MP_DEAD_OBJECT,
+    Aml_MP_FAILED_TRANSACTION,
+    Aml_MP_BAD_INDEX,
+    Aml_MP_NOT_ENOUGH_DATA,
+    Aml_MP_WOULD_BLOCK,
+    Aml_MP_TIMED_OUT,
+    Aml_MP_UNKNOWN_TRANSACTION,
+    Aml_MP_FDS_NOT_ALLOWED,
+    Aml_MP_UNEXPECTED_NULL,
 };
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -22,7 +22,7 @@ sptr<AmlCasBase> AmlCasBase::create(const Aml_MP_IptvCasParams* casParams, int i
 {
     sptr<AmlCasBase> cas = nullptr;
 
-    MLOGI("%s, casParams->type=%d", __func__, casParams->type);
+    MLOGI("%s, casParams->type= %s", __func__, mpCASType2Str(casParams->type));
     switch (casParams->type) {
     case AML_MP_CAS_VERIMATRIX_IPTV:
     {

@@ -95,6 +95,14 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 const char* mpCodecId2Str(Aml_MP_CodecID codecId);
 const char* mpStreamType2Str(Aml_MP_StreamType streamType);
+const char* mpDemuxId2Str(Aml_MP_DemuxId demuxId);
+const char* mpPlayerParameterKey2Str(Aml_MP_PlayerParameterKey playerParamKey);
+const char* mpAVSyncSource2Str(Aml_MP_AVSyncSource syncSource);
+const char* mpPlayerEventType2Str(Aml_MP_PlayerEventType eventType);
+const char* mpPlayerWorkMode2Str(Aml_MP_PlayerWorkMode workmode);
+const char* mpInputStreamType2Str(Aml_MP_InputStreamType inputStreamType);
+const char* mpInputSourceType2Str(Aml_MP_InputSourceType inputSourceType);
+const char* mpCASType2Str(Aml_MP_CASType casType);
 
 vformat_t convertToVFormat(Aml_MP_CodecID videoCodec);
 aformat_t convertToAForamt(Aml_MP_CodecID audioCodec);

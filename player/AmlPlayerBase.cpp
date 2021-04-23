@@ -54,7 +54,7 @@ AmlPlayerBase::AmlPlayerBase(int instanceId)
 , mSubtitleParams{}
 #endif
 {
-    snprintf(mName, sizeof(mName), "%s_%d", LOG_TAG, instanceId);
+    snprintf(mName, sizeof(mName), "%s_%d", LOG_TAG, mInstanceId);
 
 #ifdef HAVE_SUBTITLE
     //Set a default size for subtitle window parament.
@@ -63,7 +63,6 @@ AmlPlayerBase::AmlPlayerBase(int instanceId)
     mSubWindowWidth = 1920;
     mSubWindowHeight = 1080;
 
-    mSubtitleShow = 1;
 #endif
 }
 
@@ -123,6 +122,19 @@ int AmlPlayerBase::stop()
     return 0;
 }
 
+int AmlPlayerBase::flush() {
+#ifdef HAVE_SUBTITLE
+#ifndef __ANDROID_VNDK__
+    AmlSubtitleStatus ret = amlsub_Reset(mSubtitleHandle);
+    if (ret != SUB_STAT_OK) {
+        MLOGE("amlsub_UiShow failed! %d", ret);
+        return -1;
+    }
+#endif
+#endif
+    return 0;
+}
+
 int AmlPlayerBase::setSubtitleParams(const Aml_MP_SubtitleParams* params)
 {
     MLOGI("setSubtitleParams");
@@ -133,8 +145,11 @@ int AmlPlayerBase::setSubtitleParams(const Aml_MP_SubtitleParams* params)
 
 int AmlPlayerBase::switchSubtitleTrack(const Aml_MP_SubtitleParams* params)
 {
-    AML_MP_UNUSED(params);
-
+#ifdef HAVE_SUBTITLE
+    stopSubtitleDecoding();
+    setSubtitleParams(params);
+    startSubtitleDecoding();
+#endif
     return 0;
 }
 
@@ -143,7 +158,6 @@ int AmlPlayerBase::showSubtitle()
     MLOGI("showSubtitle");
 
 #ifdef HAVE_SUBTITLE
-    mSubtitleShow = 1;
     RETURN_IF(0, mSubtitleHandle == nullptr);
 
 #ifndef __ANDROID_VNDK__
@@ -162,7 +176,6 @@ int AmlPlayerBase::hideSubtitle()
     MLOGI("hideSubtitle");
 
 #ifdef HAVE_SUBTITLE
-    mSubtitleShow = 0;
     RETURN_IF(0, mSubtitleHandle == nullptr);
 
 #ifndef __ANDROID_VNDK__
@@ -255,11 +268,7 @@ int AmlPlayerBase::startSubtitleDecoding()
         MLOGE("amlsub_Open failed!");
     }
 
-    if (mSubtitleShow) {
-        showSubtitle();
-    } else {
-        hideSubtitle();
-    }
+    showSubtitle();
     MLOGI("Subtitle size is x:%d, y: %d, width: %d, height: %d", mSubWindowX, mSubWindowY, mSubWindowWidth, mSubWindowHeight);
     ret = amlsub_UiSetSurfaceViewRect(mSubtitleHandle, mSubWindowX, mSubWindowY, mSubWindowWidth, mSubWindowHeight);
     if (ret != SUB_STAT_OK) {
@@ -492,7 +501,7 @@ void AmlPlayerBase::notifyListener(Aml_MP_PlayerEventType eventType, int64_t par
     if (mEventCb) {
         mEventCb(mUserData, eventType, param);
     } else {
-        MLOGE("mEventCb is NULL! %d", eventType);
+        MLOGE("mEventCb is NULL! %s", mpPlayerEventType2Str(eventType));
     }
 }
 

@@ -65,7 +65,7 @@ public:
     int pauseAudioDecoding();
     int resumeAudioDecoding();
 
-    int setADParams(Aml_MP_AudioParams* params, bool enableMix) override;
+    int setADParams(const Aml_MP_AudioParams* params, bool enableMix) override;
 
 
 private:
@@ -76,6 +76,9 @@ private:
     am_tsplayer_init_params init_param = {TS_MEMORY, TS_INPUT_BUFFER_TYPE_NORMAL, 0, 0};
     const int kRwTimeout = 30000;
     int mVideoTunnelId = -1;
+
+    ANativeWindow* mNativewindow = nullptr;
+    int mBlackOut = 0;
 
 private:
     AmlTsPlayer(const AmlTsPlayer&) = delete;

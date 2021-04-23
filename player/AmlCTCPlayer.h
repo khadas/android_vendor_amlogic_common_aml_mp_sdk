@@ -66,7 +66,7 @@ public:
     int pauseAudioDecoding();
     int resumeAudioDecoding();
 
-    int setADParams(Aml_MP_AudioParams* params, bool enableMix) override;
+    int setADParams(const Aml_MP_AudioParams* params, bool enableMix) override;
 
 
 private:

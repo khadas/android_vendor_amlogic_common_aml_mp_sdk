@@ -67,8 +67,8 @@ int AmlDVRPlayer::setStreams(Aml_MP_DVRStreamArray* streams)
     Aml_MP_DVRStream* audioStream   = &streams->streams[AML_MP_DVR_AUDIO_INDEX];
     Aml_MP_DVRStream* adStream      = &streams->streams[AML_MP_DVR_AD_INDEX];
 
-    MLOG("video:pid %#x, codecId:%d, audio:pid %#x, codecId:%d, ad:pid:%#x, codecId:%d", videoStream->pid, videoStream->codecId,
-            audioStream->pid, audioStream->codecId, adStream->pid, adStream->codecId);
+    MLOG("video:pid %#x, codecId: %s, audio:pid %#x, codecId: %s, ad:pid: %#x, codecId: %s", videoStream->pid, mpCodecId2Str(videoStream->codecId),
+            audioStream->pid, mpCodecId2Str(audioStream->codecId), adStream->pid, mpCodecId2Str(adStream->codecId));
 
     memset(&mPlayPids, 0, sizeof(mPlayPids));
     mPlayPids.video.type = DVR_STREAM_TYPE_VIDEO;
@@ -296,7 +296,7 @@ int AmlDVRPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter)
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
     am_tsplayer_handle mPlayer = (am_tsplayer_handle)mPlaybackOpenParams.playback_handle;
 
-    MLOGI("Call setParameter, key is %#x, mPlayer:%#x", key, mPlayer);
+    MLOGI("Call setParameter, key is %s, mPlayer:%#x", mpPlayerParameterKey2Str(key), mPlayer);
     switch (key) {
         case AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE:
             ret = AmTsPlayer_setVideoMatchMode(mPlayer, convertToTsPlayerVideoMatchMode(*(Aml_MP_VideoDisplayMode*)parameter));
@@ -399,7 +399,7 @@ int AmlDVRPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter)
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
     am_tsplayer_handle mPlayer = (am_tsplayer_handle)mPlaybackOpenParams.playback_handle;
 
-    MLOGI("Call getParameter, key is %d, player:%#x", key, mPlayer);
+    MLOGI("Call getParameter, key is %s, player:%#x", mpPlayerParameterKey2Str(key), mPlayer);
     if (!parameter) {
         return -1;
     }
@@ -508,7 +508,7 @@ int AmlDVRPlayer::createTsPlayerIfNeeded()
 
     tsPlayerInitParam.source = TS_MEMORY;
     tsPlayerInitParam.drmmode = (am_tsplayer_input_buffer_type)mIsEncryptStream;
-    MLOGI("drmMode:%d", tsPlayerInitParam.drmmode);
+    MLOGI("drmMode: %d", tsPlayerInitParam.drmmode);
     tsPlayerInitParam.dmx_dev_id = mPlaybackOpenParams.dmx_dev_id;
     tsPlayerInitParam.event_mask = 0;
 

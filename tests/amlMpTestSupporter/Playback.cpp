@@ -32,6 +32,7 @@ Playback::Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, co
     createParams.sourceType = sourceType;
     createParams.drmMode = programInfo->scrambled ? AML_MP_INPUT_STREAM_ENCRYPTED : AML_MP_INPUT_STREAM_NORMAL;
     int ret = Aml_MP_Player_Create(&createParams, &mPlayer);
+    printStreamsInfo();
     if (ret < 0) {
         MLOGE("create player failed!");
         return;
@@ -413,6 +414,30 @@ int Playback::stopIPTVDescrambling()
     return 0;
 }
 
+void Playback::printStreamsInfo() {
+    printf("\n");
+    printf("Video Streams:\n");
+    for (int i = 0; i < mProgramInfo->audioStreams.size(); i++) {
+        printf("\tVideo[%d] pid: %d, codec: %d\n", i, mProgramInfo->videoStreams.at(i).pid, mProgramInfo->videoStreams.at(i).codecId);
+    }
+    printf("\n");
+
+    printf("Audio streams:\n");
+    for (int i = 0; i < mProgramInfo->audioStreams.size(); i++) {
+        printf("\tAudio[%d] pid: %d, codec: %d\n", i, mProgramInfo->audioStreams.at(i).pid, mProgramInfo->audioStreams.at(i).codecId);
+    }
+
+    printf("Subtitle streams:\n");
+    for (int i = 0; i < mProgramInfo->subtitleStreams.size(); i++) {
+        printf("\tSubtitle[%d] pid: %d, codec: %d", i, mProgramInfo->subtitleStreams.at(i).pid, mProgramInfo->subtitleStreams.at(i).codecId);
+        if (mProgramInfo->subtitleStreams.at(i).codecId == AML_MP_SUBTITLE_CODEC_DVB) {
+            printf("[%d, %d]\n", mProgramInfo->subtitleStreams.at(i).compositionPageId, mProgramInfo->subtitleStreams.at(i).ancillaryPageId);
+        } else {
+            printf("\n");
+        }
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 static struct TestModule::Command g_commandTable[] = {
     {
@@ -448,6 +473,65 @@ static struct TestModule::Command g_commandTable[] = {
         "show", 0, "show video",
         [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             return Aml_MP_Player_ShowVideo(player);
+        }
+    },
+
+    {
+        "flush", 0, "call flush",
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
+            int ret = Aml_MP_Player_Flush(player);
+            printf("call flush ret: %d\n", ret);
+            return ret;
+        }
+    },
+
+    {
+        "switchAudio", 0, "switch audio",
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
+            Aml_MP_AudioParams audioParams;
+            int ret;
+            int audioCodec, audioPid;
+            if (args.size() != 3) {
+                printf("Input example: switchAudio Pid codec_ID\n");
+                return -1;
+            }
+            printf("String input: %s %s\n", args[1].data(), args[2].data());
+            audioPid = stof(args[1]);
+            audioCodec = stof(args[2]);
+            memset(&audioParams, 0, sizeof(audioParams));
+            audioParams.audioCodec = (Aml_MP_CodecID)audioCodec;
+            audioParams.pid = audioPid;
+            ret = Aml_MP_Player_SwitchAudioTrack(player, &audioParams);
+            printf("Switch audio param[%d, %d], ret: %d\n", audioParams.pid, audioParams.audioCodec, ret);
+            return ret;
+        }
+    },
+
+    {
+        "switchSubtitle", 0, "switch subtitle",
+        [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
+            Aml_MP_SubtitleParams subtitleParams;
+            int ret;
+            int subtitleCodec, subtitlePid, compositionPageId, ancillaryPageId;
+            if (args.size() != 5) {
+                printf("Input example: switchSubtitle Pid codec_ID compositionPageId ancillaryPageId\n");
+                return -1;
+            }
+            printf("String input: %s %s\n", args[1].data(), args[2].data());
+            subtitlePid = stof(args[1]);
+            subtitleCodec = stof(args[2]);
+            compositionPageId = stof(args[3]);
+            ancillaryPageId = stof(args[4]);
+            memset(&subtitleParams, 0, sizeof(subtitleParams));
+            subtitleParams.subtitleCodec = (Aml_MP_CodecID)subtitleCodec;
+            subtitleParams.pid = subtitlePid;
+            if (subtitleParams.subtitleCodec == AML_MP_SUBTITLE_CODEC_DVB) {
+                subtitleParams.compositionPageId = compositionPageId;
+                subtitleParams.ancillaryPageId = ancillaryPageId;
+            }
+            ret = Aml_MP_Player_SwitchSubtitleTrack(player, &subtitleParams);
+            printf("Switch audio param[%d, %d], ret: %d\n", subtitleParams.pid, subtitleParams.subtitleCodec, ret);
+            return ret;
         }
     },
 
@@ -494,13 +578,19 @@ static struct TestModule::Command g_commandTable[] = {
         "sFast", 0, "set Fast rate",
         [](AML_MP_PLAYER player, const std::vector<std::string>& args __unused) -> int {
             float fastRate;
+            int ret;
             if (args.size() != 2) {
                 printf("Input example: sFast rate\n");
                 return -1;
             }
             printf("String input: %s\n", args[1].data());
             fastRate = stof(args[1]);
-            int ret = Aml_MP_Player_SetPlaybackRate(player, fastRate);
+            if (fastRate < 2) {
+                ret = Aml_MP_Player_SetPlaybackRate(player, fastRate);
+            } else {
+                Aml_MP_VideoDecodeMode trickMode = AML_MP_VIDEO_DECODE_MODE_IONLY;
+                ret = Aml_MP_Player_SetParameter(player, AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE, &trickMode);
+            }
             printf("set rate: %f, ret: %d\n", fastRate, ret);
             return ret;
         }

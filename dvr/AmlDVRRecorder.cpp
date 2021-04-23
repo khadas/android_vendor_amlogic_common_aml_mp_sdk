@@ -76,7 +76,7 @@ int AmlDVRRecorder::setStreams(Aml_MP_DVRStreamArray* streams)
                 convertToDVRVideoFormat(streams->streams[i].codecId));
             pids[count].pid = streams->streams[i].pid;
             count++;
-            MLOGI("  VIDEO %d", streams->streams[i].pid);
+            MLOGI("  VIDEO 0x%x", streams->streams[i].pid);
             break;
 
         case AML_MP_STREAM_TYPE_AUDIO:
@@ -85,32 +85,32 @@ int AmlDVRRecorder::setStreams(Aml_MP_DVRStreamArray* streams)
                 convertToDVRAudioFormat(streams->streams[i].codecId));
             pids[count].pid = streams->streams[i].pid;
             count++;
-            MLOGI("  AUDIO %d", streams->streams[i].pid);
+            MLOGI("  AUDIO 0x%x", streams->streams[i].pid);
             break;
 
         case AML_MP_STREAM_TYPE_SUBTITLE:
             pids[count].type = (DVR_StreamType_t)(convertToDVRStreamType(streams->streams[i].type) << 24);
             pids[count].pid = streams->streams[i].pid;
             count++;
-            MLOGI("  SUBTITLE %d", streams->streams[i].pid);
+            MLOGI("  SUBTITLE 0x%x", streams->streams[i].pid);
             break;
 
         case AML_MP_STREAM_TYPE_TELETEXT:
             pids[count].type = (DVR_StreamType_t)(convertToDVRStreamType(streams->streams[i].type) << 24);
             pids[count].pid = streams->streams[i].pid;
             count++;
-            MLOGI("  TELETEXT %d", streams->streams[i].pid);
+            MLOGI("  TELETEXT 0x%x", streams->streams[i].pid);
             break;
 
         case AML_MP_STREAM_TYPE_SECTION:
             pids[count].type = (DVR_StreamType_t)(convertToDVRStreamType(streams->streams[i].type) << 24);
             pids[count].pid = streams->streams[i].pid;
             count++;
-            MLOGI("  SECTION %d", streams->streams[i].pid);
+            MLOGI("  SECTION 0x%x", streams->streams[i].pid);
             break;
 
         default:
-            MLOGI("  Not recording %d, type %s", streams->streams[i].pid, mpStreamType2Str(streams->streams[i].type));
+            MLOGI("  Not recording 0x%x, type %s", streams->streams[i].pid, mpStreamType2Str(streams->streams[i].type));
             break;
         }
     }
@@ -136,7 +136,7 @@ int AmlDVRRecorder::setStreams(Aml_MP_DVRStreamArray* streams)
                 if (updatePidParams.pids[j].pid == mRecordPids.pids[i].pid) {
                     found = true;
                     updatePidParams.pid_action[j] = DVR_RECORD_PID_KEEP;
-                    MLOGI("keep %d", mRecordPids.pids[i].pid);
+                    MLOGI("keep 0x%x", mRecordPids.pids[i].pid);
 
                     break;
                 }
@@ -149,7 +149,7 @@ int AmlDVRRecorder::setStreams(Aml_MP_DVRStreamArray* streams)
                     updatePidParams.pids[updatePidParams.nb_pids].pid = mRecordPids.pids[i].pid;
                     updatePidParams.pids[updatePidParams.nb_pids].type = mRecordPids.pids[i].type;
                     updatePidParams.nb_pids++;
-                    MLOGI("close %d", mRecordPids.pids[i].pid);
+                    MLOGI("close 0x%x", mRecordPids.pids[i].pid);
                 }
             }
         }
