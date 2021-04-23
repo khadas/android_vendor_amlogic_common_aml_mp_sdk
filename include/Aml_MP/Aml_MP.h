@@ -151,7 +151,19 @@ int Aml_MP_Player_SetSubtitleParams(AML_MP_PLAYER handle, Aml_MP_SubtitleParams*
  *
  * \return 0 if success
  */
-int Aml_MP_Player_SetIptvCASParams(AML_MP_PLAYER handle, Aml_MP_IptvCasParams* params);
+int Aml_MP_Player_SetIptvCASParams(AML_MP_PLAYER handle, Aml_MP_IptvCASParams* params);
+
+/*
+ * \brief Aml_MP_Player_SetCASParams
+ * Set CAS params
+ * Mainly used for iptv
+ *
+ * \param [in]  player handle
+ * \param [in]  CAS params
+ *
+ * \return 0 if success
+ */
+int Aml_MP_Player_SetCASParams(AML_MP_PLAYER handle, Aml_MP_CASParams* params) AML_MP_DEPRECATED;
 
 /**
  * \brief Aml_MP_Player_Start

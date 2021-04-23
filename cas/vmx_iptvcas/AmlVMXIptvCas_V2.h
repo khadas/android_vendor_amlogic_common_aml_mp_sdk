@@ -6,24 +6,22 @@
  *
  * Description:
  */
+#ifndef _AML_VMX_IPTV_CAS_V2_H_
+#define _AML_VMX_IPTV_CAS_V2_H_
 
-#ifndef _AML_WV_IPTV_CAS_H_
-#define _AML_WV_IPTV_CAS_H_
-
-#include "cas/AmlCasBase.h"
+#include <cas/AmlCasBase.h>
 #include <Aml_MP/Common.h>
 
 #include <mutex>
-
 class AmCasIPTV;
 
 namespace aml_mp {
 
-class AmlWVIptvCas : public AmlCasBase
+class AmlVMXIptvCas_V2 : public AmlCasBase
 {
 public:
-    AmlWVIptvCas(const Aml_MP_IptvCASParams* param, int instanceId);
-    ~AmlWVIptvCas();
+    AmlVMXIptvCas_V2(const Aml_MP_IptvCASParams* param, int instanceId);
+    ~AmlVMXIptvCas_V2();
     virtual int openSession() override;
     virtual int closeSession() override;
     virtual int setPrivateData(const uint8_t* data, size_t size) override;
@@ -35,7 +33,6 @@ private:
     AmCasIPTV * pIptvCas = nullptr;
     uint8_t sessionId[8];
     int mInstanceId;
-    char mName[64];
 
     int mDscFd;
     int mFirstEcm;
@@ -46,8 +43,8 @@ private:
     int checkEcmProcess(uint8_t* pBuffer, uint32_t vEcmPid, uint32_t aEcmPid, size_t * nSize);
 
 
-    AmlWVIptvCas(const AmlWVIptvCas&) = delete;
-    AmlWVIptvCas& operator= (const AmlWVIptvCas&) = delete;
+    AmlVMXIptvCas_V2(const AmlVMXIptvCas_V2&) = delete;
+    AmlVMXIptvCas_V2& operator= (const AmlVMXIptvCas_V2&) = delete;
 };
 }
 

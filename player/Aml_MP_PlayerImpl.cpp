@@ -13,6 +13,7 @@
 #include <utils/AmlMpLog.h>
 #include <utils/AmlMpUtils.h>
 #include <utils/AmlMpConfig.h>
+#include <utils/AmlMpBuffer.h>
 #include <sstream>
 #include <mutex>
 #include <condition_variable>
@@ -64,7 +65,8 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
 
     mPlayer = AmlPlayerBase::create(&mCreateParams, mInstanceId);
     mParser = new Parser(mCreateParams.demuxId, mCreateParams.sourceType == AML_MP_INPUT_SOURCE_TS_DEMOD, true);
-    mTempBuffer = new uint8_t[TEMP_BUFFER_SIZE];
+    mWriteBuffer = new AmlMpBuffer(TEMP_BUFFER_SIZE);
+    mWriteBuffer->setRange(0, 0);
     mZorder = kZorderBase + mInstanceId;
 }
 
@@ -72,9 +74,6 @@ AmlMpPlayerImpl::~AmlMpPlayerImpl()
 {
     MLOG();
 
-    if (mTempBuffer) {
-        delete[] mTempBuffer;
-    }
     CHECK(mState == STATE_IDLE);
     CHECK(mStreamState == 0);
 
@@ -193,7 +192,7 @@ int AmlMpPlayerImpl::setADParams(Aml_MP_AudioParams* params)
     return 0;
 }
 
-int AmlMpPlayerImpl::setIptvCASParams(const Aml_MP_IptvCasParams* params)
+int AmlMpPlayerImpl::setIptvCASParams(const Aml_MP_IptvCASParams* params)
 {
     AML_MP_TRACE(10);
     std::unique_lock<std::mutex> _l(mLock);
@@ -274,6 +273,7 @@ int AmlMpPlayerImpl::stop()
     AML_MP_TRACE(10);
     std::unique_lock<std::mutex> _l(mLock);
     MLOG();
+    RETURN_IF(-1, mPlayer == nullptr);
 
     return stop_l();
 }
@@ -287,11 +287,12 @@ int AmlMpPlayerImpl::stop_l()
             Aml_MP_AudioParams dummyAudioParam{AML_MP_INVALID_PID, AML_MP_CODEC_UNKNOWN};
             mPlayer->setAudioParams(&dummyAudioParam);
         }
-
-        setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_STOPPED);
-        setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_STOPPED);
-        setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_STOPPED);
     }
+
+    // ensure stream stopped if mState isn't running or paused
+    setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_STOPPED);
+    setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_STOPPED);
+    setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_STOPPED);
 
     int ret = resetIfNeeded_l();
 
@@ -452,60 +453,65 @@ int AmlMpPlayerImpl::writeData(const uint8_t* buffer, size_t size)
     RETURN_IF(-1, mPlayer == nullptr);
     std::unique_lock<std::mutex> _l(mLock);
 
-    int writeLen = 0;
+    int written = 0;
 
     if (mState == STATE_PREPARING) {
         //is waiting for start_delay, writeData into mTsBuffer
-        writeLen = mParser->writeData(buffer, size);
-        mTsBuffer.put(buffer, writeLen);
+        written = mParser->writeData(buffer, size);
+        mTsBuffer.put(buffer, size); //TODO: check buffer overflow
     } else {
         //already start, need move data from mTsBuffer to player
-        if (!mTsBuffer.empty()) {
+        if (!mTsBuffer.empty() || mWriteBuffer->size() != 0) {
             writeDataFromBuffer_l();
         }
-        if (mTsBuffer.empty() && mTempBufferSize == 0) {
+
+        if (mTsBuffer.empty() && mWriteBuffer->size() == 0) {
+            if (mCasHandle != nullptr) {
+                mCasHandle->processEcm(buffer, size);
+            }
+
             //normal write data
             if (mPlayer != nullptr) {
-                writeLen = mPlayer->writeData(buffer, size);
+                written = mPlayer->writeData(buffer, size);
             }
         } else {
             //mTsBuffer or mTempBuffer still has data left to writeData
-            writeLen = mTsBuffer.put(buffer, size);
+            written = mTsBuffer.put(buffer, size);
         }
     }
 
-    if (writeLen == 0) {
-        writeLen = -1;
+    if (written == 0) {
+        written = -1;
     }
-    return writeLen;
+    return written;
 }
 
 void AmlMpPlayerImpl::writeDataFromBuffer_l()
 {
     int written = 0;
 
-    if (mTempBufferSize != 0) {
-        //if writeData failed lasttime, then writeData again
+    do {
+        if (mWriteBuffer->size() == 0) {
+            size_t readSize = mTsBuffer.get(mWriteBuffer->base(), mWriteBuffer->capacity());
+            mWriteBuffer->setRange(0, readSize);
+        }
+
+        if (mCasHandle != nullptr) {
+            mCasHandle->processEcm(mWriteBuffer->data(), mWriteBuffer->size());
+        }
+
         if (mPlayer != nullptr) {
-            written = mPlayer->writeData(mTempBuffer, mTempBufferSize);
+            written = mPlayer->writeData(mWriteBuffer->data(), mWriteBuffer->size());
         }
 
         if (written > 0) {
-            mTempBufferSize = std::max(mTempBufferSize - written, 0);
+            mWriteBuffer->setRange(mWriteBuffer->offset()+written, mWriteBuffer->size()-written);
+        } else {
+            break;
         }
-    }
-    while (!mTsBuffer.empty() && mTempBufferSize == 0) {
-        mTempBufferSize = mTsBuffer.get(mTempBuffer, 188 * 100);
+    } while (!mTsBuffer.empty() || mWriteBuffer->size() != 0);
 
-        if (mPlayer != nullptr) {
-            written = mPlayer->writeData(mTempBuffer, mTempBufferSize);
-        }
-
-        if (written > 0) {
-            mTempBufferSize = std::max(mTempBufferSize - written, 0);
-        }
-    }
-    if (mTsBuffer.empty() && mTempBufferSize == 0) {
+    if (mTsBuffer.empty() && mWriteBuffer->size() == 0) {
         MLOGI("writeData from buffer done");
     }
 }
@@ -885,9 +891,10 @@ int AmlMpPlayerImpl::stopVideoDecoding()
         if (mPlayer) {
             mPlayer->stopVideoDecoding();
         }
-
-        setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_STOPPED);
     }
+
+    // ensure stream stopped if mState isn't running or paused
+    setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_STOPPED);
 
     int ret = resetIfNeeded_l();
 
@@ -966,12 +973,13 @@ int AmlMpPlayerImpl::stopAudioDecoding_l()
             mPlayer->setAudioParams(&dummyAudioParam);
         }
 
-        setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_STOPPED);
-
         if (getStreamState_l(AML_MP_STREAM_TYPE_AD) == STREAM_STATE_STARTED) {
             resetADCodec_l(true);
         }
     }
+
+    // ensure stream stopped if mState isn't running or paused
+    setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_STOPPED);
 
     ret = resetIfNeeded_l();
 
@@ -1050,13 +1058,13 @@ int AmlMpPlayerImpl::stopADDecoding_l()
             mPlayer->setADParams(&dummyADParam, false);
         }
 
-        setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_STOPPED);
-
         if (getStreamState_l(AML_MP_STREAM_TYPE_AUDIO) == STREAM_STATE_STARTED) {
             resetAudioCodec_l(true);
         }
-
     }
+
+    // ensure stream stopped if mState isn't running or paused
+    setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_STOPPED);
 
     ret = resetIfNeeded_l();
 
@@ -1119,9 +1127,10 @@ int AmlMpPlayerImpl::stopSubtitleDecoding()
         if (mPlayer) {
             mPlayer->stopSubtitleDecoding();
         }
-
-        setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_STOPPED);
     }
+
+    // ensure stream stopped if mState isn't running or paused
+    setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_STOPPED);
 
     int ret = resetIfNeeded_l();
 
@@ -1455,15 +1464,13 @@ int AmlMpPlayerImpl::finishPreparingIfNeeded_l()
 
 int AmlMpPlayerImpl::resetIfNeeded_l()
 {
-    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
-        if (mStreamState == 0) {
-            setState_l(STATE_STOPPED);
-        } else {
-            MLOGI("current streamState:%s", streamStateString(mStreamState).c_str());
-        }
+    if (mStreamState == 0) {
+        setState_l(STATE_STOPPED);
+    } else {
+        MLOGI("current streamState:%s", streamStateString(mStreamState).c_str());
     }
 
-    if (mState == STATE_STOPPED || mState == STATE_PREPARING || mState == STATE_PREPARED) {
+    if (mState == STATE_STOPPED) {
         reset_l();
     }
 
@@ -1479,7 +1486,7 @@ int AmlMpPlayerImpl::reset_l()
     }
 
     mTsBuffer.reset();
-    mTempBufferSize = 0;
+    mWriteBuffer->setRange(0, 0);
     if (mParser) {
         mParser->close();
 

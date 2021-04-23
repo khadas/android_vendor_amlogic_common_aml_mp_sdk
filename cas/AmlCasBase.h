@@ -35,7 +35,7 @@ namespace aml_mp {
 class AmlCasBase : public AmlMpRefBase
 {
 public:
-    static sptr<AmlCasBase> create(const Aml_MP_IptvCasParams* params, int instanceId);
+    static sptr<AmlCasBase> create(const Aml_MP_IptvCASParams* params, int instanceId);
     virtual ~AmlCasBase();
 
     virtual int openSession() = 0;
