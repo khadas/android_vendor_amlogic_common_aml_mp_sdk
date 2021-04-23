@@ -19,6 +19,9 @@
 #define AML_MP_INVALID_PID      (0x1FFF)
 #define AML_MP_MAX_PATH_SIZE    512
 
+#ifndef AML_MP_DEPRECATED
+#define AML_MP_DEPRECATED __attribute((deprecated))
+#endif
 
 typedef void* AML_MP_PLAYER;
 typedef void* AML_MP_DVRRECORDER;
@@ -158,13 +161,12 @@ typedef enum {
 
 //add for get url info from setdatasource,such as wv
 typedef struct {
-    char* license_url;
-    char* provision_url;
-    char* request_header;
-    char* request_body;
-    char* content_type;
+    char license_url[AML_MP_MAX_PATH_SIZE];
+    char provision_url[AML_MP_MAX_PATH_SIZE];
+    char request_header[AML_MP_MAX_PATH_SIZE];
+    char request_body[AML_MP_MAX_PATH_SIZE];
+    char content_type[AML_MP_MAX_PATH_SIZE];
 }Aml_MP_IptvCasHeaders;
-
 
 typedef struct {
     Aml_MP_CASType type;
@@ -186,8 +188,32 @@ typedef struct {
     uint8_t private_data[AML_MP_MAX_PATH_SIZE];
     size_t private_size;
 
-    Aml_MP_IptvCasHeaders *headers;
-} Aml_MP_IptvCasParams;
+    Aml_MP_IptvCasHeaders headers;
+} Aml_MP_IptvCASParams;
+
+typedef struct {
+    Aml_MP_CodecID videoCodec;
+    Aml_MP_CodecID audioCodec;
+    int videoPid;
+    int audioPid;
+    int ecmPid;
+    Aml_MP_DemuxId demuxId;
+
+    char serverAddress[100];
+    int serverPort;
+    char keyPath[100];
+} Aml_MP_IptvCasParam;
+
+typedef struct {
+    Aml_MP_CASType type;
+    union {
+        Aml_MP_IptvCasParam iptvCasParam;
+        struct {
+            uint8_t data[1024];
+            size_t size;
+        } casParam;
+    } u;
+} Aml_MP_CASParams AML_MP_DEPRECATED;
 
 ////////////////////////////////////////
 typedef enum {

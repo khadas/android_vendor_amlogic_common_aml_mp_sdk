@@ -329,7 +329,7 @@ int Playback::startIPTVDescrambling()
 {
     MLOG();
 
-    Aml_MP_IptvCasParams casParams;
+    Aml_MP_IptvCASParams casParams;
     int ret = 0;
 
     casParams.type = AML_MP_CAS_UNKNOWN;
@@ -350,7 +350,7 @@ int Playback::startIPTVDescrambling()
         property_get("config.media.vmx.dvb.key_file", value, "/data/mediadrm");
         strncpy(casParams.keyPath, value, sizeof(casParams.keyPath)-1);
 
-        property_get("config.media.vmx.dvb.server_ip", value, "client-test-3.verimatrix.com");
+        property_get("config.media.vmx.dvb.server_ip", value, "client-test-1.verimatrix.com");
         strncpy(casParams.serverAddress, value, sizeof(casParams.serverAddress)-1);
 
         casParams.serverPort = property_get_int32("config.media.vmx.dvb.server_port", 12686);

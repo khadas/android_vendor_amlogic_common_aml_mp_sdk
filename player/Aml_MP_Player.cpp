@@ -70,12 +70,33 @@ int Aml_MP_Player_SetSubtitleParams(AML_MP_PLAYER handle, Aml_MP_SubtitleParams*
     return player->setSubtitleParams(params);
 }
 
-int Aml_MP_Player_SetIptvCASParams(AML_MP_PLAYER handle, Aml_MP_IptvCasParams* params)
+int Aml_MP_Player_SetIptvCASParams(AML_MP_PLAYER handle, Aml_MP_IptvCASParams* params)
 {
     AmlMpPlayerImpl* player = aml_handle_cast<AmlMpPlayerImpl>(handle);
     RETURN_IF(-1, player == nullptr);
 
     return player->setIptvCASParams(params);
+}
+
+int Aml_MP_Player_SetCASParams(AML_MP_PLAYER handle, Aml_MP_CASParams* params)
+{
+    AmlMpPlayerImpl* player = aml_handle_cast<AmlMpPlayerImpl>(handle);
+    RETURN_IF(-1, player == nullptr);
+
+    Aml_MP_IptvCASParams iptvCasParam{};
+
+    iptvCasParam.type = params->type;
+    iptvCasParam.videoCodec = params->u.iptvCasParam.videoCodec;
+    iptvCasParam.audioCodec = params->u.iptvCasParam.audioCodec;
+    iptvCasParam.videoPid = params->u.iptvCasParam.videoPid;
+    iptvCasParam.audioPid = params->u.iptvCasParam.audioPid;
+    iptvCasParam.ecmPid[0] = params->u.iptvCasParam.ecmPid;
+    iptvCasParam.demuxId = params->u.iptvCasParam.demuxId;
+    strncpy(iptvCasParam.serverAddress, params->u.iptvCasParam.serverAddress, sizeof(params->u.iptvCasParam.serverAddress));
+    iptvCasParam.serverPort = params->u.iptvCasParam.serverPort;
+    strncpy(iptvCasParam.keyPath, params->u.iptvCasParam.keyPath, sizeof(params->u.iptvCasParam.keyPath));
+
+    return player->setIptvCASParams(&iptvCasParam);
 }
 
 int Aml_MP_Player_Start(AML_MP_PLAYER handle)

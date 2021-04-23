@@ -10,6 +10,8 @@
 #ifndef AMCAS_IPTV_H
 #define AMCAS_IPTV_H
 
+#include <stdint.h>
+
 typedef struct iptvseverinfo {
     char    *storepath;
     char    *serveraddr;
@@ -17,18 +19,20 @@ typedef struct iptvseverinfo {
     int     enablelog;
 } iptvseverinfo_t;
 
+typedef int AmCasCode_t;
+
 class  AmCasIPTV {
 
 public:
-    AmCasIPTV();
-    ~AmCasIPTV();
-    AmCasCode_t setPrivateData(void *iDate, int iSize);
-    AmCasCode_t provision();
-    AmCasCode_t openSession(uint8_t *sessionId);
-    AmCasCode_t closeSession(uint8_t *sessionId);
-    AmCasCode_t setPids(int vPid, int aPid);
-    AmCasCode_t processEcm(int isSection, int iPid, uint8_t*pBuffer, int iBufferLength);
-    AmCasCode_t processEmm(int isSection, int iPid, uint8_t *pBuffer, int iBufferLength);
+    AmCasIPTV() {}
+    ~AmCasIPTV() {}
+    AmCasCode_t setPrivateData(void *iDate, int iSize) {return 0;}
+    AmCasCode_t provision() {return 0;}
+    AmCasCode_t openSession(uint8_t *sessionId) {return 0;}
+    AmCasCode_t closeSession(uint8_t *sessionId) {return 0;}
+    AmCasCode_t setPids(int vPid, int aPid) {return 0;}
+    AmCasCode_t processEcm(int isSection, int iPid, uint8_t*pBuffer, int iBufferLength) {return 0;}
+    AmCasCode_t processEmm(int isSection, int iPid, uint8_t *pBuffer, int iBufferLength) {return 0;}
     //CasStreamInfo mCasStreamInfo;
 
 private:

@@ -190,6 +190,7 @@ bool AmlHwDemux::isStopped() const
 void AmlHwDemux::threadLoop()
 {
     int ret = 0;
+    ALOGI("hwdemux thread start!");
 
     if (mLooper == nullptr) {
         MLOGE("looper is NULL!");

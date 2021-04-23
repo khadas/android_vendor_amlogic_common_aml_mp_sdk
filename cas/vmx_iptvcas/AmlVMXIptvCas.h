@@ -6,21 +6,23 @@
  *
  * Description:
  */
+
 #ifndef _AML_VMX_IPTV_CAS_H_
 #define _AML_VMX_IPTV_CAS_H_
 
-#include "cas/AmlCasBase.h"
+#include <cas/AmlCasBase.h>
 #include <Aml_MP/Common.h>
-
 #include <mutex>
-class AmCasIPTV;
+
+typedef struct _dvb_ca dvb_ca_t;
 
 namespace aml_mp {
+struct CasLibWrapper;
 
 class AmlVMXIptvCas : public AmlCasBase
 {
 public:
-    AmlVMXIptvCas(const Aml_MP_IptvCasParams* param, int instanceId);
+    AmlVMXIptvCas(const Aml_MP_IptvCASParams* param, int instanceId);
     ~AmlVMXIptvCas();
     virtual int openSession() override;
     virtual int closeSession() override;
@@ -29,23 +31,17 @@ public:
     virtual int processEmm(const uint8_t* data, size_t size) override;
 
 private:
-    Aml_MP_IptvCasParams mIptvCasParam;
-    AmCasIPTV * pIptvCas = nullptr;
-    uint8_t sessionId[8];
-    int mInstanceId;
+    static CasLibWrapper* sCasLibWrapper;
+    static std::once_flag sLoadCasLibFlag;
 
-    int mDscFd;
-    int mFirstEcm;
-    uint8_t mEcmTsPacket[188];
+    Aml_MP_IptvCASParams mIptvCasParam;
 
-    int setDscSource();
-    int dscDevOpen(const char *port_addr, int flags);
-    int checkEcmProcess(uint8_t* pBuffer, uint32_t vEcmPid, uint32_t aEcmPid, size_t * nSize);
-
+    dvb_ca_t* mCasHandle = nullptr;
 
     AmlVMXIptvCas(const AmlVMXIptvCas&) = delete;
     AmlVMXIptvCas& operator= (const AmlVMXIptvCas&) = delete;
 };
+
 }
 
 #endif

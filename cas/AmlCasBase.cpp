@@ -12,13 +12,14 @@
 #include "AmlCasBase.h"
 #include "wv_iptvcas/AmlWVIptvCas.h"
 #include "vmx_iptvcas/AmlVMXIptvCas.h"
+#include "vmx_iptvcas/AmlVMXIptvCas_V2.h"
 #include <utils/AmlMpUtils.h>
 
 static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 
-sptr<AmlCasBase> AmlCasBase::create(const Aml_MP_IptvCasParams* casParams, int instanceId)
+sptr<AmlCasBase> AmlCasBase::create(const Aml_MP_IptvCASParams* casParams, int instanceId)
 {
     sptr<AmlCasBase> cas = nullptr;
 
@@ -26,7 +27,10 @@ sptr<AmlCasBase> AmlCasBase::create(const Aml_MP_IptvCasParams* casParams, int i
     switch (casParams->type) {
     case AML_MP_CAS_VERIMATRIX_IPTV:
     {
-#ifdef HAVE_VMXIPTV_CAS
+#ifdef HAVE_VMXIPTV_CAS_V2
+        MLOGI("%s, iptv vmxcas v2 support", __func__);
+        cas = new AmlVMXIptvCas_V2(casParams, instanceId);
+#elif HAVE_VMXIPTV_CAS
         MLOGI("%s, iptv vmxcas support", __func__);
         cas = new AmlVMXIptvCas(casParams, instanceId);
 #endif
