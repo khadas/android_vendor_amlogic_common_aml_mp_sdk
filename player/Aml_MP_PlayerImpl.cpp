@@ -187,21 +187,10 @@ int AmlMpPlayerImpl::start()
     }
 
     if (mState == STATE_PREPARING) {
-        if (mAudioParams.audioCodec == AML_MP_CODEC_UNKNOWN) {
-            setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_START_PENDING);
-        }
-
-        if (mVideoParams.videoCodec == AML_MP_CODEC_UNKNOWN) {
-            setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_START_PENDING);
-        }
-
-        if (mSubtitleParams.subtitleCodec == AML_MP_CODEC_UNKNOWN) {
-            setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_START_PENDING);
-        }
-
-        if (mADParams.audioCodec == AML_MP_CODEC_UNKNOWN) {
-            setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_START_PENDING);
-        }
+        setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_START_PENDING);
+        setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_START_PENDING);
+        setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_START_PENDING);
+        setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_START_PENDING);
 
         return 0;
     }
@@ -376,8 +365,8 @@ int AmlMpPlayerImpl::writeData(const uint8_t* buffer, size_t size)
 
     if (mState == STATE_PREPARING) {
         //is waiting for start_delay, writeData into mTsBuffer
-        writeLen = mTsBuffer.put(buffer, size);
-        mParser->writeData(buffer, writeLen);
+        writeLen = mParser->writeData(buffer, size);
+        mTsBuffer.put(buffer, writeLen);
     } else {
         //already start, need move data from mTsBuffer to player
         if (!mTsBuffer.empty()) {
@@ -769,7 +758,7 @@ int AmlMpPlayerImpl::startVideoDecoding_l()
         }
     }
 
-    if (mState == STATE_PREPARING && mVideoParams.videoCodec == AML_MP_CODEC_UNKNOWN) {
+    if (mState == STATE_PREPARING) {
         setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_START_PENDING);
         return 0;
     }
@@ -835,7 +824,7 @@ int AmlMpPlayerImpl::startAudioDecoding_l()
         }
     }
 
-    if (mState == STATE_PREPARING && mAudioParams.audioCodec == AML_MP_CODEC_UNKNOWN) {
+    if (mState == STATE_PREPARING) {
         setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_START_PENDING);
         return 0;
     }
@@ -913,7 +902,7 @@ int AmlMpPlayerImpl::startADDecoding_l()
         }
     }
 
-    if (mState == STATE_PREPARING && mADParams.audioCodec == AML_MP_CODEC_UNKNOWN) {
+    if (mState == STATE_PREPARING) {
         setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_START_PENDING);
         return 0;
     }
@@ -998,7 +987,7 @@ int AmlMpPlayerImpl::startSubtitleDecoding_l()
         }
     }
 
-    if (mState == STATE_PREPARING && mSubtitleParams.subtitleCodec == AML_MP_CODEC_UNKNOWN) {
+    if (mState == STATE_PREPARING) {
         setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_START_PENDING);
         return 0;
     }
@@ -1275,11 +1264,13 @@ int AmlMpPlayerImpl::prepare_l()
         mPrepareWaitingType |= kPrepareWaitingCodecId;
     }
 
-    if (mPrepareWaitingType == kPrepareWaitingNone) {
+    if ((mPrepareWaitingType & kPrepareWaitingCodecId) == 0) {
         setState_l(STATE_PREPARED);
     } else {
         setState_l(STATE_PREPARING);
+    }
 
+    if (mPrepareWaitingType != kPrepareWaitingNone) {
         mParser->setProgram(mVideoParams.pid, mAudioParams.pid);
         mParser->setEventCallback([this] (Parser::ProgramEventType event, int param1, int param2, void* data) {
                 return programEventCallback(event, param1, param2, data);
@@ -1458,6 +1449,7 @@ void AmlMpPlayerImpl::notifyListener(Aml_MP_PlayerEventType eventType, int64_t p
 int AmlMpPlayerImpl::resetADCodec_l(bool callStart)
 {
     int ret = 0;
+    MLOG("callStart:%d", callStart);
 
     ret = mPlayer->stopADDecoding();
     if (ret < 0) {
@@ -1478,6 +1470,8 @@ int AmlMpPlayerImpl::resetADCodec_l(bool callStart)
 int AmlMpPlayerImpl::resetAudioCodec_l(bool callStart)
 {
     int ret = 0;
+    MLOG("callStart:%d", callStart);
+
     ret = mPlayer->stopAudioDecoding();
     if (ret < 0) {
         MLOGW("stopAudioDecoding failed while resetAudioCodec");

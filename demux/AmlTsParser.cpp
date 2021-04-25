@@ -634,8 +634,6 @@ void Parser::onPmtParsed(const PMTSection& results)
         addSectionFilter(results.ecmPid, ecmCb, false);
     }
 
-    std::lock_guard<std::mutex> _l(mLock);
-
     sptr<ProgramInfo> programInfo = mProgramInfo;
     programInfo->programNumber = results.programNumber;
     programInfo->pmtPid = results.pmtPid;
@@ -757,14 +755,13 @@ void Parser::onPmtParsed(const PMTSection& results)
     }
 
     if (mProgramInfo->isComplete()) {
+        std::lock_guard<std::mutex> _l(mLock);
         notifyParseDone_l();
     }
 }
 
 void Parser::onCatParsed(const CATSection& results)
 {
-    std::lock_guard<std::mutex> _l(mLock);
-
     mProgramInfo->scrambled = true;
     mProgramInfo->caSystemId = results.caSystemId;
     mProgramInfo->emmPid = results.emmPid;
@@ -774,6 +771,7 @@ void Parser::onCatParsed(const CATSection& results)
     }
 
     if (mProgramInfo->isComplete()) {
+        std::lock_guard<std::mutex> _l(mLock);
         notifyParseDone_l();
     }
 }
