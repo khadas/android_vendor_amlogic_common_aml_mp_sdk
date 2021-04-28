@@ -62,6 +62,21 @@ static void convertToCAServiceInfo(AM_CA_ServiceInfo_t* caServiceInfo, Aml_MP_CA
     caServiceInfo->ca_private_data_len = mpServiceInfo->ca_private_data_len;
 }
 
+static int convertToAmlMPErrorCode(AM_RESULT CasResult) {
+    switch (CasResult) {
+        case AM_ERROR_SUCCESS:
+            return AML_MP_OK;
+        case AM_ERROR_NOT_LOAD:
+            return AML_MP_BAD_INDEX;
+        case AM_ERROR_NOT_SUPPORTED:
+            return AML_MP_BAD_TYPE;
+        case AM_ERROR_OVERFLOW:
+            return AML_MP_NO_MEMORY;
+        default:
+            return AML_MP_ERROR;
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 namespace aml_mp {
 AmlDvbCasHal::AmlDvbCasHal(Aml_MP_CASServiceType serviceType)
@@ -106,7 +121,7 @@ int AmlDvbCasHal::registerEventCallback(Aml_MP_CAS_EventCallback cb, void* userD
     AML_MP_UNUSED(eventFn);
 #endif
 
-    return ret;
+    return convertToAmlMPErrorCode(ret);
 }
 
 int AmlDvbCasHal::startDescrambling(Aml_MP_CASServiceInfo* serviceInfo)
@@ -121,7 +136,7 @@ int AmlDvbCasHal::startDescrambling(Aml_MP_CASServiceInfo* serviceInfo)
     ret = AM_CA_StartDescrambling(mCasSession, &caServiceInfo);
 #endif
 
-    return ret;
+    return convertToAmlMPErrorCode(ret);
 }
 
 int AmlDvbCasHal::stopDescrambling()
@@ -134,7 +149,7 @@ int AmlDvbCasHal::stopDescrambling()
     ret = AM_CA_StopDescrambling(mCasSession);
 #endif
 
-    return ret;
+    return convertToAmlMPErrorCode(ret);
 }
 
 int AmlDvbCasHal::updateDescramblingPid(int oldStreamPid, int newStreamPid)
@@ -147,7 +162,7 @@ int AmlDvbCasHal::updateDescramblingPid(int oldStreamPid, int newStreamPid)
    ret = AM_CA_UpdateDescramblingPid(mCasSession, oldStreamPid, newStreamPid);
 #endif
 
-    return ret;
+    return convertToAmlMPErrorCode(ret);
 }
 
 int AmlDvbCasHal::startDVRRecord(Aml_MP_CASServiceInfo* serviceInfo)
@@ -163,7 +178,7 @@ int AmlDvbCasHal::startDVRRecord(Aml_MP_CASServiceInfo* serviceInfo)
     ret = AM_CA_DVRStart(mCasSession, &caServiceInfo);
 #endif
 
-    return ret;
+    return convertToAmlMPErrorCode(ret);
 }
 
 int AmlDvbCasHal::stopDVRRecord()
@@ -176,7 +191,7 @@ int AmlDvbCasHal::stopDVRRecord()
     ret = AM_CA_DVRStop(mCasSession);
 #endif
 
-    return ret;
+    return convertToAmlMPErrorCode(ret);
 }
 
 int AmlDvbCasHal::startDVRReplay(Aml_MP_CASDVRReplayParams* dvrReplayParams)
@@ -193,7 +208,7 @@ int AmlDvbCasHal::startDVRReplay(Aml_MP_CASDVRReplayParams* dvrReplayParams)
     AML_MP_UNUSED(caParams);
 #endif
 
-    return ret;
+    return convertToAmlMPErrorCode(ret);
 }
 
 int AmlDvbCasHal::stopDVRReplay()
@@ -206,7 +221,7 @@ int AmlDvbCasHal::stopDVRReplay()
     ret = AM_CA_DVRStopReplay(mCasSession);
 #endif
 
-    return ret;
+    return convertToAmlMPErrorCode(ret);
 }
 
 int AmlDvbCasHal::DVREncrypt(Aml_MP_CASCryptoParams* cryptoParams)
@@ -222,7 +237,7 @@ int AmlDvbCasHal::DVREncrypt(Aml_MP_CASCryptoParams* cryptoParams)
     AML_MP_UNUSED(amCryptoParams);
 #endif
 
-    return ret;
+    return convertToAmlMPErrorCode(ret);
 }
 
 int AmlDvbCasHal::DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams)
@@ -239,7 +254,7 @@ int AmlDvbCasHal::DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams)
         ret = AM_CA_DVRReplay(mCasSession, amCryptoParams);
         if (ret < 0) {
             MLOGE("CAS DVR replay failed, ret = %d", ret);
-            return ret;
+            return convertToAmlMPErrorCode(ret);
         }
 #endif
     }
@@ -250,7 +265,7 @@ int AmlDvbCasHal::DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams)
     AML_MP_UNUSED(amCryptoParams);
 #endif
 
-    return ret;
+    return convertToAmlMPErrorCode(ret);
 }
 
 AML_MP_SECMEM AmlDvbCasHal::createSecmem(Aml_MP_CASServiceType type, void** pSecbuf, uint32_t* size)
@@ -281,11 +296,8 @@ int AmlDvbCasHal::destroySecmem(AML_MP_SECMEM secMem)
     ret = AM_CA_DestroySecmem(mCasSession, (SecMemHandle)secMem);
 #endif
 
-    return ret;
+    return convertToAmlMPErrorCode(ret);
 }
-
-
-
 
 }
 

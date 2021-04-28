@@ -18,7 +18,18 @@
 #include "wvcas/include/amCasIPTV.h"
 #include <utils/AmlMpLog.h>
 
-
+const int convertToAmlMPErrorCode(AmCasCode_t casResult) {
+    switch (casResult) {
+        case AM_CAS_SUCCESS:
+            return AML_MP_OK;
+        case AM_CAS_ERROR:
+            return AML_MP_ERROR_BASE;
+        case AM_CAS_ERR_SYS:
+            return AML_MP_PERMISSION_DENIED;
+        default:
+            return AML_MP_ERROR_BASE;
+    }
+}
 
 namespace aml_mp {
 
@@ -131,7 +142,7 @@ int AmlWVIptvCas::openSession()
         ret = pIptvCas->openSession(&sessionId[0]);
     }
 
-    return ret;
+    return convertToAmlMPErrorCode((AmCasCode_t)ret);
 }
 
 int AmlWVIptvCas::closeSession()
@@ -143,7 +154,7 @@ int AmlWVIptvCas::closeSession()
         ret = pIptvCas->closeSession(&sessionId[0]);
     }
 
-    return ret;
+    return convertToAmlMPErrorCode((AmCasCode_t)ret);
 }
 
 int AmlWVIptvCas::setPrivateData(const uint8_t* data, size_t size)
@@ -155,11 +166,11 @@ int AmlWVIptvCas::setPrivateData(const uint8_t* data, size_t size)
         ret = pIptvCas->setPrivateData((void*)pdata, size);
         if (ret != 0) {
             MLOGI("setPrivateData failed, ret =%d", ret);
-            return ret;
+            return convertToAmlMPErrorCode((AmCasCode_t)ret);
         }
     }
 
-    return ret;
+    return convertToAmlMPErrorCode((AmCasCode_t)ret);
 }
 
 int AmlWVIptvCas::checkEcmProcess(uint8_t* pBuffer, uint32_t vEcmPid, uint32_t aEcmPid,size_t * nSize)
@@ -209,7 +220,7 @@ int AmlWVIptvCas::checkEcmProcess(uint8_t* pBuffer, uint32_t vEcmPid, uint32_t a
       rem -= TS_PACKET_SIZE;
   }
 
-  return ret;
+  return convertToAmlMPErrorCode((AmCasCode_t)ret);
 }
 
 
@@ -229,7 +240,7 @@ int AmlWVIptvCas::processEcm(const uint8_t* data, size_t size)
         }
     }
 
-    return ret;
+    return convertToAmlMPErrorCode((AmCasCode_t)ret);
 }
 
 int AmlWVIptvCas::processEmm(const uint8_t* data, size_t size)
@@ -241,7 +252,7 @@ int AmlWVIptvCas::processEmm(const uint8_t* data, size_t size)
         ret = pIptvCas->processEmm(0, mIptvCasParam.videoPid ,pdata, size);
     }
 
-    return ret;
+    return convertToAmlMPErrorCode((AmCasCode_t)ret);
 }
 
 int AmlWVIptvCas::dscDevOpen(const char *port_addr, int flags)
@@ -308,7 +319,7 @@ int AmlWVIptvCas::setDscSource()
         */
     }
 #endif
-    return ret;
+    return convertToAmlMPErrorCode((AmCasCode_t)ret);
 }
 
 }

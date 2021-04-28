@@ -56,6 +56,7 @@ private:
     void printStreamsInfo();
 
 private:
+    void eventCallback(Aml_MP_PlayerEventType eventType, int64_t param);
     const sptr<ProgramInfo> mProgramInfo;
     const Aml_MP_DemuxId mDemuxId;
     AML_MP_PLAYER mPlayer = AML_MP_INVALID_HANDLE;
@@ -75,9 +76,5 @@ private:
 };
 
 }
-
-
-
-
 
 #endif

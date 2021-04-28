@@ -343,7 +343,7 @@ void AmlPlayerBase::AmlMPSubtitleDataCb(const char * data, int size, AmlSubDataT
     cbHandle->mSubtitleData.videoWidth = videoWidth;
     cbHandle->mSubtitleData.videoHeight = videoHeight;
     cbHandle->mSubtitleData.showing = showing;
-    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_DATA, (int64_t)(&(cbHandle->mSubtitleData)));
+    cbHandle->notifyListener(AML_MP_PLAYER_EVENT_SUBTITLE_DATA, (int64_t)(&(cbHandle->mSubtitleData)));
 }
 
 #define ERROR_DECODER_NORMAL 1
@@ -365,7 +365,7 @@ void AmlPlayerBase::AmlMPSubtitleAvailCb(int avail) {
 
     switch (avail) {
     case ERROR_DECODER_NORMAL:
-        cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_SUBTITLE_AVAIL, (int64_t)(&avail));
+        cbHandle->notifyListener(AML_MP_PLAYER_EVENT_SUBTITLE_AVAIL, (int64_t)(&avail));
         break;
     case ERROR_DECODER_TIMEOUT:
         cbHandle->notifyListener(AML_MP_PLAYER_EVENT_SUBTITLE_TIMEOUT, (int64_t)(&avail));
@@ -396,7 +396,7 @@ void AmlPlayerBase::AmlMPSubtitleDimensionCb(int width, int height) {
     cbHandle->mSubtitleDimension.width = width;
     cbHandle->mSubtitleDimension.height = height;
     ALOG(LOG_INFO, nullptr, "[AmlMPSubtitleDimensionCb] Get call back info width: %d, height: %d\n", cbHandle->mSubtitleDimension.width, cbHandle->mSubtitleDimension.height);
-    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_DIMENSION, (int64_t)(&(cbHandle->mSubtitleDimension)));
+    cbHandle->notifyListener(AML_MP_PLAYER_EVENT_SUBTITLE_DIMENSION, (int64_t)(&(cbHandle->mSubtitleDimension)));
 }
 
 void AmlPlayerBase::AmlMPSubtitleAfdEventCb(int event) {
@@ -409,7 +409,7 @@ void AmlPlayerBase::AmlMPSubtitleAfdEventCb(int event) {
         return;
     }
 
-    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_AFD_EVENT, (int64_t)(&event));
+    cbHandle->notifyListener(AML_MP_PLAYER_EVENT_SUBTITLE_AFD_EVENT, (int64_t)(&event));
 }
 
 void AmlPlayerBase::AmlMPSubtitleChannelUpdateCb(int event, int id) {
@@ -425,7 +425,7 @@ void AmlPlayerBase::AmlMPSubtitleChannelUpdateCb(int event, int id) {
     Aml_MP_SubtitleChannelUpdate subtitleChannelUpdate;
     subtitleChannelUpdate.event = event;
     subtitleChannelUpdate.id = id;
-    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_CHANNEL_UPDATE, (int64_t)(&subtitleChannelUpdate));
+    cbHandle->notifyListener(AML_MP_PLAYER_EVENT_SUBTITLE_CHANNEL_UPDATE, (int64_t)(&subtitleChannelUpdate));
 }
 
 void AmlPlayerBase::AmlMPSubtitleLanguageCb(std::string lang) {
@@ -439,7 +439,7 @@ void AmlPlayerBase::AmlMPSubtitleLanguageCb(std::string lang) {
     lang.copy(cbHandle->mSubtitleIso639Code, 3, 0);
     cbHandle->mSubtitleIso639Code[3] = '\0';
     ALOG(LOG_INFO, nullptr, "[AmlMPSubtitleLanguageCb] Get callback info iso639Code: %s\n", cbHandle->mSubtitleIso639Code);
-    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_SUBTITLE_LANGUAGE, (int64_t)(&(cbHandle->mSubtitleIso639Code)));
+    cbHandle->notifyListener(AML_MP_PLAYER_EVENT_SUBTITLE_LANGUAGE, (int64_t)(&(cbHandle->mSubtitleIso639Code)));
 }
 
 void AmlPlayerBase::AmlMPSubtitleInfoCb(int what, int extra) {
@@ -455,7 +455,7 @@ void AmlPlayerBase::AmlMPSubtitleInfoCb(int what, int extra) {
     Aml_MP_SubtitleInfo subtitleInfo;
     subtitleInfo.what = what;
     subtitleInfo.extra = extra;
-    cbHandle->notifyListener(AML_MP_SUBTITLE_EVENT_SUBTITLE_INFO, (int64_t)(&subtitleInfo));
+    cbHandle->notifyListener(AML_MP_PLAYER_EVENT_SUBTITLE_INFO, (int64_t)(&subtitleInfo));
 }
 
 #endif
