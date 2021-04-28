@@ -357,7 +357,7 @@ int AmlMpPlayerImpl::flush()
 
     ret = mPlayer->flush();
 
-    if (ret != Aml_MP_DEAD_OBJECT) {
+    if (ret != AML_MP_DEAD_OBJECT) {
         return ret;
     }
 
@@ -420,7 +420,7 @@ int AmlMpPlayerImpl::switchAudioTrack(const Aml_MP_AudioParams* params)
         RETURN_IF(-1, mPlayer == nullptr);
         ret = mPlayer->switchAudioTrack(params);
 
-        if (ret != Aml_MP_DEAD_OBJECT) {
+        if (ret != AML_MP_DEAD_OBJECT) {
             return ret;
         }
 

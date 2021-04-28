@@ -66,13 +66,14 @@ typedef enum {
     AML_MP_DEMUX_SOURCE_DMA4,  /**< DMA input port 4.*/
     AML_MP_DEMUX_SOURCE_DMA5,  /**< DMA input port 5.*/
     AML_MP_DEMUX_SOURCE_DMA6,  /**< DMA input port 6.*/
-    AML_MP_DEMUX_SOURCE_DMA7  /**< DMA input port 7.*/
+    AML_MP_DEMUX_SOURCE_DMA7,  /**< DMA input port 7.*/
 } Aml_MP_DemuxSource;
 
 ///////////////////////////////////////////////////////////////////////////////
 typedef enum {
     AML_MP_INPUT_SOURCE_TS_DEMOD,
     AML_MP_INPUT_SOURCE_TS_MEMORY,
+    AML_MP_INPUT_SOURCE_ES_MEMORY,
 } Aml_MP_InputSourceType;
 
 typedef enum {
@@ -394,6 +395,18 @@ typedef struct {
     uint32_t signal_type;
     uint32_t pts;
     uint64_t pts_us64;
+#if 0 // For av param report
+    uint32_t i_decoded_frames; //i frames decoded
+    uint32_t i_lost_frames;//i frames can not be decoded
+    uint32_t i_concealed_frames;//i frames decoded but have some error
+    uint32_t p_decoded_frames;
+    uint32_t p_lost_frames;
+    uint32_t p_concealed_frames;
+    uint32_t b_decoded_frames;
+    uint32_t b_lost_frames;
+    uint32_t b_concealed_frames;
+    uint32_t av_resynch_counter;
+#endif
 } Aml_MP_VdecStat;
 
 ////////////////////////////////////////
@@ -414,44 +427,8 @@ typedef struct {
 } Aml_MP_AdecStat;
 
 ////////////////////////////////////////
-//AML_MP_SUBTITLE_EVENT_DATA
-typedef enum {
-    AML_MP_SUB_DATA_TYPE_STRING = 0,
-    AML_MP_SUB_DATA_TYPE_CC_JSON = 1,
-    AML_MP_SUB_DATA_TYPE_BITMAP = 2,
-    AML_MP_SUB_DATA_TYPE_POSITON_BITMAP = 4,
-    AML_MP_SUB_DATA_TYPE_UNKNOWN = 0xFF,
-}AML_MP_SubtitleDataType;
-
-typedef struct {
-    const char *data;
-    int size;
-    AML_MP_SubtitleDataType type;
-    int x;
-    int y;
-    int width;
-    int height;
-    int videoWidth;
-    int videoHeight;
-    int showing;
-}Aml_MP_SubtitleData;
-
-////////////////////////////////////////
-//AML_MP_SUBTITLE_EVENT_DIMENSION
-typedef struct {
-    uint32_t width;
-    uint32_t height;
-} Aml_MP_SubtitleDimension;
-
-////////////////////////////////////////
-//AML_MP_SUBTITLE_EVENT_CHANNEL_UPDATE
-typedef struct {
-    int event;
-    int id;
-}Aml_MP_SubtitleChannelUpdate;
-
-////////////////////////////////////////
-//AML_MP_SUBTITLE_EVENT_SUBTITLE_INFO
+//AML_MP_PLAYER_PARAMETER_SUBTITLE_INFO
+//AML_MP_PLAYER_EVENT_SUBTITLE_INFO
 typedef struct {
     int what;
     int extra;
@@ -541,26 +518,28 @@ typedef enum {
 
 ///////////////////////////////////////////////////////////////////////////////
 enum {
-    Aml_MP_OK = 0,
+    AML_MP_OK = 0,
 
-    Aml_MP_ERROR_BASE = -2000,
-    Aml_MP_NO_MEMORY,
-    Aml_MP_INVALID_OPERATION,
-    Aml_MP_BAD_VALUE,
-    Aml_MP_BAD_TYPE,
-    Aml_MP_NAME_NOT_FOUND,
-    Aml_MP_PERMISSION_DENIED,
-    Aml_MP_NO_INIT,
-    Aml_MP_ALREADY_EXISTS,
-    Aml_MP_DEAD_OBJECT,
-    Aml_MP_FAILED_TRANSACTION,
-    Aml_MP_BAD_INDEX,
-    Aml_MP_NOT_ENOUGH_DATA,
-    Aml_MP_WOULD_BLOCK,
-    Aml_MP_TIMED_OUT,
-    Aml_MP_UNKNOWN_TRANSACTION,
-    Aml_MP_FDS_NOT_ALLOWED,
-    Aml_MP_UNEXPECTED_NULL,
+    AML_MP_ERROR_BASE = -2000,
+    AML_MP_NO_MEMORY,
+    AML_MP_INVALID_OPERATION,
+    AML_MP_BAD_VALUE,
+    AML_MP_BAD_TYPE,
+    AML_MP_NAME_NOT_FOUND,
+    AML_MP_PERMISSION_DENIED,
+    AML_MP_NO_INIT,
+    AML_MP_ALREADY_EXISTS,
+    AML_MP_DEAD_OBJECT,
+    AML_MP_FAILED_TRANSACTION,
+    AML_MP_BAD_INDEX,
+    AML_MP_NOT_ENOUGH_DATA,
+    AML_MP_WOULD_BLOCK,
+    AML_MP_TIMED_OUT,
+    AML_MP_UNKNOWN_TRANSACTION,
+    AML_MP_FDS_NOT_ALLOWED,
+    AML_MP_UNEXPECTED_NULL,
+
+    AML_MP_ERROR = -1,
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -592,52 +571,58 @@ typedef struct {
 ///////////////////////////////////////////////////////////////////////////////
 typedef enum {
     AML_MP_EVENT_UNKNOWN,
-    AML_MP_PLAYER_EVENT_VIDEO_CHANGED,
-    AML_MP_PLAYER_EVENT_AUDIO_CHANGED,
     AML_MP_PLAYER_EVENT_FIRST_FRAME,
     AML_MP_PLAYER_EVENT_AV_SYNC_DONE,
-
     AML_MP_PLAYER_EVENT_DATA_LOSS,
     AML_MP_PLAYER_EVENT_DATA_RESUME,
     AML_MP_PLAYER_EVENT_SCRAMBLING,
-
     AML_MP_PLAYER_EVENT_USERDATA_AFD,
     AML_MP_PLAYER_EVENT_USERDATA_CC,
-
     AML_MP_PLAYER_EVENT_PID_CHANGED,
 
+    // DVR player
+    AML_MP_DVRPLAYER_EVENT_ERROR                = 0x1000,   /**< Signal a critical playback error*/
+    AML_MP_DVRPLAYER_EVENT_TRANSITION_OK,                   /**< transition ok*/
+    AML_MP_DVRPLAYER_EVENT_TRANSITION_FAILED,               /**< transition failed*/
+    AML_MP_DVRPLAYER_EVENT_KEY_FAILURE,                     /**< key failure*/
+    AML_MP_DVRPLAYER_EVENT_NO_KEY,                          /**< no key*/
+    AML_MP_DVRPLAYER_EVENT_REACHED_BEGIN,                   /**< reached begin*/
+    AML_MP_DVRPLAYER_EVENT_REACHED_END,                     /**< reached end*/
+    AML_MP_DVRPLAYER_EVENT_NOTIFY_PLAYTIME,                 /**< notify play cur segmeng time ms*/
+
+    // Video event
+    AML_MP_PLAYER_EVENT_VIDEO_BASE              = 0x2000,
+    AML_MP_PLAYER_EVENT_VIDEO_CHANGED,
+    AML_MP_PLAYER_EVENT_VIDEO_DECODE_FIRST_FRAME,
+    AML_MP_PLAYER_EVENT_VIDEO_FIRST_FRAME,
     AML_MP_PLAYER_EVENT_VIDEO_OVERFLOW,
     AML_MP_PLAYER_EVENT_VIDEO_UNDERFLOW,
-    AML_MP_PLAYER_EVENT_AUDIO_OVERFLOW,
-    AML_MP_PLAYER_EVENT_AUDIO_UNDERFLOW,
     AML_MP_PLAYER_EVENT_VIDEO_INVALID_TIMESTAMP,
     AML_MP_PLAYER_EVENT_VIDEO_INVALID_DATA,
+
+    // Audio event
+    AML_MP_PLAYER_EVENT_AUDIO_BASE              = 0x3000,
+    AML_MP_PLAYER_EVENT_AUDIO_CHANGED,
+    AML_MP_PLAYER_EVENT_AUDIO_DECODE_FIRST_FRAME,
+    AML_MP_PLAYER_EVENT_AUDIO_FIRST_FRAME,
+    AML_MP_PLAYER_EVENT_AUDIO_OVERFLOW,
+    AML_MP_PLAYER_EVENT_AUDIO_UNDERFLOW,
     AML_MP_PLAYER_EVENT_AUDIO_INVALID_TIMESTAMP,
     AML_MP_PLAYER_EVENT_AUDIO_INVALID_DATA,
+
+    // Subtitle event
+    AML_MP_PLAYER_EVENT_SUBTITLE_BASE           = 0x4000,
+    AML_MP_PLAYER_EVENT_SUBTITLE_DATA,                      //param: Aml_MP_SubtitleData
+    AML_MP_PLAYER_EVENT_SUBTITLE_AVAIL,                     //param: int
+    AML_MP_PLAYER_EVENT_SUBTITLE_DIMENSION,                 //param: Aml_MP_SubtitleDimension
+    AML_MP_PLAYER_EVENT_SUBTITLE_AFD_EVENT,                 //param: int
+    AML_MP_PLAYER_EVENT_SUBTITLE_CHANNEL_UPDATE,            //param: Aml_MP_SubtitleChannelUpdate
+    AML_MP_PLAYER_EVENT_SUBTITLE_LANGUAGE,                  //param: char[4]
+    AML_MP_PLAYER_EVENT_SUBTITLE_INFO,                      //param: Aml_MP_SubtitleInfo
     AML_MP_PLAYER_EVENT_SUBTITLE_LOSEDATA,
     AML_MP_PLAYER_EVENT_SUBTITLE_TIMEOUT,
     AML_MP_PLAYER_EVENT_SUBTITLE_INVALID_TIMESTAMP,
     AML_MP_PLAYER_EVENT_SUBTITLE_INVALID_DATA,
-
-    //DVR player
-    AML_MP_DVRPLAYER_EVENT_ERROR              = 0x1000,   /**< Signal a critical playback error*/
-    AML_MP_DVRPLAYER_EVENT_TRANSITION_OK    ,             /**< transition ok*/
-    AML_MP_DVRPLAYER_EVENT_TRANSITION_FAILED,             /**< transition failed*/
-    AML_MP_DVRPLAYER_EVENT_KEY_FAILURE,                   /**< key failure*/
-    AML_MP_DVRPLAYER_EVENT_NO_KEY,                        /**< no key*/
-    AML_MP_DVRPLAYER_EVENT_REACHED_BEGIN     ,            /**< reached begin*/
-    AML_MP_DVRPLAYER_EVENT_REACHED_END,                    /**< reached end*/
-    AML_MP_DVRPLAYER_EVENT_NOTIFY_PLAYTIME,               /**< notify play cur segmeng time ms*/
-
-    //Subtitle event
-    AML_MP_SUBTITLE_EVENT_BASE = 0x2000,
-    AML_MP_SUBTITLE_EVENT_DATA,                         //param: Aml_MP_SubtitleData
-    AML_MP_SUBTITLE_EVENT_SUBTITLE_AVAIL,               //param: int
-    AML_MP_SUBTITLE_EVENT_DIMENSION,                    //param: Aml_MP_SubtitleDimension
-    AML_MP_SUBTITLE_EVENT_AFD_EVENT,                    //param: int
-    AML_MP_SUBTITLE_EVENT_CHANNEL_UPDATE,               //param: Aml_MP_SubtitleChannelUpdate
-    AML_MP_SUBTITLE_EVENT_SUBTITLE_LANGUAGE,            //param: char[4]
-    AML_MP_SUBTITLE_EVENT_SUBTITLE_INFO,                //param: Aml_MP_SubtitleInfo
 } Aml_MP_PlayerEventType;
 
 
@@ -676,6 +661,43 @@ typedef struct {
     uint8_t  *data;
     size_t   len;
 } Aml_MP_PlayerEventMpegUserData;
+
+////////////////////////////////////////
+//AML_MP_PLAYER_EVENT_SUBTITLE_DATA
+typedef enum {
+    AML_MP_SUB_DATA_TYPE_STRING = 0,
+    AML_MP_SUB_DATA_TYPE_CC_JSON = 1,
+    AML_MP_SUB_DATA_TYPE_BITMAP = 2,
+    AML_MP_SUB_DATA_TYPE_POSITON_BITMAP = 4,
+    AML_MP_SUB_DATA_TYPE_UNKNOWN = 0xFF,
+}AML_MP_SubtitleDataType;
+
+typedef struct {
+    const char *data;
+    int size;
+    AML_MP_SubtitleDataType type;
+    int x;
+    int y;
+    int width;
+    int height;
+    int videoWidth;
+    int videoHeight;
+    int showing;
+}Aml_MP_SubtitleData;
+
+////////////////////////////////////////
+//AML_MP_PLAYER_EVENT_SUBTITLE_DIMENSION
+typedef struct {
+    uint32_t width;
+    uint32_t height;
+} Aml_MP_SubtitleDimension;
+
+////////////////////////////////////////
+//AML_MP_PLAYER_EVENT_SUBTITLE_CHANNEL_UPDATE
+typedef struct {
+    int event;
+    int id;
+}Aml_MP_SubtitleChannelUpdate;
 
 typedef void (*Aml_MP_PlayerEventCallback)(void* userData, Aml_MP_PlayerEventType event, int64_t param);
 

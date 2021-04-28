@@ -12,6 +12,9 @@
 #include <utils/AmlMpUtils.h>
 #include "AmlVMXIptvCas.h"
 #include <dlfcn.h>
+#include <cutils/properties.h>
+#include <utils/Amlsysfsutils.h>
+#include <unistd.h>
 #include <AM_MPP/AmlDVB.h>
 
 static const char* mName = LOG_TAG;
@@ -97,9 +100,15 @@ int AmlVMXIptvCas::openSession()
 
 int AmlVMXIptvCas::closeSession()
 {
+#define DMX_RESET_PATH    "/sys/class/stb/demux_reset"
+    int ret = 0;
     MLOGI("closeSession");
 
     RETURN_IF(-1, mCasHandle == nullptr);
+
+    ret = amsysfs_set_sysfs_str(DMX_RESET_PATH, "1");
+    if (ret)
+        MLOGI("Error ret 0x%x\n", ret);
 
     return sCasLibWrapper->stop(mCasHandle);
 }

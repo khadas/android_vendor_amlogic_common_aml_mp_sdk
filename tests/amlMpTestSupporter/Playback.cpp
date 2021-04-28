@@ -11,6 +11,7 @@
 #include <utils/AmlMpLog.h>
 #include "Playback.h"
 #include <Aml_MP/Aml_MP.h>
+#include <utils/AmlMpUtils.h>
 #include <cutils/properties.h>
 #include <vector>
 #include <string>
@@ -82,6 +83,49 @@ void Playback::registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userDa
     mUserData = userData;
 }
 
+#define ENUM_TO_STR(e) case e: return #e; break
+
+void Playback::eventCallback(Aml_MP_PlayerEventType eventType, int64_t param)
+{
+    ALOGI("Playback eventCallback event: %d, %s, param %lld\n", eventType, mpPlayerEventType2Str(eventType), param);
+    switch (eventType) {
+        case AML_MP_PLAYER_EVENT_VIDEO_OVERFLOW:
+        {
+            uint32_t video_overflow_num;
+            video_overflow_num = *(uint32_t*)param;
+            ALOGI("%s %d\n", mpPlayerEventType2Str(eventType), video_overflow_num);
+        }
+        break;
+
+        case AML_MP_PLAYER_EVENT_VIDEO_UNDERFLOW:
+        {
+            uint32_t video_underflow_num;
+            video_underflow_num = *(uint32_t*)param;
+            ALOGI("%s %d\n", mpPlayerEventType2Str(eventType), video_underflow_num);
+        }
+        break;
+
+        case AML_MP_PLAYER_EVENT_AUDIO_OVERFLOW:
+        {
+            uint32_t audio_overflow_num;
+            audio_overflow_num = *(uint32_t*)param;
+            ALOGI("%s %d\n", mpPlayerEventType2Str(eventType), audio_overflow_num);
+        }
+        break;
+
+        case AML_MP_PLAYER_EVENT_AUDIO_UNDERFLOW:
+        {
+            uint32_t audio_underflow_num;
+            audio_underflow_num = *(uint32_t*)param;
+            ALOGI("%s %d\n", mpPlayerEventType2Str(eventType), audio_underflow_num);
+        }
+        break;
+
+        default:
+            break;
+    }
+}
+
 int Playback::start(PlayMode playMode)
 {
     mPlayMode = playMode;
@@ -100,7 +144,15 @@ int Playback::start(PlayMode playMode)
         }
     }
 
-    Aml_MP_Player_RegisterEventCallBack(mPlayer,mEventCallback, mUserData);
+    if (mEventCallback != nullptr) {
+        Aml_MP_Player_RegisterEventCallBack(mPlayer,mEventCallback, mUserData);
+    } else {
+        ALOGI("use Playback self eventCallback\n");
+        Aml_MP_Player_RegisterEventCallBack(mPlayer, [](void* userData, Aml_MP_PlayerEventType eventType, int64_t param) {
+        static_cast<Playback*>(userData)->eventCallback(eventType, param);
+    }, this);
+        //Aml_MP_Player_RegisterEventCallBack(mPlayer,eventCallback, mUserData);
+    }
 
     if (mPlayMode == PlayMode::START_AUDIO_START_VIDEO) {
         if (setAudioParams()) {

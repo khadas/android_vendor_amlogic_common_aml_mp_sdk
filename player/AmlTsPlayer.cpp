@@ -72,6 +72,12 @@ am_tsplayer_input_source_type sourceTypeConvert(Aml_MP_InputSourceType sourceTyp
 
     case AML_MP_INPUT_SOURCE_TS_DEMOD:
         return TS_DEMOD;
+
+    case AML_MP_INPUT_SOURCE_ES_MEMORY:
+        return ES_MEMORY;
+
+    default:
+        return TS_MEMORY;
     }
 }
 
@@ -245,7 +251,7 @@ int AmlTsPlayer::resume() {
 
 int AmlTsPlayer::flush() {
     //flush need more info, will do in Aml_MP_PlayerImpl
-    return Aml_MP_DEAD_OBJECT;
+    return AML_MP_DEAD_OBJECT;
 }
 
 int AmlTsPlayer::setPlaybackRate(float rate){
@@ -264,7 +270,7 @@ int AmlTsPlayer::setPlaybackRate(float rate){
 int AmlTsPlayer::switchAudioTrack(const Aml_MP_AudioParams* params){
     //switchAudioTrack need more info, will do in Aml_MP_PlayerImpl
     AML_MP_UNUSED(params);
-    return Aml_MP_DEAD_OBJECT;
+    return AML_MP_DEAD_OBJECT;
 }
 
 int AmlTsPlayer::writeData(const uint8_t* buffer, size_t size) {
@@ -740,8 +746,27 @@ void AmlTsPlayer::eventCallback(am_tsplayer_event* event)
     break;
 
     case AM_TSPLAYER_EVENT_TYPE_AUDIO_CHANGED:
-        notifyListener(AML_MP_PLAYER_EVENT_AUDIO_CHANGED);
-        break;
+    {
+        ALOGE("[evt] AM_TSPLAYER_EVENT_TYPE_AUDIO_CHANGED\n");
+        Aml_MP_PlayerEventAudioFormat audioFormatEvent;
+        convertToMpPlayerEventAudioFormat(&audioFormatEvent, &(event->event.audio_format));
+        notifyListener(AML_MP_PLAYER_EVENT_AUDIO_CHANGED, (int64_t)&audioFormatEvent);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_DECODE_FIRST_FRAME_VIDEO:
+    {
+        ALOGE("[evt] AM_TSPLAYER_EVENT_TYPE_DECODE_FIRST_FRAME_VIDEO\n");
+        notifyListener(AML_MP_PLAYER_EVENT_VIDEO_DECODE_FIRST_FRAME);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_DECODE_FIRST_FRAME_AUDIO:
+    {
+        ALOGE("[evt] AM_TSPLAYER_EVENT_TYPE_DECODE_FIRST_FRAME_AUDIO\n");
+        notifyListener(AML_MP_PLAYER_EVENT_AUDIO_DECODE_FIRST_FRAME);
+    }
+    break;
 
     case AM_TSPLAYER_EVENT_TYPE_FIRST_FRAME:
         MLOGE("[evt] AM_TSPLAYER_EVENT_TYPE_FIRST_FRAME\n");
@@ -793,6 +818,71 @@ void AmlTsPlayer::eventCallback(am_tsplayer_event* event)
     }
     break;
 
+/*
+    case AM_TSPLAYER_EVENT_TYPE_VIDEO_OVERFLOW:
+    {
+        ALOGI("[evt] AM_TSPLAYER_EVENT_TYPE_VIDEO_OVERFLOW\n");
+        uint32_t video_overflow_num;
+        video_overflow_num = event->event.av_flow_cnt.video_overflow_num;
+        notifyListener(AML_MP_PLAYER_EVENT_VIDEO_OVERFLOW, (int64_t)&video_overflow_num);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_VIDEO_UNDERFLOW:
+    {
+        ALOGI("[evt] AM_TSPLAYER_EVENT_TYPE_VIDEO_UNDERFLOW\n");
+        uint32_t video_underflow_num;
+        video_underflow_num = event->event.av_flow_cnt.video_underflow_num;
+        notifyListener(AML_MP_PLAYER_EVENT_VIDEO_UNDERFLOW, (int64_t)&video_underflow_num);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_AUDIO_OVERFLOW:
+    {
+        ALOGI("[evt] AM_TSPLAYER_EVENT_TYPE_AUDIO_OVERFLOW\n");
+        uint32_t audio_overflow_num;
+        audio_overflow_num = event->event.av_flow_cnt.audio_overflow_num;
+        notifyListener(AML_MP_PLAYER_EVENT_AUDIO_OVERFLOW, (int64_t)&audio_overflow_num);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_AUDIO_UNDERFLOW:
+    {
+        ALOGI("[evt] AM_TSPLAYER_EVENT_TYPE_AUDIO_UNDERFLOW\n");
+        uint32_t audio_underflow_num;
+        audio_underflow_num = event->event.av_flow_cnt.audio_underflow_num;
+        notifyListener(AML_MP_PLAYER_EVENT_AUDIO_UNDERFLOW, (int64_t)&audio_underflow_num);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_VIDEO_INVALID_TIMESTAMP:
+    {
+        ALOGI("[evt] AM_TSPLAYER_EVENT_TYPE_VIDEO_INVALID_TIMESTAMP\n");
+        notifyListener(AML_MP_PLAYER_EVENT_VIDEO_INVALID_TIMESTAMP);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_VIDEO_INVALID_DATA:
+    {
+        ALOGI("[evt] AM_TSPLAYER_EVENT_TYPE_VIDEO_INVALID_DATA\n");
+        notifyListener(AML_MP_PLAYER_EVENT_VIDEO_INVALID_DATA);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_AUDIO_INVALID_TIMESTAMP:
+    {
+        ALOGI("[evt] AM_TSPLAYER_EVENT_TYPE_AUDIO_INVALID_TIMESTAMP\n");
+        notifyListener(AML_MP_PLAYER_EVENT_AUDIO_INVALID_TIMESTAMP);
+    }
+    break;
+
+    case AM_TSPLAYER_EVENT_TYPE_AUDIO_INVALID_DATA:
+    {
+        ALOGI("[evt] AM_TSPLAYER_EVENT_TYPE_AUDIO_INVALID_DATA\n");
+        notifyListener(AML_MP_PLAYER_EVENT_AUDIO_INVALID_DATA);
+    }
+    break;
+*/
     default:
         MLOGE("unhandled event:%d", event->type);
         break;
