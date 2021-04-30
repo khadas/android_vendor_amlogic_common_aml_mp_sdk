@@ -15,12 +15,6 @@
 #ifdef HAVE_SUBTITLE
 #include <SubtitleNativeAPI.h>
 #endif
-#include <utils/RefBase.h>
-
-namespace android {
-class NativeHandle;
-}
-
 struct ANativeWindow;
 
 namespace aml_mp {
@@ -45,7 +39,7 @@ public:
 
     virtual int setVideoParams(const Aml_MP_VideoParams* params) = 0;
     virtual int setAudioParams(const Aml_MP_AudioParams* params) = 0;
-    virtual int setANativeWindow(ANativeWindow* nativeWindow);
+    virtual int setANativeWindow(ANativeWindow* nativeWindow) = 0;
     virtual int start();
     virtual int stop();
     virtual int pause() = 0;
@@ -98,7 +92,6 @@ protected:
     int mSubWindowY;
     int mSubWindowWidth;
     int mSubWindowHeight;
-    android::sp<android::NativeHandle> mSidebandHandle;
 
     explicit AmlPlayerBase(int instanceId);
     void notifyListener(Aml_MP_PlayerEventType eventType, int64_t param = 0);
