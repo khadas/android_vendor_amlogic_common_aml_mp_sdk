@@ -75,7 +75,7 @@ private:
     DVR_Result_t eventHandlerPlayer(am_tsplayer_event* event);
 #ifdef ANDROID
     android::sp<ANativeWindow> mNativeWindow = nullptr;
-    NativeWindowHelper mNativeWindowHelper;
+    android::sp<NativeHandle> mSidebandHandle;
 #endif
     int mVideoTunnelId = -1;
 

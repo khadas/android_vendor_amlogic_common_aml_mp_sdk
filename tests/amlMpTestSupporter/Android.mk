@@ -31,13 +31,8 @@ AML_MP_TEST_SUPPORTER_SHARED_LIBS_29 := \
 	libgui \
 
 AML_MP_TEST_SUPPORTER_SHARED_LIBS_30 := \
-	libaml_mp_sdk \
-	libamdvr.system \
-	libgui \
-
-AML_MP_TEST_SUPPORTER_VENDOR_SHARED_LIBS_30 := \
 	libaml_mp_sdk.vendor \
-	libamdvr \
+	libamdvr
 
 ###############################################################################
 include $(CLEAR_VARS)
@@ -53,21 +48,7 @@ LOCAL_SHARED_LIBRARIES := $(AML_MP_TEST_SUPPORTER_SHARED_LIBS) $(AML_MP_TEST_SUP
 #LOCAL_LDFLAGS :=
 
 ifeq (1, $(shell expr $(PLATFORM_SDK_VERSION) \>= 30))
-LOCAL_SYSTEM_EXT_MODULE := true
-endif
-include $(BUILD_STATIC_LIBRARY)
-
-###############################################################################
-include $(CLEAR_VARS)
-LOCAL_MODULE := libamlMpTestSupporter.vendor
-LOCAL_MODULE_TAGS := optional
-LOCAL_SRC_FILES := $(AML_MP_TEST_SUPPORTER_SRCS)
-LOCAL_CFLAGS := $(AML_MP_TEST_SUPPORTER_CFLAGS)
-LOCAL_C_INCLUDES := $(AML_MP_TEST_SUPPORTER_INC)
-LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
-LOCAL_SHARED_LIBRARIES := $(AML_MP_TEST_SUPPORTER_SHARED_LIBS) $(AML_MP_TEST_SUPPORTER_VENDOR_SHARED_LIBS_$(PLATFORM_SDK_VERSION))
-#LOCAL_STATIC_LIBRARIES :=
-#LOCAL_WHOLE_STATIC_LIBRARIES :=
-#LOCAL_LDFLAGS :=
 LOCAL_VENDOR_MODULE := true
+endif
+
 include $(BUILD_STATIC_LIBRARY)

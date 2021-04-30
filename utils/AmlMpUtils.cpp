@@ -15,16 +15,6 @@
 #include <SubtitleNativeAPI.h>
 #endif
 
-#include <amlogic/am_gralloc_ext.h>
-#include <system/window.h>
-#include <video_tunnel.h>
-
-#include <hardware/gralloc1.h>
-#include <amlogic/am_gralloc_ext.h>
-#ifndef __ANDROID_VNDK__
-#include <gui/Surface.h>
-#endif
-
 static const char* mName = LOG_TAG;
 
 namespace aml_mp {
@@ -843,8 +833,6 @@ AML_MP_SubtitleDataType convertToMpSubtitleDataType(AmlSubDataType subDataType) 
             return AML_MP_SUB_DATA_TYPE_BITMAP;
         case SUB_DATA_TYPE_POSITON_BITMAP:
             return AML_MP_SUB_DATA_TYPE_POSITON_BITMAP;
-        default:
-            return AML_MP_SUB_DATA_TYPE_UNKNOWN;
     }
 }
 
@@ -853,70 +841,6 @@ AML_MP_SubtitleDataType convertToMpSubtitleDataType(AmlSubDataType subDataType) 
 bool isSupportMultiHwDemux()
 {
     return access("/sys/module/dvb_demux/", F_OK) == 0;
-}
-
-int NativeWindowHelper::setSiebandTunnelMode(ANativeWindow* nativeWindow)
-{
-    int ret = 0;
-
-    if (nativeWindow == nullptr) {
-        return ret;
-    }
-
-    native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(AM_TV_SIDEBAND, AM_VIDEO_DEFAULT);
-    mSidebandHandle = android::NativeHandle::create(sidebandHandle, true);
-
-    MLOGI("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
-
-    ret = native_window_set_sideband_stream(nativeWindow, sidebandHandle);
-    if (ret < 0) {
-        MLOGE("set sideband stream failed!");
-    }
-
-    return ret;
-}
-
-int NativeWindowHelper::setSidebandNonTunnelMode(ANativeWindow* nativeWindow, int& videoTunnelId)
-{
-    int ret = 0;
-
-    if (nativeWindow == nullptr) {
-        return ret;
-    }
-
-    if (videoTunnelId != -1) {
-        MLOGE("setANativeWindow mVideoTunnelId:%d", videoTunnelId);
-    }
-
-    if (nativeWindow != nullptr) {
-        int type = AM_FIXED_TUNNEL;
-        int mesonVtFd = meson_vt_open();
-        if (mesonVtFd < 0) {
-            MLOGI("meson_vt_open failed!");
-            return -1;
-        }
-        if (meson_vt_alloc_id(mesonVtFd, &videoTunnelId) < 0) {
-            MLOGI("meson_vt_alloc_id failed!");
-            meson_vt_close(mesonVtFd);
-            return -1;
-        }
-        MLOGI("setAnativeWindow: allocId: %d", videoTunnelId);
-        meson_vt_free_id(mesonVtFd, videoTunnelId);
-        meson_vt_close(mesonVtFd);
-
-        native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(type, videoTunnelId);
-        mSidebandHandle = android::NativeHandle::create(sidebandHandle, true);
-
-        MLOGI("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
-
-        ret = native_window_set_sideband_stream(nativeWindow, sidebandHandle);
-        if (ret < 0) {
-            MLOGE("set sideband stream failed!");
-            return ret;
-        }
-    }
-
-    return ret;
 }
 
 }

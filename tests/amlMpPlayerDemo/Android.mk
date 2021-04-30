@@ -21,9 +21,8 @@ AML_MP_PLAYER_DEMO_SHARED_LIBS_29 := \
 	libgui \
 
 AML_MP_PLAYER_DEMO_SHARED_LIBS_30 := \
-	libamdvr.system \
-    libaml_mp_sdk \
-	libgui \
+    libaml_mp_sdk.vendor \
+	libamdvr
 
 AML_MP_PLAYER_DEMO_STATIC_LIBS := \
 	libamlMpTestSupporter
@@ -39,7 +38,8 @@ LOCAL_SHARED_LIBRARIES := $(AML_MP_PLAYER_DEMO_SHARED_LIBS) $(AML_MP_PLAYER_DEMO
 LOCAL_STATIC_LIBRARIES := $(AML_MP_PLAYER_DEMO_STATIC_LIBS)
 #LOCAL_WHOLE_STATIC_LIBRARIES :=
 #LOCAL_LDFLAGS :=
+
 ifeq (1, $(shell expr $(PLATFORM_SDK_VERSION) \>= 30))
-LOCAL_SYSTEM_EXT_MODULE := true
+LOCAL_VENDOR_MODULE := true
 endif
 include $(BUILD_EXECUTABLE)

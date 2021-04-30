@@ -16,14 +16,16 @@ LOCAL_SHARED_LIBRARIES := libutils \
 	libstagefright_foundation \
 	libjsoncpp
 
-LOCAL_STATIC_LIBRARIES := libamlMpTestSupporter libgtest
+LOCAL_STATIC_LIBRARIES := libamlMpTestSupporter
 
+ifeq (1, $(shell expr $(PLATFORM_SDK_VERSION) \>= 30))
+LOCAL_VENDOR_MODULE := true
+LOCAL_SHARED_LIBRARIES += \
+    libaml_mp_sdk.vendor
+else
 LOCAL_SHARED_LIBRARIES += \
     libaml_mp_sdk \
     libgui
-
-ifeq (1, $(shell expr $(PLATFORM_SDK_VERSION) \>= 30))
-LOCAL_SYSTEM_EXT_MODULE := true
 endif
-include $(BUILD_EXECUTABLE)
+include $(BUILD_NATIVE_TEST)
 

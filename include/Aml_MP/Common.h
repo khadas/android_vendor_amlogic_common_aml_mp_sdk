@@ -394,7 +394,6 @@ typedef enum {
     AML_MP_SUB_DATA_TYPE_CC_JSON = 1,
     AML_MP_SUB_DATA_TYPE_BITMAP = 2,
     AML_MP_SUB_DATA_TYPE_POSITON_BITMAP = 4,
-    AML_MP_SUB_DATA_TYPE_UNKNOWN = 0xFF,
 }AML_MP_SubtitleDataType;
 
 typedef struct {
