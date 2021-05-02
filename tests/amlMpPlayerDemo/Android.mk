@@ -30,6 +30,9 @@ AML_MP_PLAYER_DEMO_STATIC_LIBS := \
 ###############################################################################
 include $(CLEAR_VARS)
 LOCAL_MODULE := amlMpPlayerDemo
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0 SPDX-license-identifier-FTL SPDX-license-identifier-GPL SPDX-license-identifier-LGPL-2.1 SPDX-license-identifier-MIT legacy_by_exception_only legacy_notice
+LOCAL_LICENSE_CONDITIONS := by_exception_only notice restricted
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/../../LICENSE
 LOCAL_MODULE_TAGS := optional
 LOCAL_SRC_FILES := $(AML_MP_PLAYER_DEMO_SRCS)
 LOCAL_CFLAGS := $(AML_MP_PLAYER_DEMO_CFLAGS)

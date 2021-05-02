@@ -142,6 +142,9 @@ endif
 ifeq (1, $(shell expr $(PLATFORM_SDK_VERSION) \<= 29))
 include $(CLEAR_VARS)
 LOCAL_MODULE := libaml_mp_sdk
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0 SPDX-license-identifier-FTL SPDX-license-identifier-GPL SPDX-license-identifier-GPL-2.0 SPDX-license-identifier-LGPL-2.1 SPDX-license-identifier-MIT legacy_by_exception_only legacy_notice
+LOCAL_LICENSE_CONDITIONS := by_exception_only notice restricted
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_MODULE_TAGS := optional
 LOCAL_SRC_FILES := $(AML_MP_SRCS)
 LOCAL_CFLAGS := $(AML_MP_CFLAGS) $(AML_MP_CFLAGS_$(PLATFORM_SDK_VERSION))
@@ -158,6 +161,9 @@ endif
 ifeq (1, $(shell expr $(PLATFORM_SDK_VERSION) \>= 29))
 include $(CLEAR_VARS)
 LOCAL_MODULE := libaml_mp_sdk.vendor
+LOCAL_LICENSE_KINDS := SPDX-license-identifier-Apache-2.0 SPDX-license-identifier-FTL SPDX-license-identifier-GPL SPDX-license-identifier-GPL-2.0 SPDX-license-identifier-LGPL-2.1 SPDX-license-identifier-MIT legacy_by_exception_only legacy_notice
+LOCAL_LICENSE_CONDITIONS := by_exception_only notice restricted
+LOCAL_NOTICE_FILE := $(LOCAL_PATH)/LICENSE
 LOCAL_VENDOR_MODULE := true
 LOCAL_MODULE_TAGS := optional
 LOCAL_SRC_FILES := $(AML_MP_VENDOR_SRCS)
