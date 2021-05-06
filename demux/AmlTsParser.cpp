@@ -170,14 +170,20 @@ void Parser::setEventCallback(const std::function<ProgramEventCallback>& cb)
 int Parser::close()
 {
     clearAllSectionFilters();
-    std::lock_guard<std::mutex> _l(mLock);
-    if (mDemux != nullptr) {
-        mDemux->stop();
-        mDemux->close();
-        mDemux.clear();
+    sptr<AmlDemuxBase> dmxTemp;
+    {
+        std::lock_guard<std::mutex> _l(mLock);
+        if (mDemux != nullptr) {
+            dmxTemp = mDemux;
+            mDemux.clear();
+        }
+    }
+    if (dmxTemp != nullptr) {
+        dmxTemp->stop();
+        dmxTemp->close();
     }
 
-    MLOGI("%s:%d", __FUNCTION__, __LINE__);
+    MLOGI("%s:%d, end", __FUNCTION__, __LINE__);
     return 0;
 }
 
