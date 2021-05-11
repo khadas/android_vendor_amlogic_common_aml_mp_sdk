@@ -40,7 +40,7 @@ int Aml_MP_DVRRecorder_Create(Aml_MP_DVRRecorderCreateParams* createParams, AML_
 
 int Aml_MP_DVRRecorder_Destroy(AML_MP_DVRRECORDER recorder)
 {
-    AmlDVRRecorder* dvrRecorder = aml_handle_cast<AmlDVRRecorder>(recorder);
+    sptr<AmlDVRRecorder> dvrRecorder = aml_handle_cast<AmlDVRRecorder>(recorder);
     RETURN_IF(-1, dvrRecorder == nullptr);
 
     dvrRecorder->decStrong(recorder);
@@ -49,7 +49,7 @@ int Aml_MP_DVRRecorder_Destroy(AML_MP_DVRRECORDER recorder)
 }
 
 int Aml_MP_DVRRecorder_RegisterEventCallback(AML_MP_DVRRECORDER recorder, Aml_MP_DVRRecorderEventCallback cb, void* userData) {
-    AmlDVRRecorder* amlMpHandle = aml_handle_cast<AmlDVRRecorder>(recorder);
+    sptr<AmlDVRRecorder> amlMpHandle = aml_handle_cast<AmlDVRRecorder>(recorder);
     int ret;
     RETURN_IF(-1, amlMpHandle == nullptr);
 
@@ -60,7 +60,7 @@ int Aml_MP_DVRRecorder_RegisterEventCallback(AML_MP_DVRRECORDER recorder, Aml_MP
 
 int Aml_MP_DVRRecorder_SetStreams(AML_MP_DVRRECORDER recorder, Aml_MP_DVRStreamArray* streams)
 {
-    AmlDVRRecorder* amlMpHandle = aml_handle_cast<AmlDVRRecorder>(recorder);
+    sptr<AmlDVRRecorder> amlMpHandle = aml_handle_cast<AmlDVRRecorder>(recorder);
     RETURN_IF(-1, amlMpHandle == nullptr);
 
     int ret = amlMpHandle->setStreams(streams);
@@ -69,7 +69,7 @@ int Aml_MP_DVRRecorder_SetStreams(AML_MP_DVRRECORDER recorder, Aml_MP_DVRStreamA
 
 int Aml_MP_DVRRecorder_Start(AML_MP_DVRRECORDER recorder)
 {
-    AmlDVRRecorder* amlMpHandle = aml_handle_cast<AmlDVRRecorder>(recorder);
+    sptr<AmlDVRRecorder> amlMpHandle = aml_handle_cast<AmlDVRRecorder>(recorder);
     RETURN_IF(-1, amlMpHandle == nullptr);
 
     int ret = amlMpHandle->start();
@@ -79,7 +79,7 @@ int Aml_MP_DVRRecorder_Start(AML_MP_DVRRECORDER recorder)
 
 int Aml_MP_DVRRecorder_Stop(AML_MP_DVRRECORDER recorder)
 {
-    AmlDVRRecorder* amlMpHandle = aml_handle_cast<AmlDVRRecorder>(recorder);
+    sptr<AmlDVRRecorder> amlMpHandle = aml_handle_cast<AmlDVRRecorder>(recorder);
     RETURN_IF(-1, amlMpHandle == nullptr);
 
     int ret = amlMpHandle->stop();
@@ -88,7 +88,7 @@ int Aml_MP_DVRRecorder_Stop(AML_MP_DVRRECORDER recorder)
 
 int Aml_MP_DVRRecorder_GetStatus(AML_MP_DVRRECORDER recorder, Aml_MP_DVRRecorderStatus* status)
 {
-    AmlDVRRecorder* amlMpHandle = aml_handle_cast<AmlDVRRecorder>(recorder);
+    sptr<AmlDVRRecorder> amlMpHandle = aml_handle_cast<AmlDVRRecorder>(recorder);
     RETURN_IF(-1, amlMpHandle == nullptr);
 
     int ret = amlMpHandle->getStatus(status);
@@ -150,7 +150,7 @@ int Aml_MP_DVRPlayer_Create(Aml_MP_DVRPlayerCreateParams* createParams, AML_MP_D
 
 int Aml_MP_DVRPlayer_Destroy(AML_MP_DVRPLAYER player)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     dvrPlayer->decStrong(player);
@@ -160,7 +160,7 @@ int Aml_MP_DVRPlayer_Destroy(AML_MP_DVRPLAYER player)
 
 int Aml_MP_DVRPlayer_RegisterEventCallback(AML_MP_DVRPLAYER player, Aml_MP_PlayerEventCallback cb, void* userData)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->registerEventCallback(cb, userData);
@@ -170,7 +170,7 @@ int Aml_MP_DVRPlayer_RegisterEventCallback(AML_MP_DVRPLAYER player, Aml_MP_Playe
 
 int Aml_MP_DVRPlayer_SetStreams(AML_MP_DVRPLAYER player, Aml_MP_DVRStreamArray* streams)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->setStreams(streams);
@@ -180,7 +180,7 @@ int Aml_MP_DVRPlayer_SetStreams(AML_MP_DVRPLAYER player, Aml_MP_DVRStreamArray* 
 
 int Aml_MP_DVRPlayer_Start(AML_MP_DVRPLAYER player, bool initialPaused)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->start(initialPaused);
@@ -190,7 +190,7 @@ int Aml_MP_DVRPlayer_Start(AML_MP_DVRPLAYER player, bool initialPaused)
 
 int Aml_MP_DVRPlayer_Stop(AML_MP_DVRPLAYER player)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->stop();
@@ -200,7 +200,7 @@ int Aml_MP_DVRPlayer_Stop(AML_MP_DVRPLAYER player)
 
 int Aml_MP_DVRPlayer_Pause(AML_MP_DVRPLAYER player)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->pause();
@@ -210,7 +210,7 @@ int Aml_MP_DVRPlayer_Pause(AML_MP_DVRPLAYER player)
 
 int Aml_MP_DVRPlayer_Resume(AML_MP_DVRPLAYER player)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->resume();
@@ -220,7 +220,7 @@ int Aml_MP_DVRPlayer_Resume(AML_MP_DVRPLAYER player)
 
 int Aml_MP_DVRPlayer_Seek(AML_MP_DVRPLAYER player, int timeOffset)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->seek(timeOffset);
@@ -230,7 +230,7 @@ int Aml_MP_DVRPlayer_Seek(AML_MP_DVRPLAYER player, int timeOffset)
 
 int Aml_MP_DVRPlayer_SetPlaybackRate(AML_MP_DVRPLAYER player, float rate)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->setPlaybackRate(rate);
@@ -240,7 +240,7 @@ int Aml_MP_DVRPlayer_SetPlaybackRate(AML_MP_DVRPLAYER player, float rate)
 
 int Aml_MP_DVRPlayer_GetStatus(AML_MP_DVRPLAYER player, Aml_MP_DVRPlayerStatus* status)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->getStatus(status);
@@ -250,7 +250,7 @@ int Aml_MP_DVRPlayer_GetStatus(AML_MP_DVRPLAYER player, Aml_MP_DVRPlayerStatus* 
 
 int Aml_MP_DVRPlayer_ShowVideo(AML_MP_DVRPLAYER handle)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->showVideo();
@@ -260,7 +260,7 @@ int Aml_MP_DVRPlayer_ShowVideo(AML_MP_DVRPLAYER handle)
 
 int Aml_MP_DVRPlayer_HideVideo(AML_MP_DVRPLAYER handle)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->hideVideo();
@@ -270,7 +270,7 @@ int Aml_MP_DVRPlayer_HideVideo(AML_MP_DVRPLAYER handle)
 
 int Aml_MP_DVRPlayer_SetVolume(AML_MP_DVRPLAYER handle, float volume)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->setVolume(volume);
@@ -280,7 +280,7 @@ int Aml_MP_DVRPlayer_SetVolume(AML_MP_DVRPLAYER handle, float volume)
 
 int Aml_MP_DVRPlayer_GetVolume(AML_MP_DVRPLAYER handle, float* volume)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->getVolume(volume);
@@ -290,7 +290,7 @@ int Aml_MP_DVRPlayer_GetVolume(AML_MP_DVRPLAYER handle, float* volume)
 
 int Aml_MP_DVRPlayer_SetParameter(AML_MP_DVRPLAYER handle, Aml_MP_PlayerParameterKey key, void* parameter)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->setParameter(key, parameter);
@@ -300,7 +300,7 @@ int Aml_MP_DVRPlayer_SetParameter(AML_MP_DVRPLAYER handle, Aml_MP_PlayerParamete
 
 int Aml_MP_DVRPlayer_GetParameter(AML_MP_DVRPLAYER handle, Aml_MP_PlayerParameterKey key, void* parameter)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->getParameter(key, parameter);
@@ -310,7 +310,7 @@ int Aml_MP_DVRPlayer_GetParameter(AML_MP_DVRPLAYER handle, Aml_MP_PlayerParamete
 
 int Aml_MP_DVRPlayer_SetANativeWindow(AML_MP_DVRPLAYER handle, ANativeWindow* nativeWindow)
 {
-    AmlDVRPlayer* dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(handle);
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->setANativeWindow(nativeWindow);
