@@ -81,7 +81,7 @@ protected:
 
     std::atomic<uint32_t> mFilterId{0};
     std::mutex mLock;
-    std::map<int, Channel*> mChannels;
+    std::map<int, sptr<Channel>> mChannels;
 
 private:
     AmlDemuxBase(const AmlDemuxBase&) = delete;
