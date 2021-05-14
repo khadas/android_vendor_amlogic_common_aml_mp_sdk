@@ -200,7 +200,7 @@ private:
     Aml_MP_AudioParams mADParams;
 
     Aml_MP_VideoDisplayMode mVideoDisplayMode{AML_MP_VIDEO_DISPLAY_MODE_NORMAL};
-    bool mBlackOut{false};
+    int mBlackOut{-1};
     Aml_MP_VideoDecodeMode mVideoDecodeMode{AML_MP_VIDEO_DECODE_MODE_NONE};
     int mVideoPtsOffset{0};
     Aml_MP_AudioOutputMode mAudioOutputMode{AML_MP_AUDIO_OUTPUT_PCM};

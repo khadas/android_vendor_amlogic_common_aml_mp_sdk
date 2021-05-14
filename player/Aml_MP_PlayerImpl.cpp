@@ -687,7 +687,7 @@ int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter
 
     case AML_MP_PLAYER_PARAMETER_BLACK_OUT:
         RETURN_IF(-1, parameter == nullptr);
-        mBlackOut = *(bool*)parameter;
+        mBlackOut = *(bool*)parameter?1:0;
         break;
 
     case AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE:
@@ -1503,7 +1503,10 @@ int AmlMpPlayerImpl::reset_l()
 int AmlMpPlayerImpl::applyParameters_l()
 {
     mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_DISPLAY_MODE, &mVideoDisplayMode);
-    mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_BLACK_OUT, &mBlackOut);
+    if (mBlackOut >= 0) {
+        bool param = (0 == mBlackOut)?false:true;
+        mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_BLACK_OUT, &param);
+    }
     mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE, &mVideoDecodeMode);
     mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_PTS_OFFSET, &mVideoPtsOffset);
     mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_OUTPUT_MODE, &mAudioOutputMode);
