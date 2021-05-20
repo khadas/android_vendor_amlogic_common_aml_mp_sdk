@@ -22,6 +22,7 @@ using namespace aml_mp;
 ///////////////////////////////////////////////////////////////////////////////
 //global CAS functions
 pthread_once_t g_dvbCasInitFlag = PTHREAD_ONCE_INIT;
+#ifdef HAVE_CAS_HAL
 CasHandle g_casHandle = 0;
 
 static AM_CA_SECTION convertToCASection(Aml_MP_CASSectionType casSection)
@@ -38,6 +39,21 @@ static AM_CA_SECTION convertToCASection(Aml_MP_CASSectionType casSection)
     }
 }
 
+static int convertToAmlMPErrorCode(AM_RESULT CasResult) {
+    switch (CasResult) {
+        case AM_ERROR_SUCCESS:
+            return AML_MP_OK;
+        case AM_ERROR_NOT_LOAD:
+            return AML_MP_BAD_INDEX;
+        case AM_ERROR_NOT_SUPPORTED:
+            return AML_MP_BAD_TYPE;
+        case AM_ERROR_OVERFLOW:
+            return AML_MP_NO_MEMORY;
+        default:
+            return AML_MP_ERROR;
+    }
+}
+#endif
 
 int Aml_MP_CAS_Initialize()
 {
@@ -56,20 +72,20 @@ int Aml_MP_CAS_Terminate()
 {
     MLOG();
 
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+    int ret = AML_MP_ERROR;
 
 #ifdef HAVE_CAS_HAL
-    ret = AM_CA_Term(g_casHandle);
-#endif
+    ret = convertToAmlMPErrorCode(AM_CA_Term(g_casHandle));
 
     g_casHandle = 0;
+#endif
 
     return ret;
 }
 
 int Aml_MP_CAS_IsNeedWholeSection()
 {
-    int ret = AM_ERROR_GENERAL_ERORR;
+    int ret = AML_MP_ERROR;
 
 #ifdef HAVE_CAS_HAL
     ret = AM_CA_IsNeedWholeSection();
@@ -96,15 +112,15 @@ int Aml_MP_CAS_ReportSection(Aml_MP_CASSectionReportAttr* pAttr, uint8_t* data, 
 {
     MLOG("dmx_dev:%d, service_id:%d", pAttr->dmxDev, pAttr->serviceId);
 
+    int ret = AML_MP_ERROR;
+#ifdef HAVE_CAS_HAL
     AM_CA_SecAttr_t attr;
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
 
     attr.dmx_dev = pAttr->dmxDev;
     attr.service_id = pAttr->serviceId;
     attr.section_type = convertToCASection(pAttr->sectionType);
 
-#ifdef HAVE_CAS_HAL
-    ret = AM_CA_ReportSection(&attr, data, len);
+    ret = convertToAmlMPErrorCode(AM_CA_ReportSection(&attr, data, len));
 #else
     AML_MP_UNUSED(data);
     AML_MP_UNUSED(len);
@@ -117,11 +133,11 @@ int Aml_MP_CAS_SetEmmPid(int dmxDev, uint16_t emmPid)
 {
     MLOG("dmxDev:%d, emmPid:%d", dmxDev, emmPid);
 
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+    int ret = AML_MP_ERROR;
+#ifdef HAVE_CAS_HAL
     RETURN_IF(-1, g_casHandle == 0);
 
-#ifdef HAVE_CAS_HAL
-    ret = AM_CA_SetEmmPid(g_casHandle, dmxDev, emmPid);
+    ret = convertToAmlMPErrorCode(AM_CA_SetEmmPid(g_casHandle, dmxDev, emmPid));
 #endif
 
     return ret;
@@ -154,11 +170,9 @@ int Aml_MP_CAS_RegisterEventCallback(AML_MP_CASSESSION casSession, Aml_MP_CAS_Ev
     if (dvbCasHal) {
         ret = dvbCasHal->registerEventCallback(cb, userData);
     } else {
-        CAS_EventFunction_t eventFn = reinterpret_cast<CAS_EventFunction_t>(cb);
 #ifdef HAVE_CAS_HAL
+        CAS_EventFunction_t eventFn = reinterpret_cast<CAS_EventFunction_t>(cb);
         ret = AM_CA_RegisterEventCallback((CasSession)nullptr, eventFn);
-#else
-        AML_MP_UNUSED(eventFn);
 #endif
     }
 
