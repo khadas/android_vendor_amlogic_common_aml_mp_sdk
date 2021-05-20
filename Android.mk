@@ -7,6 +7,10 @@ HAVE_WVIPTV_CAS := true
 endif
 endif
 
+ifneq (, $(wildcard $(TOP)/vendor/amlogic/common/external/DTVKit/cas_hal))
+HAVE_CAS_HAL := true
+endif
+
 #######################################
 AML_MP_PLAYER_SRC := \
 	player/Aml_MP.cpp \
@@ -34,7 +38,7 @@ AML_MP_CAS_VENDOR_SRC_30 += \
 
 ifeq ($(HAVE_WVIPTV_CAS), true)
 AML_MP_CAS_VENDOR_SRC_30 += \
-    cas/wv_iptvcas/AmlWVIptvCas.cpp
+	cas/wv_iptvcas/AmlWVIptvCas.cpp
 endif
 
 AML_MP_DVR_SRC := \
@@ -92,7 +96,7 @@ AML_MP_INC := $(LOCAL_PATH)/include \
 	$(TOP)/hardware/amlogic/media/amcodec/include \
 	$(TOP)/vendor/amlogic/common/frameworks/services/subtiltleserver/client \
 	$(TOP)/vendor/amlogic/common/prebuilt/libmediadrm/ \
-    $(TOP)/vendor/amlogic/common/frameworks/services/subtitleserver/client
+	$(TOP)/vendor/amlogic/common/frameworks/services/subtitleserver/client
 
 AML_MP_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/include \
 	$(LOCAL_PATH) \
@@ -104,22 +108,35 @@ AML_MP_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/include \
 AML_MP_CFLAGS := -DANDROID_PLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
 
 AML_MP_SYSTEM_CFLAGS_29 := \
-    -DHAVE_SUBTITLE \
-	-DHAVE_CAS_HAL \
+	-DHAVE_SUBTITLE \
 	-DHAVE_CTC \
 	-DHAVE_VMXIPTV_CAS \
+
+ifeq ($(HAVE_CAS_HAL), true)
+AML_MP_SYSTEM_CFLAG_29 += \
+	-DHAVE_CAS_HAL
+endif
 
 AML_MP_VENDOR_CFLAGS_29 := \
 	-DHAVE_CTC \
 
 AML_MP_SYSTEM_CFLAGS_30 := \
-    -DHAVE_SUBTITLE \
+	-DHAVE_SUBTITLE \
+
+ifeq ($(HAVE_CAS_HAL), true)
+AML_MP_SYSTEM_CFLAG_30 += \
 	-DHAVE_CAS_HAL
+endif
+
 
 AML_MP_VENDOR_CFLAGS_30 := \
-    -DHAVE_SUBTITLE \
-	-DHAVE_CAS_HAL \
+	-DHAVE_SUBTITLE \
 	-DHAVE_VMXIPTV_CAS_V2 \
+
+ifeq ($(HAVE_CAS_HAL), true)
+AML_MP_VENDOR_CFLAGS_30 += \
+	-DHAVE_CAS_HAL
+endif
 
 ifeq ($(HAVE_WVIPTV_CAS), true)
 AML_MP_VENDOR_CFLAGS_30 += -DHAVE_WVIPTV_CAS
@@ -160,14 +177,15 @@ AML_MP_VENDOR_SHARED_LIBS_30 := \
 	libSubtitleClient \
 	libamdvr \
 	libmediahal_tsplayer \
-    libamgralloc_ext
+	libamgralloc_ext
 
 ifeq ($(HAVE_WVIPTV_CAS), true)
 AML_MP_VENDOR_SHARED_LIBS_30 += \
-        libdec_ca_wvcas
+	libdec_ca_wvcas
 endif
 
 #######################################
+ifeq ($(HAVE_CAS_HAL), true)
 AML_MP_SYSTEM_STATIC_LIBS_29 := \
 	libam_cas
 
@@ -176,6 +194,7 @@ AML_MP_SYSTEM_STATIC_LIBS_30 := \
 
 AML_MP_VENDOR_STATIC_LIBS_30 += \
 	libam_cas
+endif
 
 ###############################################################################
 include $(CLEAR_VARS)

@@ -12,7 +12,9 @@
 
 #include <Aml_MP/Cas.h>
 #include <utils/AmlMpHandle.h>
+#ifdef HAVE_CAS_HAL
 #include "am_cas.h"
+#endif
 
 namespace aml_mp {
 
@@ -42,7 +44,9 @@ public:
 
 private:
     Aml_MP_CASServiceType mServiceType = AML_MP_CAS_SERVICE_TYPE_INVALID;
+#ifdef HAVE_CAS_HAL
     CasSession mCasSession = 0;
+#endif
     bool mDvrReplayInited = false;
 
 private:

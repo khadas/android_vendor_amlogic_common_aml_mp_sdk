@@ -17,6 +17,7 @@
 static const char* mName = LOG_TAG;
 
 ///////////////////////////////////////////////////////////////////////////////
+#ifdef HAVE_CAS_HAL
 extern CasHandle g_casHandle;
 
 static CA_SERVICE_TYPE_t convertToCAServiceType(Aml_MP_CASServiceType casServiceType)
@@ -76,173 +77,180 @@ static int convertToAmlMPErrorCode(AM_RESULT CasResult) {
             return AML_MP_ERROR;
     }
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace aml_mp {
 AmlDvbCasHal::AmlDvbCasHal(Aml_MP_CASServiceType serviceType)
 : mServiceType(serviceType)
 {
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
 #ifdef HAVE_CAS_HAL
+    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
     CA_SERVICE_TYPE_t caServiceType = convertToCAServiceType(mServiceType);
     ret = AM_CA_OpenSession(g_casHandle, &mCasSession, caServiceType);
-#endif
     if (ret != AM_ERROR_SUCCESS) {
         MLOGE("AM_CA_OpenSession failed!");
         return;
     }
 
     MLOG("openSession:%#x", mCasSession);
+#endif
 }
 
 AmlDvbCasHal::~AmlDvbCasHal()
 {
     MLOG();
 
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
 #ifdef HAVE_CAS_HAL
+    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
     ret = AM_CA_CloseSession(mCasSession);
-#endif
     if (ret != AM_ERROR_SUCCESS) {
         MLOGE("AM_CA_CloseSession failed!");
     }
+#endif
 }
 
 int AmlDvbCasHal::registerEventCallback(Aml_MP_CAS_EventCallback cb, void* userData __unused)
 {
     MLOG();
 
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
-    CAS_EventFunction_t eventFn = reinterpret_cast<CAS_EventFunction_t>(cb);
+    int ret = AML_MP_ERROR;
 
 #ifdef HAVE_CAS_HAL
-    ret = AM_CA_RegisterEventCallback(mCasSession, eventFn);
+    CAS_EventFunction_t eventFn = reinterpret_cast<CAS_EventFunction_t>(cb);
+
+    ret = convertToAmlMPErrorCode(AM_CA_RegisterEventCallback(mCasSession, eventFn));
 #else
-    AML_MP_UNUSED(eventFn);
+    AML_MP_UNUSED(cb);
 #endif
 
-    return convertToAmlMPErrorCode(ret);
+    return ret;
 }
 
 int AmlDvbCasHal::startDescrambling(Aml_MP_CASServiceInfo* serviceInfo)
 {
     MLOG();
 
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+    int ret = AML_MP_ERROR;
+#ifdef HAVE_CAS_HAL
     AM_CA_ServiceInfo_t caServiceInfo;
     convertToCAServiceInfo(&caServiceInfo, serviceInfo);
 
-#ifdef HAVE_CAS_HAL
-    ret = AM_CA_StartDescrambling(mCasSession, &caServiceInfo);
+    ret = convertToAmlMPErrorCode(AM_CA_StartDescrambling(mCasSession, &caServiceInfo));
+#else
+    AML_MP_UNUSED(serviceInfo);
 #endif
 
-    return convertToAmlMPErrorCode(ret);
+    return ret;
 }
 
 int AmlDvbCasHal::stopDescrambling()
 {
     MLOG();
 
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+    int ret = AML_MP_ERROR;
 
 #ifdef HAVE_CAS_HAL
-    ret = AM_CA_StopDescrambling(mCasSession);
+    ret = convertToAmlMPErrorCode(AM_CA_StopDescrambling(mCasSession));
 #endif
 
-    return convertToAmlMPErrorCode(ret);
+    return ret;
 }
 
 int AmlDvbCasHal::updateDescramblingPid(int oldStreamPid, int newStreamPid)
 {
     MLOG("oldStreamPid:%d, newStreamPid:%d", oldStreamPid, newStreamPid);
 
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+    int ret = AML_MP_ERROR;
 
 #ifdef HAVE_CAS_HAL
-   ret = AM_CA_UpdateDescramblingPid(mCasSession, oldStreamPid, newStreamPid);
+   ret = convertToAmlMPErrorCode(AM_CA_UpdateDescramblingPid(mCasSession, oldStreamPid, newStreamPid));
 #endif
 
-    return convertToAmlMPErrorCode(ret);
+    return ret;
 }
 
 int AmlDvbCasHal::startDVRRecord(Aml_MP_CASServiceInfo* serviceInfo)
 {
     MLOG();
 
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+    int ret = AML_MP_ERROR;
 
+#ifdef HAVE_CAS_HAL
     AM_CA_ServiceInfo_t caServiceInfo;
     convertToCAServiceInfo(&caServiceInfo, serviceInfo);
 
-#ifdef HAVE_CAS_HAL
-    ret = AM_CA_DVRStart(mCasSession, &caServiceInfo);
+    ret = convertToAmlMPErrorCode(AM_CA_DVRStart(mCasSession, &caServiceInfo));
+#else
+    AML_MP_UNUSED(serviceInfo);
 #endif
 
-    return convertToAmlMPErrorCode(ret);
+    return ret;
 }
 
 int AmlDvbCasHal::stopDVRRecord()
 {
     MLOG();
 
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+    int ret = AML_MP_ERROR;
 
 #ifdef HAVE_CAS_HAL
-    ret = AM_CA_DVRStop(mCasSession);
+    ret = convertToAmlMPErrorCode(AM_CA_DVRStop(mCasSession));
 #endif
 
-    return convertToAmlMPErrorCode(ret);
+    return ret;
 }
 
 int AmlDvbCasHal::startDVRReplay(Aml_MP_CASDVRReplayParams* dvrReplayParams)
 {
     MLOG();
 
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+    int ret = AML_MP_ERROR;
+#ifdef HAVE_CAS_HAL
     AM_CA_PreParam_t caParams;
     caParams.dmx_dev = dvrReplayParams->dmxDev;
 
-#ifdef HAVE_CAS_HAL
-    ret = AM_CA_DVRSetPreParam(mCasSession, &caParams);
+    ret = convertToAmlMPErrorCode(AM_CA_DVRSetPreParam(mCasSession, &caParams));
 #else
-    AML_MP_UNUSED(caParams);
+    AML_MP_UNUSED(dvrReplayParams);
 #endif
 
-    return convertToAmlMPErrorCode(ret);
+    return ret;
 }
 
 int AmlDvbCasHal::stopDVRReplay()
 {
     MLOG();
 
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+    int ret = AML_MP_ERROR;
 
 #ifdef HAVE_CAS_HAL
-    ret = AM_CA_DVRStopReplay(mCasSession);
+    ret = convertToAmlMPErrorCode(AM_CA_DVRStopReplay(mCasSession));
 #endif
 
-    return convertToAmlMPErrorCode(ret);
+    return ret;
 }
 
 int AmlDvbCasHal::DVREncrypt(Aml_MP_CASCryptoParams* cryptoParams)
 {
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+    int ret = AML_MP_ERROR;
+#ifdef HAVE_CAS_HAL
     static_assert(sizeof(Aml_MP_CASCryptoParams) == sizeof(AM_CA_CryptoPara_t), "Imcompatible with AM_CA_CryptoPara_t!");
     static_assert(sizeof(loff_t) == sizeof(int64_t), "Imcompatible loff_t vs int64_t");
     AM_CA_CryptoPara_t* amCryptoParams = reinterpret_cast<AM_CA_CryptoPara_t*>(cryptoParams);
 
-#ifdef HAVE_CAS_HAL
-    ret = AM_CA_DVREncrypt(mCasSession, amCryptoParams);
+    ret = convertToAmlMPErrorCode(AM_CA_DVREncrypt(mCasSession, amCryptoParams));
 #else
-    AML_MP_UNUSED(amCryptoParams);
+    AML_MP_UNUSED(cryptoParams);
 #endif
 
-    return convertToAmlMPErrorCode(ret);
+    return ret;
 }
 
 int AmlDvbCasHal::DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams)
 {
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+    int ret = AML_MP_ERROR;
+#ifdef HAVE_CAS_HAL
     static_assert(sizeof(Aml_MP_CASCryptoParams) == sizeof(AM_CA_CryptoPara_t), "Imcompatible with AM_CA_CryptoPara_t!");
     static_assert(sizeof(loff_t) == sizeof(int64_t), "Imcompatible loff_t vs int64_t");
     AM_CA_CryptoPara_t* amCryptoParams = reinterpret_cast<AM_CA_CryptoPara_t*>(cryptoParams);
@@ -250,53 +258,54 @@ int AmlDvbCasHal::DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams)
     if (!mDvrReplayInited) {
         mDvrReplayInited = true;
         MLOGI("DVRReplay");
-#ifdef HAVE_CAS_HAL
-        ret = AM_CA_DVRReplay(mCasSession, amCryptoParams);
-        if (ret < 0) {
+        ret = convertToAmlMPErrorCode(AM_CA_DVRReplay(mCasSession, amCryptoParams));
+        if (ret != AML_MP_OK) {
             MLOGE("CAS DVR replay failed, ret = %d", ret);
-            return convertToAmlMPErrorCode(ret);
+            return ret;
         }
-#endif
     }
 
-#ifdef HAVE_CAS_HAL
-    ret = AM_CA_DVRDecrypt(mCasSession, amCryptoParams);
+    ret = convertToAmlMPErrorCode(AM_CA_DVRDecrypt(mCasSession, amCryptoParams));
 #else
-    AML_MP_UNUSED(amCryptoParams);
+    AML_MP_UNUSED(cryptoParams);
 #endif
 
-    return convertToAmlMPErrorCode(ret);
+    return ret;
 }
 
 AML_MP_SECMEM AmlDvbCasHal::createSecmem(Aml_MP_CASServiceType type, void** pSecbuf, uint32_t* size)
 {
+#ifdef HAVE_CAS_HAL
     SecMemHandle secMem = 0;
     CA_SERVICE_TYPE_t caServiceType = convertToCAServiceType(type);
 
-#ifdef HAVE_CAS_HAL
     secMem = AM_CA_CreateSecmem(mCasSession, caServiceType, pSecbuf, size);
-#else
-    AML_MP_UNUSED(caServiceType);
-    AML_MP_UNUSED(pSecbuf);
-    AML_MP_UNUSED(size);
-#endif
-
     MLOG("service type:%d, secMem:%#x", type, secMem);
 
     return (AML_MP_SECMEM)secMem;
+#else
+    AML_MP_UNUSED(type);
+    AML_MP_UNUSED(pSecbuf);
+    AML_MP_UNUSED(size);
+
+    return nullptr;
+#endif
+
 }
 
 int AmlDvbCasHal::destroySecmem(AML_MP_SECMEM secMem)
 {
-    MLOG("secMem:%#x", (SecMemHandle)secMem);
 
-    AM_RESULT ret = AM_ERROR_GENERAL_ERORR;
+    int ret = AML_MP_ERROR;
 
 #ifdef HAVE_CAS_HAL
-    ret = AM_CA_DestroySecmem(mCasSession, (SecMemHandle)secMem);
+    MLOG("secMem:%#x", (SecMemHandle)secMem);
+    ret = convertToAmlMPErrorCode(AM_CA_DestroySecmem(mCasSession, (SecMemHandle)secMem));
+#else
+    AML_MP_UNUSED(secMem);
 #endif
 
-    return convertToAmlMPErrorCode(ret);
+    return ret;
 }
 
 }
