@@ -158,12 +158,15 @@ private:
 
     int start_l();
     int stop_l();
+    int pause_l();
+    int resume_l();
 
     int startVideoDecoding_l();
     int startAudioDecoding_l();
     int startSubtitleDecoding_l();
     int startADDecoding_l();
     int stopAudioDecoding_l();
+    int stopSubtitleDecoding_l();
     int stopADDecoding_l();
 
     int startDescrambling_l();
@@ -176,6 +179,7 @@ private:
 
     int setAudioParams_l(const Aml_MP_AudioParams* params);
     int setSubtitleParams_l(const Aml_MP_SubtitleParams* params);
+    int setParameter_l(Aml_MP_PlayerParameterKey key, void* parameter);
 
     const int mInstanceId;
     char mName[50];

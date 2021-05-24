@@ -109,6 +109,7 @@ const char* mpPlayerWorkMode2Str(Aml_MP_PlayerWorkMode workmode);
 const char* mpInputStreamType2Str(Aml_MP_InputStreamType inputStreamType);
 const char* mpInputSourceType2Str(Aml_MP_InputSourceType inputSourceType);
 const char* mpCASType2Str(Aml_MP_CASType casType);
+const char* mpVideoDecideMode2Str(Aml_MP_VideoDecodeMode decodeMode);
 
 vformat_t convertToVFormat(Aml_MP_CodecID videoCodec);
 aformat_t convertToAForamt(Aml_MP_CodecID audioCodec);

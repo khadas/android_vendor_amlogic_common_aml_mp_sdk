@@ -208,7 +208,6 @@ int AmlTsPlayer::start() {
     int ret = 0;
 
     MLOGI("Call start");
-    AmTsPlayer_setTrickMode(mPlayer, AV_VIDEO_TRICK_MODE_NONE);
 
     ret += startVideoDecoding();
     ret += startAudioDecoding();
