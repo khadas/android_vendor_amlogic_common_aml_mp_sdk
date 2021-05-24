@@ -245,6 +245,14 @@ const char* mpCASType2Str(Aml_MP_CASType casType) {
     }
 }
 
+const char* mpVideoDecideMode2Str(Aml_MP_VideoDecodeMode decodeMode) {
+    switch (decodeMode) {
+        ENUM_TO_STR(AML_MP_VIDEO_DECODE_MODE_NONE);
+        ENUM_TO_STR(AML_MP_VIDEO_DECODE_MODE_IONLY);
+        default:
+            return "unknown video decode mode";
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 

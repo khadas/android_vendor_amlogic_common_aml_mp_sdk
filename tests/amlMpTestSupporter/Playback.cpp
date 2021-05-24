@@ -646,12 +646,7 @@ static struct TestModule::Command g_commandTable[] = {
             }
             printf("String input: %s\n", args[1].data());
             fastRate = stof(args[1]);
-            if (fastRate < 2) {
-                ret = Aml_MP_Player_SetPlaybackRate(player, fastRate);
-            } else {
-                Aml_MP_VideoDecodeMode trickMode = AML_MP_VIDEO_DECODE_MODE_IONLY;
-                ret = Aml_MP_Player_SetParameter(player, AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE, &trickMode);
-            }
+            ret = Aml_MP_Player_SetPlaybackRate(player, fastRate);
             printf("set rate: %f, ret: %d\n", fastRate, ret);
             return ret;
         }
