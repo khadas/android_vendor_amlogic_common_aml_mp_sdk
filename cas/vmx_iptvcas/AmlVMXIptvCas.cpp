@@ -106,9 +106,12 @@ int AmlVMXIptvCas::closeSession()
 
     RETURN_IF(-1, mCasHandle == nullptr);
 
-    ret = amsysfs_set_sysfs_str(DMX_RESET_PATH, "1");
-    if (ret)
-        MLOGI("Error ret 0x%x\n", ret);
+    if (!isSupportMultiHwDemux())
+    {
+        ret = amsysfs_set_sysfs_str(DMX_RESET_PATH, "1");
+        if (ret)
+            MLOGI("Error ret 0x%x\n", ret);
+    }
 
     return sCasLibWrapper->stop(mCasHandle);
 }
