@@ -141,7 +141,8 @@ AmlTsPlayer::~AmlTsPlayer()
     if (mBlackOut) {
         if (AmlMpConfig::instance().mTsPlayerNonTunnel == 0 || AmlMpConfig::instance().mUseVideoTunnel == 1) {
 #if 1
-            native_window_set_sideband_stream(mNativewindow, nullptr);
+            if (mNativewindow != nullptr)
+                native_window_set_sideband_stream(mNativewindow, nullptr);
 #else
             pushBlankBuffersToNativeWindow(mNativewindow);
 #endif
