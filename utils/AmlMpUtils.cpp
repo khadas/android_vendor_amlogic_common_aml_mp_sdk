@@ -878,7 +878,7 @@ bool isSupportMultiHwDemux()
 
 int NativeWindowHelper::setSiebandTunnelMode(ANativeWindow* nativeWindow)
 {
-    int ret = 0;
+    int ret = -1;
 
     if (nativeWindow == nullptr) {
         return ret;
@@ -887,7 +887,7 @@ int NativeWindowHelper::setSiebandTunnelMode(ANativeWindow* nativeWindow)
     native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(AM_TV_SIDEBAND, AM_VIDEO_DEFAULT);
     mSidebandHandle = android::NativeHandle::create(sidebandHandle, true);
 
-    MLOGI("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
+    MLOG("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
 
     ret = native_window_set_sideband_stream(nativeWindow, sidebandHandle);
     if (ret < 0) {
@@ -899,7 +899,7 @@ int NativeWindowHelper::setSiebandTunnelMode(ANativeWindow* nativeWindow)
 
 int NativeWindowHelper::setSidebandNonTunnelMode(ANativeWindow* nativeWindow, int& videoTunnelId)
 {
-    int ret = 0;
+    int ret = -1;
 
     if (nativeWindow == nullptr) {
         return ret;
@@ -914,12 +914,12 @@ int NativeWindowHelper::setSidebandNonTunnelMode(ANativeWindow* nativeWindow, in
         int mesonVtFd = meson_vt_open();
         if (mesonVtFd < 0) {
             MLOGI("meson_vt_open failed!");
-            return -1;
+            return ret;
         }
         if (meson_vt_alloc_id(mesonVtFd, &videoTunnelId) < 0) {
             MLOGI("meson_vt_alloc_id failed!");
             meson_vt_close(mesonVtFd);
-            return -1;
+            return ret;
         }
         MLOGI("setAnativeWindow: allocId: %d", videoTunnelId);
         meson_vt_free_id(mesonVtFd, videoTunnelId);
@@ -928,7 +928,7 @@ int NativeWindowHelper::setSidebandNonTunnelMode(ANativeWindow* nativeWindow, in
         native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(type, videoTunnelId);
         mSidebandHandle = android::NativeHandle::create(sidebandHandle, true);
 
-        MLOGI("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
+        MLOG("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
 
         ret = native_window_set_sideband_stream(nativeWindow, sidebandHandle);
         if (ret < 0) {
