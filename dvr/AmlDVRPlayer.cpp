@@ -33,6 +33,8 @@ AmlDVRPlayer::AmlDVRPlayer(Aml_MP_DVRPlayerBasicParams* basicParams, Aml_MP_DVRP
     snprintf(mName, sizeof(mName), "%s", LOG_TAG);
     MLOG();
 
+    AmlMpConfig::instance().init();
+
     memset(&mPlaybackOpenParams, 0, sizeof(DVR_WrapperPlaybackOpenParams_t));
     setBasicParams(basicParams);
 
@@ -172,7 +174,7 @@ int AmlDVRPlayer::stop()
     }
 
     error = dvr_wrapper_close_playback(mDVRPlayerHandle);
-    AmTsPlayer_release((am_tsplayer_handle)mPlaybackOpenParams.playback_handle);
+    AmTsPlayer_release(mTsPlayerHandle);
     return 0;
 }
 
@@ -251,7 +253,7 @@ int AmlDVRPlayer::showVideo()
     MLOG();
 
     am_tsplayer_result ret;
-    ret = AmTsPlayer_showVideo((am_tsplayer_handle)mPlaybackOpenParams.playback_handle);
+    ret = AmTsPlayer_showVideo(mTsPlayerHandle);
 
     return ret;
 }
@@ -261,7 +263,7 @@ int AmlDVRPlayer::hideVideo()
     MLOG();
 
     am_tsplayer_result ret;
-    ret = AmTsPlayer_hideVideo((am_tsplayer_handle)mPlaybackOpenParams.playback_handle);
+    ret = AmTsPlayer_hideVideo(mTsPlayerHandle);
 
     return ret;
 }
@@ -271,7 +273,7 @@ int AmlDVRPlayer::setVolume(float volume)
     MLOG("volume:%f", volume);
 
     am_tsplayer_result ret;
-    ret = AmTsPlayer_setAudioVolume((am_tsplayer_handle)mPlaybackOpenParams.playback_handle, volume);
+    ret = AmTsPlayer_setAudioVolume(mTsPlayerHandle, volume);
 
     return ret;
 }
@@ -282,7 +284,7 @@ int AmlDVRPlayer::getVolume(float* volume)
 
     am_tsplayer_result ret;
     int32_t tsVolume;
-    ret = AmTsPlayer_getAudioVolume((am_tsplayer_handle)mPlaybackOpenParams.playback_handle, &tsVolume);
+    ret = AmTsPlayer_getAudioVolume(mTsPlayerHandle, &tsVolume);
     *volume = tsVolume;
 
     return ret;
@@ -291,7 +293,7 @@ int AmlDVRPlayer::getVolume(float* volume)
 int AmlDVRPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter)
 {
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
-    am_tsplayer_handle mPlayer = (am_tsplayer_handle)mPlaybackOpenParams.playback_handle;
+    am_tsplayer_handle mPlayer = mTsPlayerHandle;
 
     MLOGI("Call setParameter, key is %s, mPlayer:%#x", mpPlayerParameterKey2Str(key), mPlayer);
     switch (key) {
@@ -394,7 +396,7 @@ int AmlDVRPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter)
 int AmlDVRPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter)
 {
     am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
-    am_tsplayer_handle mPlayer = (am_tsplayer_handle)mPlaybackOpenParams.playback_handle;
+    am_tsplayer_handle mPlayer = mTsPlayerHandle;
 
     MLOGI("Call getParameter, key is %s, player:%#x", mpPlayerParameterKey2Str(key), mPlayer);
     if (!parameter) {
