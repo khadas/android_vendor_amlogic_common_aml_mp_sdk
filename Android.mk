@@ -33,11 +33,11 @@ AML_MP_CAS_SRC := \
 AML_MP_CAS_SYSTEM_SRC_29 += \
 	cas/vmx_iptvcas/AmlVMXIptvCas.cpp
 
-AML_MP_CAS_VENDOR_SRC_30 += \
+AML_MP_CAS_VENDOR_SRC_ge_30 += \
 	cas/vmx_iptvcas/AmlVMXIptvCas_V2.cpp
 
 ifeq ($(HAVE_WVIPTV_CAS), true)
-AML_MP_CAS_VENDOR_SRC_30 += \
+AML_MP_CAS_VENDOR_SRC_ge_30 += \
 	cas/wv_iptvcas/AmlWVIptvCas.cpp
 endif
 
@@ -120,26 +120,26 @@ endif
 AML_MP_VENDOR_CFLAGS_29 := \
 	-DHAVE_CTC \
 
-AML_MP_SYSTEM_CFLAGS_30 := \
+AML_MP_SYSTEM_CFLAGS_ge_30 := \
 	-DHAVE_SUBTITLE \
 
 ifeq ($(HAVE_CAS_HAL), true)
-AML_MP_SYSTEM_CFLAG_30 += \
+AML_MP_SYSTEM_CFLAG_ge_30 += \
 	-DHAVE_CAS_HAL
 endif
 
 
-AML_MP_VENDOR_CFLAGS_30 := \
+AML_MP_VENDOR_CFLAGS_ge_30 := \
 	-DHAVE_SUBTITLE \
 	-DHAVE_VMXIPTV_CAS_V2 \
 
 ifeq ($(HAVE_CAS_HAL), true)
-AML_MP_VENDOR_CFLAGS_30 += \
+AML_MP_VENDOR_CFLAGS_ge_30 += \
 	-DHAVE_CAS_HAL
 endif
 
 ifeq ($(HAVE_WVIPTV_CAS), true)
-AML_MP_VENDOR_CFLAGS_30 += -DHAVE_WVIPTV_CAS
+AML_MP_VENDOR_CFLAGS_ge_30 += -DHAVE_WVIPTV_CAS
 endif
 
 #######################################
@@ -160,7 +160,7 @@ AML_MP_SYSTEM_SHARED_LIBS_29 := \
 	libamdvr.product \
 	libCTC_MediaProcessor \
 
-AML_MP_SYSTEM_SHARED_LIBS_30 := \
+AML_MP_SYSTEM_SHARED_LIBS_ge_30 := \
 	libmediahal_tsplayer.system \
 	libSubtitleClient \
 	libgui \
@@ -173,14 +173,14 @@ AML_MP_VENDOR_SHARED_LIBS_29 := \
 	libamgralloc_ext_vendor@2 \
 	libCTC_MediaProcessor.vendor \
 
-AML_MP_VENDOR_SHARED_LIBS_30 := \
+AML_MP_VENDOR_SHARED_LIBS_ge_30 := \
 	libSubtitleClient \
 	libamdvr \
 	libmediahal_tsplayer \
 	libamgralloc_ext
 
 ifeq ($(HAVE_WVIPTV_CAS), true)
-AML_MP_VENDOR_SHARED_LIBS_30 += \
+AML_MP_VENDOR_SHARED_LIBS_ge_30 += \
 	libdec_ca_wvcas
 endif
 
@@ -189,10 +189,10 @@ ifeq ($(HAVE_CAS_HAL), true)
 AML_MP_SYSTEM_STATIC_LIBS_29 := \
 	libam_cas
 
-AML_MP_SYSTEM_STATIC_LIBS_30 := \
+AML_MP_SYSTEM_STATIC_LIBS_ge_30 := \
 	libam_cas_sys
 
-AML_MP_VENDOR_STATIC_LIBS_30 += \
+AML_MP_VENDOR_STATIC_LIBS_ge_30 += \
 	libam_cas
 endif
 
@@ -212,6 +212,10 @@ LOCAL_STATIC_LIBRARIES := $(AML_MP_SYSTEM_STATIC_LIBS_$(PLATFORM_SDK_VERSION))
 #LOCAL_WHOLE_STATIC_LIBRARIES :=
 #LOCAL_LDFLAGS :=
 ifeq (1, $(shell expr $(PLATFORM_SDK_VERSION) \>= 30))
+LOCAL_SRC_FILES += $(AML_MP_PLAYER_SYSTEM_SRC_ge_30) $(AML_MP_CAS_SYSTEM_SRC_ge_30)
+LOCAL_CFLAGS += $(AML_MP_SYSTEM_CFLAGS_ge_30)
+LOCAL_SHARED_LIBRARIES += $(AML_MP_SYSTEM_SHARED_LIBS_ge_30)
+LOCAL_STATIC_LIBRARIES += $(AML_MP_SYSTEM_STATIC_LIBS_ge_30)
 LOCAL_SYSTEM_EXT_MODULE := true
 endif
 include $(BUILD_SHARED_LIBRARY)
@@ -233,9 +237,14 @@ LOCAL_SHARED_LIBRARIES := $(AML_MP_SHARED_LIBS) $(AML_MP_VENDOR_SHARED_LIBS_$(PL
 LOCAL_STATIC_LIBRARIES := $(AML_MP_VENDOR_STATIC_LIBS_$(PLATFORM_SDK_VERSION))
 #LOCAL_WHOLE_STATIC_LIBRARIES :=
 #LOCAL_LDFLAGS :=
+ifeq (1, $(shell expr $(PLATFORM_SDK_VERSION) \>= 30))
+LOCAL_CFLAGS += $(AML_MP_VENDOR_CFLAGS_ge_30)
+LOCAL_SRC_FILES += $(AML_MP_PLAYER_VENDOR_SRC_ge_30) $(AML_MP_CAS_VENDOR_SRC_ge_30)
+LOCAL_SHARED_LIBRARIES += $(AML_MP_VENDOR_SHARED_LIBS_ge_30)
+LOCAL_STATIC_LIBRARIES += $(AML_MP_VENDOR_STATIC_LIBS_ge_30)
+endif
 include $(BUILD_SHARED_LIBRARY)
 endif
 
 ###############################################################################
 include $(call all-makefiles-under,$(LOCAL_PATH))
-
