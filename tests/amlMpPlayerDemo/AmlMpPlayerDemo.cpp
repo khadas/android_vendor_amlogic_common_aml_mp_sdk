@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
         printf("prepare failed!\n");
         return -1;
     }
-
+    MLOGI("argument.record=%d\n", argument.record);
     if (!argument.record) {
         AmlMpTestSupporter::DisplayParam displayParam;
         displayParam.x = argument.x;
@@ -190,9 +190,9 @@ int main(int argc, char *argv[])
         displayParam.zorder = argument.zorder;
         displayParam.videoMode = argument.videoMode;
         mpTestSupporter->setDisplayParam(displayParam);
-
+        MLOGI(">>>> AmlMpPlayerDemo Start\n");
         mpTestSupporter->startPlay((AmlMpTestSupporter::PlayMode)argument.playMode);
-
+        MLOGI("<<<< AmlMpPlayerDemo Start\n");
     } else {
         mpTestSupporter->startRecord();
     }

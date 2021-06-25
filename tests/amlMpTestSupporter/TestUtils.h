@@ -10,21 +10,28 @@
 #ifndef _AML_MP_TEST_UTILS_H_
 #define _AML_MP_TEST_UTILS_H_
 
+#ifdef ANDROID
 #ifndef __ANDROID_VNDK__
 #include <gui/Surface.h>
 #include <gui/SurfaceComposerClient.h>
 #endif
 #include <ui/DisplayInfo.h>
 #include <system/window.h>
+#endif
+
 #include <string>
 #include <vector>
 #include <utils/RefBase.h>
 #include <utils/AmlMpRefBase.h>
 
 namespace aml_mp {
+#ifdef ANDROID
 using android::sp;
+#endif
 
 #define AML_MP_TEST_SUPPORTER_RECORD_FILE   "/data/amlMpRecordFile"
+
+#ifdef ANDROID
 
 struct NativeUI : android::RefBase
 {
@@ -57,8 +64,14 @@ private:
     NativeUI(const NativeUI&) = delete;
     NativeUI& operator=(const NativeUI&);
 };
+#endif
 
+#ifdef ANDROID
 struct CommandProcessor : android::RefBase
+#else
+struct CommandProcessor : AmlMpRefBase
+#endif
+
 {
     using Visitor = bool(const std::vector<std::string>& args);
     using Interrupter = bool();

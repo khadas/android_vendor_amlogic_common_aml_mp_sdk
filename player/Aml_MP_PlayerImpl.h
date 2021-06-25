@@ -13,16 +13,20 @@
 #include <Aml_MP/Aml_MP.h>
 #include <utils/AmlMpRefBase.h>
 #include <utils/AmlMpHandle.h>
+#ifdef ANDROID
 #include <system/window.h>
+#endif
 #include <mutex>
 #include <map>
 #include "utils/AmlMpFifo.h"
 #include <condition_variable>
 #include "cas/AmlCasBase.h"
 #include "demux/AmlTsParser.h"
+#ifdef ANDROID
 #ifndef __ANDROID_VNDK__
 #include <gui/Surface.h>
 #include <gui/SurfaceComposerClient.h>
+#endif
 #endif
 
 #ifdef ANDROID
@@ -30,7 +34,9 @@
 #endif
 
 namespace aml_mp {
+#ifdef ANDROID
 using android::RefBase;
+#endif
 class AmlPlayerBase;
 class AmlMpConfig;
 
@@ -219,7 +225,9 @@ private:
     float mVolume = -1.0;
 
     float mPlaybackRate = 1.0f;
+    #ifdef ANDROID
     android::sp<ANativeWindow> mNativeWindow;
+    #endif
     WindowSize mVideoWindow;
     int mVideoTunnelId = -1;
     void* mSurfaceHandle = nullptr;
@@ -233,11 +241,12 @@ private:
 
     static constexpr int kZorderBase = -2;
     int mZorder;
-
+#ifdef ANDROID
 #ifndef __ANDROID_VNDK__
     android::sp<android::SurfaceComposerClient> mComposerClient;
     android::sp<android::SurfaceControl> mSurfaceControl;
     android::sp<android::Surface> mSurface = nullptr;
+#endif
 #endif
 
     sptr<Parser> mParser;

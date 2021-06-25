@@ -15,6 +15,7 @@
 #ifdef HAVE_SUBTITLE
 #include <SubtitleNativeAPI.h>
 #endif
+
 struct ANativeWindow;
 
 namespace aml_mp {

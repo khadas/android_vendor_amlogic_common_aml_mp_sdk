@@ -15,14 +15,17 @@
 #include <SubtitleNativeAPI.h>
 #endif
 
+#ifdef ANDROID
 #include <amlogic/am_gralloc_ext.h>
 #include <system/window.h>
 #include <video_tunnel.h>
-
 #include <hardware/gralloc1.h>
-#include <amlogic/am_gralloc_ext.h>
+#endif
+
+#ifdef ANDROID
 #ifndef __ANDROID_VNDK__
 #include <gui/Surface.h>
+#endif
 #endif
 
 static const char* mName = LOG_TAG;
@@ -883,13 +886,14 @@ int NativeWindowHelper::setSiebandTunnelMode(ANativeWindow* nativeWindow)
     if (nativeWindow == nullptr) {
         return ret;
     }
-
+    #ifdef ANDROID
     native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(AM_TV_SIDEBAND, AM_VIDEO_DEFAULT);
     mSidebandHandle = android::NativeHandle::create(sidebandHandle, true);
 
     MLOG("setAnativeWindow:%p, sidebandHandle:%p", nativeWindow, sidebandHandle);
 
     ret = native_window_set_sideband_stream(nativeWindow, sidebandHandle);
+    #endif
     if (ret < 0) {
         MLOGE("set sideband stream failed!");
     }
@@ -908,7 +912,7 @@ int NativeWindowHelper::setSidebandNonTunnelMode(ANativeWindow* nativeWindow, in
     if (videoTunnelId != -1) {
         MLOGE("setANativeWindow mVideoTunnelId:%d", videoTunnelId);
     }
-
+    #ifdef ANDROID
     if (nativeWindow != nullptr) {
         int type = AM_FIXED_TUNNEL;
         int mesonVtFd = meson_vt_open();
@@ -936,8 +940,7 @@ int NativeWindowHelper::setSidebandNonTunnelMode(ANativeWindow* nativeWindow, in
             return ret;
         }
     }
-
+    #endif
     return ret;
 }
-
 }

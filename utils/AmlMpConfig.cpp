@@ -14,6 +14,8 @@
 #include <string>
 
 namespace aml_mp {
+#ifdef ANDROID
+
 template <typename T>
 void AmlMpConfig::initProperty(const char* propertyName, T& value)
 {
@@ -23,6 +25,9 @@ void AmlMpConfig::initProperty(const char* propertyName, T& value)
         value = strtol(bufs, nullptr, 0);
     }
 }
+#endif
+
+#ifdef ANDROID
 
 template<>
 void AmlMpConfig::initProperty(const char* propertyName, std::string& value)
@@ -33,6 +38,7 @@ void AmlMpConfig::initProperty(const char* propertyName, std::string& value)
         value = bufs;
     }
 }
+#endif
 
 void AmlMpConfig::reset()
 {
@@ -48,8 +54,12 @@ void AmlMpConfig::reset()
 
 void AmlMpConfig::init()
 {
+#ifdef ANDROID
+
     initProperty("vendor.amlmp.log-debug", mLogDebug);
     initProperty("vendor.amtsplayer.pipeline", mTsPlayerNonTunnel);
+#endif
+
 }
 
 AmlMpConfig::AmlMpConfig()

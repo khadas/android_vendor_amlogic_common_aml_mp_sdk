@@ -12,6 +12,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "FileSource.h"
+#include <fcntl.h>
+#include <sys/types.h>
 
 static const char* mName = LOG_TAG;
 

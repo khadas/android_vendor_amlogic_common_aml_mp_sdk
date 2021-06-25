@@ -31,14 +31,27 @@ struct list_head {
 #include <dvb_utils.h>
 
 #include <utils/RefBase.h>
+#ifdef ANDROID
 namespace android {
 class NativeHandle;
 }
+#endif
 
 
 namespace aml_mp {
+#ifndef LOG_ALWAYS_FATAL
+  #define LOG_ALWAYS_FATAL(...) \
+      ( (void)(android_printAssert(NULL, LOG_TAG, ## __VA_ARGS__)) )
+  #endif
+#define LITERAL_TO_STRING_INTERNAL(x)    #x
+#define LITERAL_TO_STRING(x) LITERAL_TO_STRING_INTERNAL(x)
 
 #define AML_MP_UNUSED(x) (void)(x)
+
+#ifndef CHECK(condition)
+#define CHECK(condition)  condition
+#endif
+
 
 ///////////////////////////////////////////////////////////////////////////////
 #define RETURN_IF(error, cond)                                                       \
@@ -155,8 +168,9 @@ struct NativeWindowHelper
     int setSidebandNonTunnelMode(ANativeWindow* nativeWindow, int& videoTunnelId);
 
 private:
+    #ifdef ANDROID
     android::sp<android::NativeHandle> mSidebandHandle;
-
+    #endif
     NativeWindowHelper(const NativeWindowHelper&) = delete;
     NativeWindowHelper& operator= (const NativeWindowHelper&) = delete;
 };

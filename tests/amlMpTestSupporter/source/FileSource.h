@@ -13,7 +13,7 @@
 #include "Source.h"
 #include <string>
 #include <thread>
-
+#include <condition_variable>
 
 namespace aml_mp {
 class FileSource : public Source

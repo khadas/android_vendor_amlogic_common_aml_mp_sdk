@@ -24,7 +24,7 @@ Playback::Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, Am
 : mDemuxId(demuxId)
 {
     mIsDVBSource = sourceType == AML_MP_INPUT_SOURCE_TS_DEMOD;
-
+    MLOGI("Playback structure,sourceType:%d\n", sourceType);
     Aml_MP_PlayerCreateParams createParams;
     memset(&createParams, 0, sizeof(createParams));
     createParams.channelId = AML_MP_CHANNEL_ID_AUTO;
@@ -40,6 +40,7 @@ Playback::Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, Am
 
 Playback::~Playback()
 {
+    MLOGI("~Playback\n");
     stop();
 
     if (mPlayer != AML_MP_INVALID_HANDLE) {
@@ -69,11 +70,13 @@ int Playback::setParameter(Aml_MP_PlayerParameterKey key, void* parameter)
     return ret;
 }
 
+#ifdef ANDROID
 void Playback::setANativeWindow(const android::sp<ANativeWindow>& window)
 {
     MLOGI("setANativeWindow");
     Aml_MP_Player_SetANativeWindow(mPlayer, window.get());
 }
+#endif
 
 void Playback::registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData)
 {
@@ -126,9 +129,9 @@ int Playback::start(const sptr<ProgramInfo>& programInfo, PlayMode playMode)
 {
     mProgramInfo = programInfo;
     //printStreamsInfo();
-
+    MLOGI(">>>> Playback start\n");
     mPlayMode = playMode;
-
+    MLOGI("Playback start mPlayMode:%d\n", mPlayMode);
     int ret = 0;
 
     if (mPlayer == AML_MP_INVALID_HANDLE) {
@@ -142,7 +145,6 @@ int Playback::start(const sptr<ProgramInfo>& programInfo, PlayMode playMode)
             startIPTVDescrambling();
         }
     }
-
     if (mEventCallback != nullptr) {
         Aml_MP_Player_RegisterEventCallBack(mPlayer,mEventCallback, mUserData);
     } else {
@@ -152,7 +154,6 @@ int Playback::start(const sptr<ProgramInfo>& programInfo, PlayMode playMode)
     }, this);
         //Aml_MP_Player_RegisterEventCallBack(mPlayer,eventCallback, mUserData);
     }
-
     if (mPlayMode == PlayMode::START_AUDIO_START_VIDEO) {
         if (setAudioParams()) {
             ret |= Aml_MP_Player_StartAudioDecoding(mPlayer);
@@ -181,7 +182,7 @@ int Playback::start(const sptr<ProgramInfo>& programInfo, PlayMode playMode)
         setAudioParams();
         setVideoParams();
         setSubtitleParams();
-
+        MLOGI(">>> Aml_MP_Player_Start\n");
         ret = Aml_MP_Player_Start(mPlayer);
     } else if (mPlayMode == PlayMode::START_SEPARATELY_STOP_ALL ||
             mPlayMode == PlayMode::START_SEPARATELY_STOP_SEPARATELY ||
@@ -189,7 +190,6 @@ int Playback::start(const sptr<ProgramInfo>& programInfo, PlayMode playMode)
         setAudioParams();
         setVideoParams();
         setSubtitleParams();
-
         if (playMode == PlayMode::START_SEPARATELY_STOP_SEPARATELY_V2) {
             ret |= Aml_MP_Player_StartVideoDecoding(mPlayer);
             ret |= Aml_MP_Player_StartAudioDecoding(mPlayer);
@@ -205,7 +205,8 @@ int Playback::start(const sptr<ProgramInfo>& programInfo, PlayMode playMode)
     if (ret != 0) {
         MLOGE("player start failed!");
     }
-
+    MLOGI("<<<< Playback start\n");
+    usleep(350 * 1000);
     return ret;
 }
 
@@ -215,6 +216,7 @@ bool Playback::setAudioParams()
     memset(&audioParams, 0, sizeof(audioParams));
     audioParams.audioCodec = mProgramInfo->audioCodec;
     audioParams.pid = mProgramInfo->audioPid;
+    MLOGI("setAudioParams apid:%d\n", audioParams.pid);
     Aml_MP_Player_SetAudioParams(mPlayer, &audioParams);
 
     return audioParams.pid != AML_MP_INVALID_PID;
@@ -226,6 +228,7 @@ bool Playback::setVideoParams()
     memset(&videoParams, 0, sizeof(videoParams));
     videoParams.videoCodec = mProgramInfo->videoCodec;
     videoParams.pid = mProgramInfo->videoPid;
+    MLOGI("setVideoParams vpid:%d\n", videoParams.pid);
     Aml_MP_Player_SetVideoParams(mPlayer, &videoParams);
 
     return videoParams.pid != AML_MP_INVALID_PID;
@@ -312,7 +315,7 @@ int Playback::writeData(const uint8_t* buffer, size_t size)
 int Playback::startDVBDescrambling()
 {
     MLOG();
-
+    #ifdef ANDROID
     Aml_MP_CAS_Initialize();
 
     Aml_MP_CAS_SetEmmPid(mDemuxId, mProgramInfo->emmPid);
@@ -353,14 +356,14 @@ int Playback::startDVBDescrambling()
     if (mSecMem == nullptr) {
         MLOGE("create secmem failed!");
     }
-
+    #endif
     return 0;
 }
 
 int Playback::stopDVBDescrambling()
 {
     MLOG("mCasSession:%p", mCasSession);
-
+    #ifdef ANDROID
     if (mCasSession == nullptr) {
         return 0;
     }
@@ -372,7 +375,7 @@ int Playback::stopDVBDescrambling()
 
     Aml_MP_CAS_CloseSession(mCasSession);
     mCasSession = nullptr;
-
+    #endif
     return 0;
 }
 

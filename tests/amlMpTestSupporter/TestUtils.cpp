@@ -12,13 +12,16 @@
 #include "TestUtils.h"
 #include <signal.h>
 #include <thread>
+#ifdef ANDROID
 #include <media/stagefright/foundation/ADebug.h>
+#endif
 #include <poll.h>
 #include <unistd.h>
 
 static const char* mName = LOG_TAG;
 
 namespace aml_mp {
+#ifdef ANDROID
 using namespace android;
 
 NativeUI::NativeUI()
@@ -148,7 +151,7 @@ int NativeUI::getDefaultSurfaceHeight() const
     return mSurfaceHeight;
 }
 
-
+#endif
 CommandProcessor::CommandProcessor(const std::string& prompt)
 : mPrompt(prompt)
 {

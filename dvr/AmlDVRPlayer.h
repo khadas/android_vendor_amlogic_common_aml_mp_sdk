@@ -10,13 +10,13 @@
 #ifndef _AML_DVR_PLAYER_H_
 #define _AML_DVR_PLAYER_H_
 
-#include <system/window.h>
 #include <Aml_MP/Dvr.h>
 #include <utils/AmlMpRefBase.h>
 #include <utils/AmlMpHandle.h>
 #include <utils/AmlMpUtils.h>
 #include "AmTsPlayer.h"
 #ifdef ANDROID
+#include <system/window.h>
 #include <utils/RefBase.h>
 #include <utils/StrongPointer.h>
 #endif

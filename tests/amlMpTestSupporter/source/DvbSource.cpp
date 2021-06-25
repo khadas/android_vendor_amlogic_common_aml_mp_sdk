@@ -15,7 +15,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/ioctl.h>
-
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 static const char* mName = LOG_TAG;
 
@@ -210,10 +212,11 @@ int DvbSource::start()
     }
 
     MLOGI("start, fendState:%d", fendState);
+    #if ANDROID
     if (fendState != FEND_STATE_LOCKED) {
         return -1;
     }
-
+    #endif
     return 0;
 }
 

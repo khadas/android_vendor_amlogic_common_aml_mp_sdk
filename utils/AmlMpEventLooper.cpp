@@ -29,6 +29,7 @@
 #include "AmlMpEventHandler.h"
 #include "AmlMpEventLooperRoster.h"
 #include "AmlMpMessage.h"
+#include <cassert>
 
 static const char* mName = LOG_TAG;
 

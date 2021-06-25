@@ -24,6 +24,8 @@
 
 #include "AmlMpTypeTraits.h"
 #include "AmlMpFlagged.h"
+#include <string.h>
+#include <limits>
 
 #undef HIDE
 #define HIDE __attribute__((visibility("hidden")))

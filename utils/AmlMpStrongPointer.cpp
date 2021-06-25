@@ -15,8 +15,11 @@
  */
 
 #define LOG_TAG "sp"
-
+#ifdef ANDROID
 #include <log/log.h>
+#else
+#include <cutils/log.h>
+#endif
 
 namespace aml_mp {
 

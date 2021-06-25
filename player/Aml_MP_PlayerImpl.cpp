@@ -17,12 +17,16 @@
 #include <sstream>
 #include <mutex>
 #include <condition_variable>
-#include <media/stagefright/foundation/ADebug.h>
 #include "AmlPlayerBase.h"
+
+#ifdef ANDROID
+#include <media/stagefright/foundation/ADebug.h>
 #ifndef __ANDROID_VNDK__
 #include <gui/Surface.h>
 #include <gui/SurfaceComposerClient.h>
 #endif
+#endif
+
 
 namespace aml_mp {
 
@@ -216,6 +220,7 @@ int AmlMpPlayerImpl::start()
 
 int AmlMpPlayerImpl::start_l()
 {
+    MLOGI(">>>> AmlMpPlayerImpl start_l\n");
     if (mState == STATE_IDLE) {
         if (prepare_l() < 0) {
             MLOGE("prepare failed!");
@@ -243,7 +248,6 @@ int AmlMpPlayerImpl::start_l()
     if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
         mPlayer->setSubtitleParams(&mSubtitleParams);
     }
-
     int ret = mPlayer->start();
     if (ret < 0) {
         MLOGE("%s failed!", __FUNCTION__);
@@ -265,7 +269,7 @@ int AmlMpPlayerImpl::start_l()
     }
 
     startADDecoding_l();
-
+    MLOGI("<<<< AmlMpPlayerImpl start_l\n");
     MLOG("end");
     return ret;
 }
@@ -504,7 +508,6 @@ int AmlMpPlayerImpl::writeData(const uint8_t* buffer, size_t size)
             if (mCasHandle != nullptr) {
                 mCasHandle->processEcm(buffer, size);
             }
-
             //normal write data
             if (mPlayer != nullptr) {
                 written = mPlayer->writeData(buffer, size);
@@ -580,6 +583,7 @@ int AmlMpPlayerImpl::setANativeWindow(ANativeWindow* nativeWindow)
     AML_MP_TRACE(10);
     std::unique_lock<std::mutex> _l(mLock);
 
+    #ifdef ANDROID
     mNativeWindow = nativeWindow;
     MLOGI("setAnativeWindow: %p, mNativewindow: %p", nativeWindow, mNativeWindow.get());
 
@@ -589,7 +593,7 @@ int AmlMpPlayerImpl::setANativeWindow(ANativeWindow* nativeWindow)
             mPlayer->setANativeWindow(mNativeWindow.get());
         }
     }
-
+    #endif
     return 0;
 }
 
@@ -602,6 +606,7 @@ int AmlMpPlayerImpl::setVideoWindow(int x, int y, int width, int height)
         MLOGI("Invalid windowsize: %dx%d, return fail", width, height);
         return -1;
     }
+#ifdef ANDROID
 #ifndef __ANDROID_VNDK__
     if (mNativeWindow == nullptr) {
         MLOGI("Nativewindow is null, create it");
@@ -632,6 +637,7 @@ int AmlMpPlayerImpl::setVideoWindow(int x, int y, int width, int height)
 
         transcation.apply();
     }
+#endif
 #endif
     mVideoWindow = {x, y, width, height};
     return 0;
@@ -797,7 +803,7 @@ int AmlMpPlayerImpl::setParameter_l(Aml_MP_PlayerParameterKey key, void* paramet
     {
         mZorder = *(int*)parameter;
         MLOGI("Set zorder: %d", mZorder);
-
+#ifdef ANDROID
 #ifndef __ANDROID_VNDK__
         if (mSurfaceControl != nullptr) {
             auto transcation = android::SurfaceComposerClient::Transaction();
@@ -806,6 +812,7 @@ int AmlMpPlayerImpl::setParameter_l(Aml_MP_PlayerParameterKey key, void* paramet
 
             transcation.apply();
         }
+#endif
 #endif
     }
     break;
@@ -925,7 +932,7 @@ int AmlMpPlayerImpl::stopVideoDecoding()
 
     MLOG();
     RETURN_IF(-1, mPlayer == nullptr);
-
+    MLOGI("stopVideoDecoding\n");
     if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         if (mPlayer) {
             mPlayer->stopVideoDecoding();
@@ -945,7 +952,7 @@ int AmlMpPlayerImpl::startAudioDecoding()
 {
     AML_MP_TRACE(10);
     std::unique_lock<std::mutex> _l(mLock);
-
+    MLOGI("startAudioDecoding\n");
     return startAudioDecoding_l();
 }
 
@@ -1208,7 +1215,7 @@ int AmlMpPlayerImpl::startDescrambling_l()
         MLOGE("unknown cas type!");
         return -1;
     }
-
+    #ifdef ANDROID
     mCasHandle = AmlCasBase::create(&mCASParams, mInstanceId);
     if (mCasHandle == nullptr) {
         MLOGE("create CAS handle failed!");
@@ -1216,7 +1223,7 @@ int AmlMpPlayerImpl::startDescrambling_l()
     }
 
     mCasHandle->openSession();
-
+    #endif
     return 0;
 }
 
@@ -1348,16 +1355,15 @@ int AmlMpPlayerImpl::prepare_l()
     if (mSurfaceHandle != nullptr) {
         mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_SURFACE_HANDLE, mSurfaceHandle);
     }
-
+    #ifdef ANDROID
     MLOGI("mNativeWindow:%p", mNativeWindow.get());
     if (mNativeWindow != nullptr) {
         mPlayer->setANativeWindow(mNativeWindow.get());
     }
-
     if (!mNativeWindow.get() && mVideoWindow.width > 0 && mVideoWindow.height > 0) {
         mPlayer->setVideoWindow(mVideoWindow.x, mVideoWindow.y, mVideoWindow.width, mVideoWindow.height);
     }
-
+    #endif
     if (mVideoTunnelId >= 0) {
         mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_TUNNEL_ID, &mVideoTunnelId);
     }
@@ -1526,11 +1532,9 @@ int AmlMpPlayerImpl::resetIfNeeded_l()
 int AmlMpPlayerImpl::reset_l()
 {
     MLOG();
-
     if (mCasHandle) {
         stopDescrambling_l();
     }
-
     mTsBuffer.reset();
     mWriteBuffer->setRange(0, 0);
     if (mParser) {

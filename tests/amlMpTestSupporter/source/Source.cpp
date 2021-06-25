@@ -71,7 +71,7 @@ sptr<Source> Source::create(const char* url)
         strncpy(address, p, sizeof(address)-1);
     }
 
-    MLOGV("proto:%s, address:%s, programNumber:%d, demuxId:%d, sourceid:%d", proto, address, programNumber, demuxId, sourceId);
+    MLOGV("proto:%s, address:%s, programNumber:%d, demuxId:%d, sourceid:%d\n", proto, address, programNumber, demuxId, sourceId);
 
     bool isUdpSource = false;
     bool isDvbSource = false;

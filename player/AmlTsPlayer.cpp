@@ -12,10 +12,12 @@
 #include "AmlTsPlayer.h"
 #include <AmTsPlayer.h>
 #include <utils/AmlMpUtils.h>
+#ifdef ANDROID
 #include <system/window.h>
 #include <amlogic/am_gralloc_ext.h>
 #ifndef __ANDROID_VNDK__
 #include <gui/Surface.h>
+#endif
 #endif
 #include "Aml_MP_PlayerImpl.h"
 
@@ -141,8 +143,10 @@ AmlTsPlayer::~AmlTsPlayer()
     if (mBlackOut) {
         if (AmlMpConfig::instance().mTsPlayerNonTunnel == 0 || AmlMpConfig::instance().mUseVideoTunnel == 1) {
 #if 1
+#ifdef ANDROID
             if (mNativewindow != nullptr)
                 native_window_set_sideband_stream(mNativewindow, nullptr);
+#endif
 #else
             pushBlankBuffersToNativeWindow(mNativewindow);
 #endif
@@ -160,6 +164,7 @@ int AmlTsPlayer::setANativeWindow(ANativeWindow* nativeWindow)
     int ret = 0;
     if (AmlMpConfig::instance().mTsPlayerNonTunnel) {
         if (AmlMpConfig::instance().mUseVideoTunnel == 0) {
+#ifdef ANDROID
 #ifndef __ANDROID_VNDK__
             android::Surface* surface = nullptr;
             if (nativeWindow != nullptr) {
@@ -167,6 +172,7 @@ int AmlTsPlayer::setANativeWindow(ANativeWindow* nativeWindow)
             }
             MLOGI("setANativeWindow nativeWindow: %p, surface: %p", nativeWindow, surface);
             ret = AmTsPlayer_setSurface(mPlayer, surface);
+#endif
 #endif
         } else {
             ret = mNativeWindowHelper.setSidebandNonTunnelMode(nativeWindow, mVideoTunnelId);
@@ -195,7 +201,11 @@ int AmlTsPlayer::setVideoParams(const Aml_MP_VideoParams* params) {
 
 int AmlTsPlayer::setAudioParams(const Aml_MP_AudioParams* params) {
     am_tsplayer_result ret;
+    #ifdef ANDROID
     am_tsplayer_audio_params audio_params = {audioCodecConvert(params->audioCodec), params->pid, 0};
+    #else
+    am_tsplayer_audio_params audio_params = {audioCodecConvert(params->audioCodec), params->pid};
+    #endif
 
     MLOGI("amtsplayer handle:%#x, audio codec:%d, pid: 0x%x", mPlayer, audio_params.codectype, audio_params.pid);
     ret = AmTsPlayer_setAudioParams(mPlayer, &audio_params);
@@ -288,6 +298,7 @@ int AmlTsPlayer::writeData(const uint8_t* buffer, size_t size) {
 
 int AmlTsPlayer::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size_t size, int64_t pts)
 {
+    #ifdef ANDROID
     am_tsplayer_result ret;
     am_tsplayer_input_frame_buffer buf;
     buf.buf_type = init_param.drmmode;
@@ -305,6 +316,13 @@ int AmlTsPlayer::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size
         return -1;
     }
     return size;
+    #else
+    AML_MP_UNUSED(type);
+    AML_MP_UNUSED(buffer);
+    AML_MP_UNUSED(size);
+    AML_MP_UNUSED(pts);
+    return -1;
+    #endif
 }
 
 int AmlTsPlayer::getCurrentPts(Aml_MP_StreamType type, int64_t* pts) {
@@ -553,10 +571,11 @@ int AmlTsPlayer::getParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
         case AML_MP_PLAYER_PARAMETER_INSTANCE_ID:
             ret = AmTsPlayer_getInstansNo(mPlayer, (uint32_t*)parameter);
             break;
-
+        #ifdef ANDROID
         case AML_MP_PLAYER_PARAMETER_SYNC_ID:
             ret = AmTsPlayer_getSyncInstansNo(mPlayer, (int32_t*)parameter);
             break;
+        #endif
 
         default:
             ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
