@@ -16,8 +16,9 @@
 
 #include "AmlMpBitReader.h"
 
+#ifdef ANDROID
 #include <media/stagefright/foundation/ADebug.h>
-
+#endif
 namespace aml_mp {
 
 AmlMpBitReader::AmlMpBitReader(const uint8_t *data, size_t size)
@@ -53,7 +54,8 @@ bool AmlMpBitReader::fillReservoir() {
 
 uint32_t AmlMpBitReader::getBits(size_t n) {
     uint32_t ret;
-    CHECK(getBitsGraceful(n, &ret));
+    //CHECK(getBitsGraceful(n, &ret));
+    getBitsGraceful(n, &ret);
     return ret;
 }
 

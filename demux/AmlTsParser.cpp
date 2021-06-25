@@ -11,7 +11,9 @@
 #define LOG_TAG "AmlMpPlayerDemo_Parser"
 #include <utils/Log.h>
 #include "AmlTsParser.h"
+#ifdef ANDROID
 #include <media/stagefright/foundation/ADebug.h>
+#endif
 #include <vector>
 #include <utils/AmlMpUtils.h>
 
@@ -190,7 +192,7 @@ int Parser::close()
 int Parser::wait()
 {
     std::unique_lock<std::mutex> l(mLock);
-    bool ret = mCond.wait_for(l, std::chrono::seconds(3), [this] {
+    bool ret = mCond.wait_for(l, std::chrono::seconds(60), [this] {
         return mParseDone || mRequestQuit;
     });
 

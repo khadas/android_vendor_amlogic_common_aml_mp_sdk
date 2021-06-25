@@ -17,7 +17,9 @@
 #include <vector>
 #include <Aml_MP/Aml_MP.h>
 
+#ifdef ANDROID
 struct ANativeWindow;
+#endif
 
 namespace aml_mp {
 class Source;
@@ -29,7 +31,10 @@ class DVRRecord;
 class DVRPlayback;
 struct ProgramInfo;
 
+#ifdef ANDROID
 struct NativeUI;
+#endif
+
 struct CommandProcessor;
 
 class AmlMpTestSupporter : public AmlMpHandle
@@ -95,8 +100,9 @@ private:
 
     bool mIsDVRPlayback = false;
     bool mCryptoMode = false;
-
+    #ifdef ANDROID
     sptr<NativeUI> mNativeUI;
+    #endif
     std::thread mSignalHandleThread;
     sptr<CommandProcessor> mCommandProcessor;
 

@@ -10,7 +10,9 @@
 #include "demux/AmlTsParser.h"
 #include "source/Source.h"
 #include "TestModule.h"
+#ifdef ANDROID
 #include <system/window.h>
+#endif
 #include <Aml_MP/Aml_MP.h>
 #include <utils/RefBase.h>
 
@@ -22,8 +24,9 @@ class DVRPlayback : public TestModule, public ISourceReceiver
 public:
     DVRPlayback(const std::string& url, bool cryptoMode, Aml_MP_DemuxId demuxId);
     ~DVRPlayback();
-
+    #ifdef ANDROID
     void setANativeWindow(const android::sp<ANativeWindow>& window);
+    #endif
     void registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData);
     int start();
     int stop();

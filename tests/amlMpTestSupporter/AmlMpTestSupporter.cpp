@@ -19,7 +19,9 @@
 #include "Playback.h"
 #include "DVRRecord.h"
 #include "DVRPlayback.h"
-
+#include <signal.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 static const char* mName = LOG_TAG;
 
@@ -28,7 +30,7 @@ using namespace android;
 
 AmlMpTestSupporter::AmlMpTestSupporter()
 {
-
+    ALOGI("AmlMpTestSupporter structure\n");
 }
 
 AmlMpTestSupporter::~AmlMpTestSupporter()
@@ -138,7 +140,7 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
 {
     int ret = 0;
     mPlayMode = playMode;
-
+    ALOGI(">>>> AmlMpTestSupporter startPlay\n");
     if (mIsDVRPlayback) {
         return startDVRPlayback();
     }
@@ -151,13 +153,14 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
     }
 
     if (mPlayback == nullptr) {
+        MLOGI("sourceType:%d, scrambled:%d\n", sourceType, mProgramInfo->scrambled);
         mTestModule = mPlayback = new Playback(demuxId, sourceType, mProgramInfo->scrambled ? AML_MP_INPUT_STREAM_ENCRYPTED : AML_MP_INPUT_STREAM_NORMAL);
     }
 
     if (mEventCallback != nullptr) {
         mPlayback->registerEventCallback(mEventCallback, mUserData);
     }
-
+    #ifdef ANDROID
     if (mNativeUI == nullptr) {
         mNativeUI = new NativeUI();
     }
@@ -171,8 +174,10 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
     }
 
     ret = mPlayback->setSubtitleDisplayWindow(mDisplayParam.width, 0, mDisplayParam.width, mDisplayParam.height);
+    #endif
 
     if (!mDisplayParam.videoMode) {
+    #ifdef ANDROID
         if (mDisplayParam.aNativeWindow) {
             mPlayback->setANativeWindow(mDisplayParam.aNativeWindow);
         } else {
@@ -181,6 +186,7 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
                     mDisplayParam.y,
                     mDisplayParam.x + mDisplayParam.width,
                     mDisplayParam.y + mDisplayParam.height);
+
             mNativeUI->controlSurface(mDisplayParam.zorder);
             sp<ANativeWindow> window = mNativeUI->getNativeWindow();
             if (window == nullptr) {
@@ -190,12 +196,13 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
 
             mPlayback->setANativeWindow(window);
         }
+    #endif
     } else {
         setOsdBlank(1);
         mPlayback->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_WINDOW_ZORDER, &mDisplayParam.zorder);
         mPlayback->setVideoWindow(mDisplayParam.x, mDisplayParam.y, mDisplayParam.width, mDisplayParam.height);
+        MLOGI("x:%d y:%d width:%d height:%d\n", mDisplayParam.x, mDisplayParam.y, mDisplayParam.width, mDisplayParam.height);
     }
-
     ret = mPlayback->start(mProgramInfo, mPlayMode);
     if (ret < 0) {
         MLOGE("playback start failed!");
@@ -203,14 +210,16 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
     }
 
     mSource->addSourceReceiver(mPlayback);
+    ALOGI("<<<< AmlMpTestSupporter startPlay\n");
     return 0;
 }
 
 int AmlMpTestSupporter::startRecord()
 {
+    ALOGI("enter startRecord\n");
     Aml_MP_DemuxId demuxId = mParser->getDemuxId();
     mTestModule = mRecorder = new DVRRecord(mCryptoMode, demuxId, mProgramInfo);
-
+    ALOGI("before mRecorder start\n");
     int ret = mRecorder->start();
     if (ret < 0) {
         MLOGE("start recorder failed!");
@@ -232,7 +241,7 @@ int AmlMpTestSupporter::startDVRPlayback()
     if (mEventCallback != nullptr) {
         mDVRPlayback->registerEventCallback(mEventCallback, mUserData);
     }
-
+    #ifdef ANDROID
     mNativeUI = new NativeUI();
     if (mDisplayParam.width < 0) {
         mDisplayParam.width = mNativeUI->getDefaultSurfaceWidth();
@@ -255,7 +264,7 @@ int AmlMpTestSupporter::startDVRPlayback()
     }
 
     mDVRPlayback->setANativeWindow(window);
-
+    #endif
     ret = mDVRPlayback->start();
     if (ret < 0) {
         MLOGE("DVR playback start failed!");
@@ -375,20 +384,26 @@ bool AmlMpTestSupporter::processCommand(const std::vector<std::string>& args)
     std::string cmd = *args.begin();
 
     if (cmd == "osd") {
+    #ifdef ANDORID
         mNativeUI->controlSurface(-2);
+    #endif
     } else if (cmd == "video") {
+    #ifdef ANDORID
         mNativeUI->controlSurface(0);
+    #endif
     } else if (cmd == "zorder") {
+    #ifdef ANDORID
         if (args.size() == 2) {
             int zorder = std::stoi(args[1]);
             mNativeUI->controlSurface(zorder);
         }
+    #endif
     } else if (cmd == "resize") {
         int x = -1;
         int y = -1;
         int width = -1;
         int height = -1;
-
+    #ifdef ANDROID
         if (args.size() == 5) {
             x = std::stoi(args[1]);
             y = std::stoi(args[2]);
@@ -396,6 +411,7 @@ bool AmlMpTestSupporter::processCommand(const std::vector<std::string>& args)
             height = std::stoi(args[4]);
             mNativeUI->controlSurface(x, y, width, height);
         }
+    #endif
     } else {
         mTestModule->processCommand(args);
     }
@@ -417,7 +433,7 @@ void AmlMpTestSupporter::signalQuit()
 void AmlMpTestSupporter::setDisplayParam(const DisplayParam& param)
 {
     mDisplayParam = param;
-    MLOGI("x:%d, y:%d, width:%d, height:%d, zorder:%d, videoMode:%d",
+    MLOGI("x:%d, y:%d, width:%d, height:%d, zorder:%d, videoMode:%d\n",
             mDisplayParam.x, mDisplayParam.y, mDisplayParam.width, mDisplayParam.height, mDisplayParam.zorder, mDisplayParam.videoMode);
 }
 

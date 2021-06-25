@@ -108,7 +108,9 @@ private:
     std::map<int, int> mSectionVersions;
     bool mChanged = false;
 
-    DISALLOW_EVIL_CONSTRUCTORS(PSISection);
+    //DISALLOW_EVIL_CONSTRUCTORS(PSISection);
+	PSISection(const PSISection&) = delete;
+	PSISection& operator=(const PSISection&) = delete;
 };
 
 struct SwTsParser::Program : public AmlMpRefBase {

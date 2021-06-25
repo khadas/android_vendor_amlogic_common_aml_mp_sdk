@@ -18,6 +18,10 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <sstream>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+
 #define CONFIG_AMLOGIC_DVB_COMPAT // use for write_ts to demux
 extern "C" {
 #include <dmx.h>

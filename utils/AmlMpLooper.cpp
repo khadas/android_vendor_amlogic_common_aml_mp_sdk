@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <chrono>
 #include "AmlMpLog.h"
+#include <limits.h>
 
 static const char* mName = LOG_TAG;
 

@@ -14,21 +14,24 @@
 #include <AmTsPlayer.h>
 #include <utils/AmlMpUtils.h>
 
+#ifdef ANDROID
 namespace android {
 class NativeHandle;
 }
-
+#endif
 struct ANativeWindow;
 
 namespace aml_mp {
+#ifdef ANDROID
 using android::NativeHandle;
+#endif
+
 
 class AmlTsPlayer : public aml_mp::AmlPlayerBase
 {
 public:
     AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId);
     ~AmlTsPlayer();
-
     int setANativeWindow(ANativeWindow* nativeWindow);
 
     int setVideoParams(const Aml_MP_VideoParams* params) override;
@@ -77,7 +80,6 @@ private:
     am_tsplayer_init_params init_param = {TS_MEMORY, TS_INPUT_BUFFER_TYPE_NORMAL, 0, 0};
     const int kRwTimeout = 30000;
     int mVideoTunnelId = -1;
-
     ANativeWindow* mNativewindow = nullptr;
     int mBlackOut = 0;
     NativeWindowHelper mNativeWindowHelper;

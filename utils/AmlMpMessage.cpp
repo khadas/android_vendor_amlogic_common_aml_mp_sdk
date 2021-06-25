@@ -24,12 +24,14 @@
 
 //#include <binder/Parcel.h>
 #include <utils/AmlMpLog.h>
+#include <limits.h>
 
 #include "AmlMpAtomizer.h"
 #include "AmlMpBuffer.h"
 #include "AmlMpEventLooperRoster.h"
 #include "AmlMpEventHandler.h"
 #include <string>
+#include "AmlMpUtils.h"
 
 //#include <media/stagefright/foundation/hexdump.h>
 #ifdef ANDROID
@@ -932,7 +934,9 @@ sptr<AmlMpMessage> AmlMpMessage::changesFrom(const sptr<const AmlMpMessage> &oth
             default:
             {
                 MLOGE("Unknown type %d", item.mType);
+                #ifdef ANDROID
                 TRESPASS();
+                #endif
             }
         }
     }

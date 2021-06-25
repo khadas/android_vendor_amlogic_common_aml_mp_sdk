@@ -9,6 +9,9 @@
 
 #ifndef __FEND_H__
 #define __FEND_H__
+#include <stdint.h>
+typedef unsigned int        uint_t;
+
 typedef enum
 {
   DMD_DOWNLINK_INJECTION,

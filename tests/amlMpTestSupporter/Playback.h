@@ -12,7 +12,9 @@
 
 #include "demux/AmlTsParser.h"
 #include "source/Source.h"
+#ifdef ANDROID
 #include <system/window.h>
+#endif
 #include <Aml_MP/Aml_MP.h>
 #include "TestModule.h"
 #include "AmlMpTestSupporter.h"
@@ -28,7 +30,9 @@ public:
 
     Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, Aml_MP_InputStreamType streamType);
     ~Playback();
+#ifdef ANDROID
     void setANativeWindow(const android::sp<ANativeWindow>& window);
+#endif
     void registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData);
     int start(const sptr<ProgramInfo>& programInfo, PlayMode mode);
     int stop();

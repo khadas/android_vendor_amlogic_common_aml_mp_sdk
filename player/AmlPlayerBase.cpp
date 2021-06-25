@@ -15,7 +15,11 @@
 #ifdef HAVE_CTC
 #include "AmlCTCPlayer.h"
 #endif
+
+#ifdef ANDROID
 #include <system/window.h>
+#endif
+
 #ifdef HAVE_SUBTITLE
 #include <SubtitleNativeAPI.h>
 #endif
