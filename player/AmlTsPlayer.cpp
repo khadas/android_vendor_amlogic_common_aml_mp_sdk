@@ -122,6 +122,8 @@ AmlTsPlayer::AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId
     init_param.drmmode = inputStreamTypeConvert(createParams->drmMode);
     init_param.dmx_dev_id = createParams->demuxId;
     init_param.event_mask = 0;
+    mVideoParaSeted = false;
+    mAudioParaSeted = false;
 
     AmTsPlayer_create(init_param, &mPlayer);
 
@@ -138,6 +140,8 @@ AmlTsPlayer::~AmlTsPlayer()
         AmTsPlayer_release(mPlayer);
         mPlayer = AML_MP_INVALID_HANDLE;
     }
+    mVideoParaSeted = false;
+    mAudioParaSeted = false;
 
     MLOGI("mBlackOut: %d", mBlackOut);
     if (mBlackOut) {
@@ -189,6 +193,13 @@ int AmlTsPlayer::setANativeWindow(ANativeWindow* nativeWindow)
 
 int AmlTsPlayer::setVideoParams(const Aml_MP_VideoParams* params) {
     am_tsplayer_result ret;
+    if (params->videoCodec == AML_MP_CODEC_UNKNOWN || params->pid == AML_MP_INVALID_PID) {
+        MLOGI("amtsplayer invalid video pid or codecid.\n");
+        mVideoParaSeted = false;
+    } else {
+        MLOGI("amtsplayer video params seted.\n");
+        mVideoParaSeted = true;
+    }
     am_tsplayer_video_params video_params = {videoCodecConvert(params->videoCodec), params->pid};
 
     MLOGI("amtsplayer handle:%#x, video codec:%d, pid: 0x%x", mPlayer, video_params.codectype, video_params.pid);
@@ -201,6 +212,13 @@ int AmlTsPlayer::setVideoParams(const Aml_MP_VideoParams* params) {
 
 int AmlTsPlayer::setAudioParams(const Aml_MP_AudioParams* params) {
     am_tsplayer_result ret;
+    if (params->audioCodec == AML_MP_CODEC_UNKNOWN || params->pid == AML_MP_INVALID_PID) {
+        MLOGI("amtsplayer invalid audio pid or codecid.\n");
+        mAudioParaSeted = false;
+    } else {
+        MLOGI("amtsplayer audio params seted.\n");
+        mAudioParaSeted = true;
+    }
     #ifdef ANDROID
     am_tsplayer_audio_params audio_params = {audioCodecConvert(params->audioCodec), params->pid, 0};
     #else
@@ -219,9 +237,10 @@ int AmlTsPlayer::start() {
     int ret = 0;
 
     MLOGI("Call start");
-
-    ret += startVideoDecoding();
-    ret += startAudioDecoding();
+    if (mVideoParaSeted)
+        ret += startVideoDecoding();
+    if (mAudioParaSeted)
+        ret += startAudioDecoding();
     //ret += showVideo();
 
     AmlPlayerBase::start();
@@ -234,9 +253,10 @@ int AmlTsPlayer::stop() {
 
     MLOGI("Call stop");
     AmlPlayerBase::stop();
-
-    ret += stopVideoDecoding();
-    ret += stopAudioDecoding();
+    if (mVideoParaSeted)
+        ret += stopVideoDecoding();
+    if (mAudioParaSeted)
+        ret += stopAudioDecoding();
 
     return ret;
 }
@@ -245,8 +265,10 @@ int AmlTsPlayer::pause() {
     int ret = 0;
 
     MLOGI("Call pause");
-    ret += pauseVideoDecoding();
-    ret += pauseAudioDecoding();
+    if (mVideoParaSeted)
+        ret += pauseVideoDecoding();
+    if (mAudioParaSeted)
+        ret += pauseAudioDecoding();
     return ret;
 }
 
@@ -254,8 +276,10 @@ int AmlTsPlayer::resume() {
     int ret = 0;
 
     MLOGI("Call resume");
-    ret += resumeVideoDecoding();
-    ret += resumeAudioDecoding();
+    if (mVideoParaSeted)
+        ret += resumeVideoDecoding();
+    if (mAudioParaSeted)
+        ret += resumeAudioDecoding();
     return ret;
 }
 

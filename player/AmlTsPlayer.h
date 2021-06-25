@@ -83,6 +83,8 @@ private:
     ANativeWindow* mNativewindow = nullptr;
     int mBlackOut = 0;
     NativeWindowHelper mNativeWindowHelper;
+    bool mVideoParaSeted;
+    bool mAudioParaSeted;
 
 private:
     AmlTsPlayer(const AmlTsPlayer&) = delete;
