@@ -540,6 +540,17 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             break;
         }
 
+        case AML_MP_PLAYER_PARAMETER_AUDIO_PRESENTATION_ID:
+        {
+#ifdef ANDROID
+            int para = *(int*)parameter;
+            if (para > 0) {
+                ret = AmTsPlayer_setParams(mPlayer, AM_TSPLAYER_KEY_AUDIO_PRESENTATION_ID, parameter);
+            }
+#endif
+            break;
+        }
+
         default:
             ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
     }

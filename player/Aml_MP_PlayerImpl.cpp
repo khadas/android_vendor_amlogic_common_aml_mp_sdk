@@ -243,6 +243,9 @@ int AmlMpPlayerImpl::start_l()
 
     if (mAudioParams.pid != AML_MP_INVALID_PID) {
         mPlayer->setAudioParams(&mAudioParams);
+        if (mAudioPresentationId > 0) {
+            mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_PRESENTATION_ID, &mAudioPresentationId);
+        }
     }
 
     if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
@@ -383,6 +386,9 @@ int AmlMpPlayerImpl::flush()
     }
     if (getStreamState_l(AML_MP_STREAM_TYPE_AUDIO) == STREAM_STATE_STARTED) {
         mPlayer->setAudioParams(&mAudioParams);
+        if (mAudioPresentationId > 0) {
+            mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_PRESENTATION_ID, &mAudioPresentationId);
+        }
     }
     if (getStreamState_l(AML_MP_STREAM_TYPE_AD) == STREAM_STATE_STARTED) {
         mPlayer->setADParams(&mADParams, true);
@@ -839,6 +845,12 @@ int AmlMpPlayerImpl::setParameter_l(Aml_MP_PlayerParameterKey key, void* paramet
     }
     break;
 
+    case AML_MP_PLAYER_PARAMETER_AUDIO_PRESENTATION_ID:
+    {
+        mAudioPresentationId = *(int*)parameter;
+    }
+    break;
+
     default:
         MLOGW("unhandled key: %s", mpPlayerParameterKey2Str(key));
         return ret;
@@ -982,6 +994,9 @@ int AmlMpPlayerImpl::startAudioDecoding_l()
     }
 
     mPlayer->setAudioParams(&mAudioParams);
+    if (mAudioPresentationId > 0) {
+        mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_PRESENTATION_ID, &mAudioPresentationId);
+    }
 
     ret = mPlayer->startAudioDecoding();
     if (ret < 0) {
@@ -1011,6 +1026,7 @@ int AmlMpPlayerImpl::stopAudioDecoding_l()
     int ret;
     RETURN_IF(-1, mPlayer == nullptr);
 
+    mAudioPresentationId = 0;
     if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         if (mPlayer) {
             mPlayer->stopAudioDecoding();
@@ -1616,6 +1632,9 @@ int AmlMpPlayerImpl::resetAudioCodec_l(bool callStart)
 
     if (mAudioParams.pid != AML_MP_INVALID_PID) {
         mPlayer->setAudioParams(&mAudioParams);
+        if (mAudioPresentationId > 0) {
+            mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_PRESENTATION_ID, &mAudioPresentationId);
+        }
     }
 
     if (callStart) {

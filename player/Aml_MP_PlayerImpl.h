@@ -231,6 +231,7 @@ private:
     WindowSize mVideoWindow;
     int mVideoTunnelId = -1;
     void* mSurfaceHandle = nullptr;
+    int mAudioPresentationId = 0;
 
     Aml_MP_AVSyncSource mSyncSource = AML_MP_AVSYNC_SOURCE_DEFAULT;
     int mPcrPid = AML_MP_INVALID_PID;
