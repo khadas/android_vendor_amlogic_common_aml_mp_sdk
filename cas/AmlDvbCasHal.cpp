@@ -308,5 +308,32 @@ int AmlDvbCasHal::destroySecmem(AML_MP_SECMEM secMem)
     return ret;
 }
 
+int AmlDvbCasHal::ioctl(const char* inJson, char* outJson, uint32_t outLen)
+{
+    int ret = AML_MP_ERROR;
+#ifdef HAVE_CAS_HAL
+    ret = convertToAmlMPErrorCode(AM_CA_Ioctl(mCasSession, inJson, outJson, outLen));
+#else
+    AML_MP_UNUSED(inJson);
+    AML_MP_UNUSED(outJson);
+    AML_MP_UNUSED(outLen);
+#endif
+    return ret;
+}
+
+int AmlDvbCasHal::getStoreRegion(Aml_MP_CASStoreRegion* region, uint8_t* regionCount)
+{
+    int ret = AML_MP_ERROR;
+#ifdef HAVE_CAS_HAL
+    static_assert(sizeof(Aml_MP_CASStoreRegion) == sizeof(AM_CA_StoreRegion_t), "Imcompatible with AM_CA_StoreRegion_t!");
+    ret = convertToAmlMPErrorCode(AM_CA_GetStoreRegion(mCasSession, reinterpret_cast<AM_CA_StoreRegion_t*>(region), regionCount));
+#else
+    AML_MP_UNUSED(region);
+    AML_MP_UNUSED(regionCount);
+#endif
+    return ret;
+}
+
+
 }
 
