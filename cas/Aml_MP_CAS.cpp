@@ -179,6 +179,14 @@ int Aml_MP_CAS_RegisterEventCallback(AML_MP_CASSESSION casSession, Aml_MP_CAS_Ev
     return ret;
 }
 
+int Aml_MP_CAS_Ioctl(AML_MP_CASSESSION casSession, const char* inJson, char* outJson, uint32_t outLen)
+{
+    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
+    RETURN_IF(-1, dvbCasHal == nullptr);
+
+    return dvbCasHal->ioctl(inJson, outJson, outLen);
+}
+
 int Aml_MP_CAS_StartDescrambling(AML_MP_CASSESSION casSession, Aml_MP_CASServiceInfo* serviceInfo)
 {
     sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
@@ -265,5 +273,13 @@ int Aml_MP_CAS_DestroySecmem(AML_MP_CASSESSION casSession, AML_MP_SECMEM secMem)
     RETURN_IF(-1, dvbCasHal == nullptr);
 
     return dvbCasHal->destroySecmem(secMem);
+}
+
+int Aml_MP_CAS_GetStoreRegion(AML_MP_CASSESSION casSession, Aml_MP_CASStoreRegion* region, uint8_t* regionCount)
+{
+    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
+    RETURN_IF(-1, dvbCasHal == nullptr);
+
+    return dvbCasHal->getStoreRegion(region, regionCount);
 }
 

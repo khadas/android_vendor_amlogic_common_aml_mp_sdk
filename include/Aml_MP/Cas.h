@@ -76,6 +76,11 @@ typedef struct Aml_MP_CASDVRReplayParams {
     Aml_MP_DemuxId dmxDev;      /**< The demux device's index.*/
 } Aml_MP_CASDVRReplayParams;
 
+typedef struct {
+    loff_t start;
+    loff_t end;
+} Aml_MP_CASStoreRegion;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -197,6 +202,19 @@ int Aml_MP_CAS_CloseSession(AML_MP_CASSESSION casSession);
  */
 int Aml_MP_CAS_RegisterEventCallback(AML_MP_CASSESSION casSession, Aml_MP_CAS_EventCallback cb, void* userData);
 
+/**
+ * \brief Aml_MP_CAS_Ioctl
+ * CAS ioctl
+ *
+ * \param casSession session
+ * \param inJson The input cmd string
+ * \param outJson The output string
+ * \param outLen The output string length
+ *
+ * \return 0 if success
+ */
+int Aml_MP_CAS_Ioctl(AML_MP_CASSESSION casSession, const char* inJson, char* outJson, uint32_t outLen);
+
 //for live
 /**
  * \brief Aml_MP_CAS_StartDescrambling
@@ -299,6 +317,19 @@ AML_MP_SECMEM Aml_MP_CAS_CreateSecmem(AML_MP_CASSESSION casSession, Aml_MP_CASSe
  * \return 0 if success
  */
 int Aml_MP_CAS_DestroySecmem(AML_MP_CASSESSION casSession, AML_MP_SECMEM secMem);
+
+/**
+ * \brief Aml_MP_CAS_GetStoreRegion
+ * get all region of store info
+ *
+ * \param casSession
+ * \param region region of store info
+ * \param regionCount region count
+ *
+ * \return 0 if success
+ */
+int Aml_MP_CAS_GetStoreRegion(AML_MP_CASSESSION casSession, Aml_MP_CASStoreRegion *region, uint8_t *regionCount);
+
 
 #ifdef __cplusplus
 }

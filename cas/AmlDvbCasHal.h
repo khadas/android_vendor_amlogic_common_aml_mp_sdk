@@ -42,6 +42,9 @@ public:
     AML_MP_SECMEM createSecmem(Aml_MP_CASServiceType, void** pSecBuf, uint32_t* size);
     int destroySecmem(AML_MP_SECMEM secMem);
 
+    int ioctl(const char* inJson, char* outJson, uint32_t outLen);
+    int getStoreRegion(Aml_MP_CASStoreRegion* region, uint8_t* regionCount);
+
 private:
     Aml_MP_CASServiceType mServiceType = AML_MP_CAS_SERVICE_TYPE_INVALID;
 #ifdef HAVE_CAS_HAL
