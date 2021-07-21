@@ -416,7 +416,7 @@ int AmlTsPlayer::hideVideo() {
 }
 
 int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
-    am_tsplayer_result ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
+    int ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
 
     MLOGI("Call setParameter, key is %s", mpPlayerParameterKey2Str(key));
     switch (key) {
@@ -490,8 +490,10 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             break;
 
         case AML_MP_PLAYER_PARAMETER_TELETEXT_CONTROL:
-            AmlPlayerBase::setParameter(key, parameter);
+        {
+            ret = AmlPlayerBase::setParameter(key, parameter);
             break;
+        }
 
         case AML_MP_PLAYER_PARAMETER_VIDEO_TUNNEL_ID:
         {

@@ -446,8 +446,10 @@ int AmlCTCPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             break;
 
         case AML_MP_PLAYER_PARAMETER_TELETEXT_CONTROL:
-            AmlPlayerBase::setParameter(key, parameter);
+        {
+            ret = (AmlPlayerBase::setParameter(key, parameter) == AML_MP_OK) ? true : false;
             break;
+        }
 
         default:
             MLOGI("Not support parameter key: %s", mpPlayerParameterKey2Str(key));
