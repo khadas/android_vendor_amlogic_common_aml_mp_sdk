@@ -13,7 +13,7 @@
 #include "AmlPlayerBase.h"
 #include <AmTsPlayer.h>
 #include <utils/AmlMpUtils.h>
-
+#include <utils/AmlMpBuffer.h>
 #ifdef ANDROID
 namespace android {
 class NativeHandle;
@@ -25,7 +25,6 @@ namespace aml_mp {
 #ifdef ANDROID
 using android::NativeHandle;
 #endif
-
 
 class AmlTsPlayer : public aml_mp::AmlPlayerBase
 {
@@ -69,9 +68,7 @@ public:
     int stopADDecoding() override;
     int pauseAudioDecoding();
     int resumeAudioDecoding();
-
     int setADParams(const Aml_MP_AudioParams* params, bool enableMix) override;
-
 
 private:
     void eventCallback(am_tsplayer_event* event);
@@ -86,6 +83,19 @@ private:
     NativeWindowHelper mNativeWindowHelper;
     bool mVideoParaSeted;
     bool mAudioParaSeted;
+
+    int32_t mApid = AML_MP_INVALID_PID;
+    int mPacketizefd = -1;
+    sptr<AmlMpBuffer> mPacktsBuffer;
+    unsigned mAudioContinuityCounter;
+    int packetize(
+            bool isAudio, const char *buffer_add,
+            int32_t buffer_size,
+            sptr<AmlMpBuffer> *packets,
+            uint32_t flags,
+            const uint8_t *PES_private_data, size_t PES_private_data_len,
+            size_t numStuffingBytes, int64_t timeUs);
+    int incrementContinuityCounter(int isAudio);
 
 private:
     AmlTsPlayer(const AmlTsPlayer&) = delete;
