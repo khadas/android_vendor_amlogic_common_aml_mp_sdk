@@ -928,6 +928,13 @@ void AmlTsPlayer::eventCallback(am_tsplayer_event* event)
     }
     break;
 */
+
+    case AM_TSPLAYER_EVENT_TYPE_DECODE_FRAME_ERROR_COUNT:
+    {
+        ALOGI("[evt] AM_TSPLAYER_EVENT_TYPE_DECODE_FRAME_ERROR_COUNT");
+        notifyListener(AML_MP_PLAYER_EVENT_VIDEO_ERROR_FRAME_COUNT);
+    }
+    break;
     default:
         MLOGE("unhandled event:%d", event->type);
         break;
