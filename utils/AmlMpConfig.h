@@ -30,6 +30,7 @@ public:
     int mUseVideoTunnel;
     int mWaitingEcmMode;
     int mWriteBufferSize;
+    int mDumpPackts;
 
 private:
     void reset();

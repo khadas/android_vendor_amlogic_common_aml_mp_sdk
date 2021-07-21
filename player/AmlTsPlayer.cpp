@@ -133,6 +133,13 @@ AmlTsPlayer::AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId
     AmTsPlayer_registerCb(mPlayer, [](void *user_data, am_tsplayer_event *event) {
         static_cast<AmlTsPlayer*>(user_data)->eventCallback(event);
     }, this);
+#ifdef HAVE_PACKETIZE_ESTOTS
+    int temp_buffer_num   = 100;
+    mPacktsBuffer = new AmlMpBuffer(temp_buffer_num * TS_PACKET_SIZE);
+    if (AmlMpConfig::instance().mDumpPackts == 1) {
+        mPacketizefd = open("/data/PacketizeEstoTsFile.ts", O_CREAT | O_RDWR, 0666);
+    }
+#endif
 }
 
 int AmlTsPlayer::initCheck() const
@@ -164,7 +171,11 @@ AmlTsPlayer::~AmlTsPlayer()
 #endif
         }
     }
-
+#ifdef HAVE_PACKETIZE_ESTOTS
+    if (mPacketizefd >= 0) {
+        close(mPacketizefd);
+    }
+#endif
     AmlMpPlayerRoster::instance().signalAmTsPlayerId(-1);
 }
 
@@ -232,7 +243,9 @@ int AmlTsPlayer::setAudioParams(const Aml_MP_AudioParams* params) {
     #else
     am_tsplayer_audio_params audio_params = {audioCodecConvert(params->audioCodec), params->pid};
     #endif
-
+#ifdef HAVE_PACKETIZE_ESTOTS
+    mApid = params->pid;
+#endif
     MLOGI("amtsplayer handle:%#x, audio codec:%d, pid: 0x%x", mPlayer, audio_params.codectype, audio_params.pid);
     ret = AmTsPlayer_setAudioParams(mPlayer, &audio_params);
     if (ret != AM_TSPLAYER_OK) {
@@ -319,7 +332,6 @@ int AmlTsPlayer::writeData(const uint8_t* buffer, size_t size) {
     //AML_MP_TRACE(10);
     am_tsplayer_result ret;
     am_tsplayer_input_buffer buf ={init_param.drmmode, (void*)buffer, (int32_t)size};
-
     ret = AmTsPlayer_writeData(mPlayer, &buf, kRwTimeout);
     //MLOGI("writedata, buffer:%p, size:%d, ret:%d", buffer, size, ret);
     if (ret != AM_TSPLAYER_OK) {
@@ -330,7 +342,17 @@ int AmlTsPlayer::writeData(const uint8_t* buffer, size_t size) {
 
 int AmlTsPlayer::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size_t size, int64_t pts)
 {
-    #ifdef ANDROID
+#ifdef HAVE_PACKETIZE_ESTOTS
+    sptr<AmlMpBuffer> tsPackets;
+    int ret;
+    ret = packetize(1, (char *)buffer, size, &tsPackets, 0, NULL, 0, 2, pts);
+    //ALOGI("writeEsdata, buffer:%p, size:%d, ret:%d", buffer, size, ret);
+    if (ret != AM_TSPLAYER_OK) {
+        return -1;
+    }
+    return 0;
+#else
+#ifdef ANDROID
     am_tsplayer_result ret;
     am_tsplayer_input_frame_buffer buf;
     buf.buf_type = init_param.drmmode;
@@ -348,13 +370,233 @@ int AmlTsPlayer::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size
         return -1;
     }
     return size;
-    #else
+#else
     AML_MP_UNUSED(type);
     AML_MP_UNUSED(buffer);
     AML_MP_UNUSED(size);
     AML_MP_UNUSED(pts);
     return -1;
-    #endif
+#endif
+#endif
+
+}
+
+int AmlTsPlayer::packetize(
+        bool isAudio,
+        const char *buffer_add,
+        int32_t buffer_size,
+        sptr<AmlMpBuffer> *packets,
+        uint32_t flags,
+        const uint8_t *PES_private_data, size_t PES_private_data_len,
+        size_t numStuffingBytes,
+        int64_t timeUs)
+{
+#define RANDOM_VALID_AUDIO_STREAM_PID 0x102
+#define AUDIO_STREAM_ID 0xc0
+#define TS_PACKET_HEADER_SIZE 4
+#define PES_PACKET_LENGTH_MAX 65536
+
+    int32_t stream_pid = RANDOM_VALID_AUDIO_STREAM_PID;
+    int32_t stream_id = 0x00;
+
+    if (isAudio) {
+        stream_id = AUDIO_STREAM_ID;
+    } else {
+        ALOGE("packetize error! only support audio es data");
+        return -1;
+    }
+
+    if (mApid != AML_MP_INVALID_PID) {
+        stream_pid = mApid;
+    }
+
+    packets->clear();
+    int ret = 0;;
+    bool alignPayload = 0;
+    size_t PES_packet_length = buffer_size + 8 + numStuffingBytes;
+    if (PES_private_data_len > 0) {
+        PES_packet_length += PES_private_data_len + 1;
+    }
+
+    size_t numTSPackets = 1;
+    {
+        // Make sure the PES header fits into a single TS packet:
+        size_t PES_header_size = 14 + numStuffingBytes;
+        if (PES_private_data_len > 0) {
+            PES_header_size += PES_private_data_len + 1;
+        }
+
+        size_t sizeAvailableForPayload = TS_PACKET_SIZE - TS_PACKET_HEADER_SIZE - PES_header_size;
+        size_t numBytesOfPayload = buffer_size;
+        if (numBytesOfPayload > sizeAvailableForPayload) {
+            numBytesOfPayload = sizeAvailableForPayload;
+            if (alignPayload && numBytesOfPayload > 16) {
+                numBytesOfPayload -= (numBytesOfPayload % 16);
+            }
+        }
+
+        // size_t numPaddingBytes = sizeAvailableForPayload - numBytesOfPayload;
+        size_t numBytesOfPayloadRemaining = buffer_size - numBytesOfPayload;
+        // This is how many bytes of payload each subsequent TS packet
+        // can contain at most.
+        sizeAvailableForPayload = TS_PACKET_SIZE - TS_PACKET_HEADER_SIZE;
+        size_t sizeAvailableForAlignedPayload = sizeAvailableForPayload;
+        if (alignPayload) {
+            // We're only going to use a subset of the available space
+            // since we need to make each fragment a multiple of 16 in size.
+            sizeAvailableForAlignedPayload -= (sizeAvailableForAlignedPayload % 16);
+        }
+        /*divide the PayloadRemaining and caculate how many ts packet can contain it*/
+        size_t numFullTSPackets = numBytesOfPayloadRemaining / sizeAvailableForAlignedPayload;
+        numTSPackets += numFullTSPackets;
+        numBytesOfPayloadRemaining -= numFullTSPackets * sizeAvailableForAlignedPayload;
+
+        // numBytesOfPayloadRemaining < sizeAvailableForAlignedPayload
+        if (numFullTSPackets == 0 && numBytesOfPayloadRemaining > 0) {
+            // There wasn't enough payload left to form a full aligned payload,
+            // the last packet doesn't have to be aligned.
+            ++numTSPackets;
+        } else if (numFullTSPackets > 0 && numBytesOfPayloadRemaining
+                   + sizeAvailableForAlignedPayload > sizeAvailableForPayload) {
+            // The last packet emitted had a full aligned payload and together
+            // with the bytes remaining does exceed the unaligned payload
+            // size, so we need another packet.
+            ++numTSPackets;
+        }
+    }
+    /*malloc spaces for those ts packets*/
+    if (numTSPackets * TS_PACKET_SIZE > mPacktsBuffer->capacity()) {
+        mPacktsBuffer = new AmlMpBuffer(numTSPackets * TS_PACKET_SIZE);
+    }
+    //ALOGI("second mPacktsBuffer=%p,numTSPackets=%d,mPacktsBuffer.size=%d,mPacktsBuffer.capacity=%d\n",mPacktsBuffer.get(),numTSPackets,mPacktsBuffer->size(),mPacktsBuffer->capacity());
+    uint8_t *packetDataStart = mPacktsBuffer->data();
+    uint64_t PTS = (timeUs * 9ll) / 100ll;
+    if (PES_packet_length >= PES_PACKET_LENGTH_MAX) {
+        // This really should only happen for video.
+        // It's valid to set this to 0 for video according to the specs.
+        PES_packet_length = 0;
+    }
+
+    size_t sizeAvailableForPayload = TS_PACKET_SIZE - TS_PACKET_HEADER_SIZE - 14 - numStuffingBytes;
+    if (PES_private_data_len > 0) {
+        sizeAvailableForPayload -= PES_private_data_len + 1;
+    }
+
+    size_t copy = buffer_size;
+    if (copy > sizeAvailableForPayload) {
+        copy = sizeAvailableForPayload;
+        if (alignPayload && copy > 16) {
+            copy -= (copy % 16);
+        }
+    }
+
+    size_t numPaddingBytes = sizeAvailableForPayload - copy;
+    uint8_t *ptr = packetDataStart;
+    /* prepare packet header */
+    *ptr++ = 0x47;
+    *ptr++ = 0x40 | (stream_pid >> 8);
+    *ptr++ = stream_pid & 0xff;
+    *ptr++ = (numPaddingBytes > 0 ? 0x30 : 0x10) | incrementContinuityCounter(isAudio);
+
+    if (numPaddingBytes > 0) {
+        *ptr++ = numPaddingBytes - 1;
+        if (numPaddingBytes >= 2) {
+            *ptr++ = 0x00;
+            memset(ptr, 0xff, numPaddingBytes - 2);
+            ptr += numPaddingBytes - 2;
+        }
+    }
+    /* write PES header */
+    *ptr++ = 0x00;
+    *ptr++ = 0x00;
+    *ptr++ = 0x01;
+    *ptr++ = stream_id;
+    *ptr++ = PES_packet_length >> 8;
+    *ptr++ = PES_packet_length & 0xff;
+    *ptr++ = 0x84;
+    *ptr++ = (PES_private_data_len > 0) ? 0x81 : 0x80;
+
+    size_t headerLength = 0x05 + numStuffingBytes;
+    if (PES_private_data_len > 0) {
+        headerLength += 1 + PES_private_data_len;
+    }
+    /***write pts***/
+    *ptr++ = headerLength;
+    *ptr++ = 0x20 | (((PTS >> 30) & 7) << 1) | 1;
+    *ptr++ = (PTS >> 22) & 0xff;
+    *ptr++ = (((PTS >> 15) & 0x7f) << 1) | 1;
+    *ptr++ = (PTS >> 7) & 0xff;
+    *ptr++ = ((PTS & 0x7f) << 1) | 1;
+
+    if (PES_private_data_len > 0) {
+        *ptr++ = 0x8e;// PES_private_data_flag, reserved.
+        memcpy(ptr, PES_private_data, PES_private_data_len);
+        ptr += PES_private_data_len;
+    }
+
+    for (size_t i = 0; i < numStuffingBytes; ++i) {
+        *ptr++ = 0xff;
+    }
+    /*copy es data then pack next ts packet*/
+    memcpy(ptr, buffer_add, copy);
+    ptr += copy;
+    packetDataStart += TS_PACKET_SIZE;
+    size_t offset = copy;
+    while (offset < buffer_size) {
+        size_t sizeAvailableForPayload = TS_PACKET_SIZE - TS_PACKET_HEADER_SIZE;
+        size_t copy = buffer_size - offset;
+        if (copy > sizeAvailableForPayload) {
+            copy = sizeAvailableForPayload;
+            if (alignPayload && copy > 16) {
+                copy -= (copy % 16);
+            }
+        }
+
+        size_t numPaddingBytes = sizeAvailableForPayload - copy;
+        uint8_t *ptr = packetDataStart;
+        *ptr++ = 0x47;
+        *ptr++ = 0x00 | (stream_pid >> 8);
+        *ptr++ = stream_pid & 0xff;
+        *ptr++ = (numPaddingBytes > 0 ? 0x30 : 0x10) | incrementContinuityCounter(isAudio);
+
+        if (numPaddingBytes > 0) {
+            *ptr++ = numPaddingBytes - 1;
+            if (numPaddingBytes >= 2) {
+                *ptr++ = 0x00;
+                memset(ptr, 0xff, numPaddingBytes - 2);
+                ptr += numPaddingBytes - 2;
+            }
+        }
+
+        memcpy(ptr, buffer_add + offset, copy);
+        ptr += copy;
+        offset += copy;
+        packetDataStart += TS_PACKET_SIZE;
+    }
+
+    *packets = mPacktsBuffer;
+    if (mPacketizefd >= 0) {
+        write(mPacketizefd, mPacktsBuffer->data(), numTSPackets * TS_PACKET_SIZE);
+        //ALOGE("[%s %d] PacketizeEstoTsFile.ts size:%d", __FUNCTION__, __LINE__, numTSPackets * TS_PACKET_SIZE);
+    }
+    ret = writeData(mPacktsBuffer->data(),numTSPackets * TS_PACKET_SIZE);
+    if (ret != AM_TSPLAYER_OK) {
+        packets->clear();
+        return -1;
+    }
+    return AM_TSPLAYER_OK;
+}
+
+int AmlTsPlayer::incrementContinuityCounter(int isAudio)
+{
+    unsigned prevCounter;
+    if (isAudio) {
+        prevCounter = mAudioContinuityCounter;
+        if (++mAudioContinuityCounter == 16) {
+            mAudioContinuityCounter = 0;
+        }
+    }
+    return prevCounter;
 }
 
 int AmlTsPlayer::getCurrentPts(Aml_MP_StreamType type, int64_t* pts) {
