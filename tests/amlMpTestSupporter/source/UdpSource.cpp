@@ -28,11 +28,15 @@ static const char* mName = LOG_TAG;
 
 namespace aml_mp {
 
-UdpSource::UdpSource(const char* address, const InputParameter& inputParameter, uint32_t flags)
+UdpSource::UdpSource(const char* proto, const char* address, const InputParameter& inputParameter, uint32_t flags)
 : Source(inputParameter, flags)
+, mProto(proto)
 , mAddress(address)
 , mFifo(UDP_FIFO_SIZE)
 {
+    if (mProto == "rtp") {
+        mIsRTP = true;
+    }
 }
 
 UdpSource::~UdpSource()
@@ -84,6 +88,12 @@ int UdpSource::initCheck()
         mAddrInfo = nullptr;
     }
     mAddrInfo = result;
+
+    if (mAddrInfo->ai_family == AF_INET) {
+        struct sockaddr_in* addr = (struct sockaddr_in*)(mAddrInfo->ai_addr);
+        mIsMultiCast = IN_MULTICAST(ntohl(addr->sin_addr.s_addr));
+        MLOGI("mIsMultiCast:%d", mIsMultiCast);
+    }
 
     return 0;
 }
@@ -146,16 +156,18 @@ int UdpSource::start()
 
     MLOGE("address:%s:%s", hostAddress, port);
 
-    struct ip_mreq_source multiSource{};
-    multiSource.imr_multiaddr = ((struct sockaddr_in*)&localAddr)->sin_addr;
-    multiSource.imr_interface.s_addr = htonl(INADDR_ANY);
-    ret = setsockopt(mSocket,IPPROTO_IP, IP_ADD_MEMBERSHIP, &multiSource, sizeof(multiSource));
-    if (ret < 0) {
-        MLOGE("join multicast failed! %s", strerror(errno));
-        return -1;
-    }
+    if (mIsMultiCast) {
+        struct ip_mreq_source multiSource {};
+        multiSource.imr_multiaddr = ((struct sockaddr_in*)&localAddr)->sin_addr;
+        multiSource.imr_interface.s_addr = htonl(INADDR_ANY);
+        ret = setsockopt(mSocket, IPPROTO_IP, IP_ADD_MEMBERSHIP, &multiSource, sizeof(multiSource));
+        if (ret < 0) {
+            MLOGE("join multicast failed! %s", strerror(errno));
+            return -1;
+        }
 
-    MLOGE("join multicast success!\n");
+        MLOGE("join multicast success!\n");
+    }
 
     mLooper = new Looper(Looper::PREPARE_ALLOW_NON_CALLBACKS);
     if (mLooper == nullptr) {
@@ -195,12 +207,14 @@ int UdpSource::stop()
         mFeedThread.join();
     }
 
-    struct ip_mreq_source multiSource{};
-    multiSource.imr_multiaddr = ((struct sockaddr_in*)mAddrInfo->ai_addr)->sin_addr;
-    multiSource.imr_interface.s_addr = htonl(INADDR_ANY);
-    int ret = setsockopt(mSocket, IPPROTO_IP, IP_DROP_MEMBERSHIP, &multiSource, sizeof(multiSource));
-    if (ret < 0) {
-        MLOGE("leave multicast failed!");
+    if (mIsMultiCast) {
+        struct ip_mreq_source multiSource {};
+        multiSource.imr_multiaddr = ((struct sockaddr_in*)mAddrInfo->ai_addr)->sin_addr;
+        multiSource.imr_interface.s_addr = htonl(INADDR_ANY);
+        int ret = setsockopt(mSocket, IPPROTO_IP, IP_DROP_MEMBERSHIP, &multiSource, sizeof(multiSource));
+        if (ret < 0) {
+            MLOGE("leave multicast failed!");
+        }
     }
 
     if (mDumpFd >= 0) {
@@ -258,6 +272,7 @@ void UdpSource::readThreadLoop()
             }
 
             uint8_t buffer[4096];
+            uint8_t* pBuf = buffer;
             ret = read(mSocket, buffer, sizeof(buffer));
             if (ret < 0) {
                 MLOGE("read failed! %s", strerror(errno));
@@ -266,14 +281,19 @@ void UdpSource::readThreadLoop()
                 MLOGE("eof!");
             } else {
                 doStatistic(ret);
+                if (mIsRTP) {
+                    if (parseRtpPayload(pBuf, ret) < 0) {
+                        continue;
+                    }
+                }
                 MLOGV("udp write data:%d", ret);
                 if (mDumpFd >= 0) {
-                    if (::write(mDumpFd, buffer, ret) != ret) {
+                    if (::write(mDumpFd, pBuf, ret) != ret) {
                         MLOGE("write dump file failed!");
                     }
                 }
 
-                if (mFifo.put(buffer, ret) != ret) {
+                if (mFifo.put(pBuf, ret) != ret) {
                     MLOGW("fifo full, reset!");
                     mFifo.reset();
                 } else {
@@ -291,7 +311,7 @@ void UdpSource::feedThreadLoop()
 {
     int len;
     sptr<ISourceReceiver> receiver = nullptr;
-    const int bufferSize = 188 * 1024;
+    static const int bufferSize = 188 * 1024;
     std::unique_ptr<uint8_t[]> buffer(new uint8_t[bufferSize]);
 
     uint32_t work = 0;
@@ -344,6 +364,47 @@ void UdpSource::doStatistic(int size)
             mLastBitRateMeasureTime = nowUs;
         }
     }
+}
+
+int UdpSource::parseRtpPayload(uint8_t*& buffer, int& size)
+{
+    int ext = buffer[0] & 0x10;
+    int csrc = buffer[0] & 0x0F;
+    int payloadType = buffer[1] & 0x7F;
+
+    if (payloadType != 33) {
+        MLOGE("payloadType:%d, NOT mpegts, drop it!", payloadType);
+        size = 0;
+        return -1;
+    }
+
+    if (buffer[0] & 0x20) {
+        int padding = buffer[size-1];
+        if (size > 12 + padding) {
+            size -= padding;
+        }
+    }
+
+    buffer += 12;
+    size -= 12;
+
+    size -= 4 * csrc;
+    buffer += 4 * csrc;
+    if (size < 0) {
+        return -1;
+    }
+
+    if (ext) {
+        ext = ((buffer[2]<<8|buffer[3])+1) * 4;
+        if (size < ext) {
+            return -1;
+        }
+
+        buffer += ext;
+        size -= ext;
+    }
+
+    return 0;
 }
 
 
