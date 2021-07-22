@@ -25,7 +25,7 @@ namespace aml_mp {
 class UdpSource : public Source
 {
 public:
-    UdpSource(const char* address, const InputParameter& inputParameter, uint32_t flags);
+    UdpSource(const char* proto, const char* address, const InputParameter& inputParameter, uint32_t flags);
     ~UdpSource();
 
     virtual int initCheck() override;
@@ -37,9 +37,13 @@ private:
     void readThreadLoop();
     void feedThreadLoop();
     void doStatistic(int size);
+    int parseRtpPayload(uint8_t*& buffer, int& size);
 
+    std::string mProto;
     std::string mAddress;
+    bool mIsRTP = false;
     struct addrinfo* mAddrInfo = nullptr;
+    bool mIsMultiCast = false;
     int mSocket = -1;
     std::thread mReadThread;
     sptr<Looper> mLooper;

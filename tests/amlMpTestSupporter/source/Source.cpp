@@ -77,7 +77,7 @@ sptr<Source> Source::create(const char* url)
     bool isDvbSource = false;
     bool isFileSource = false;
     bool isDVRSource = false;
-    if (!strcmp(proto, "udp") || !strcmp(proto, "igmp")) {
+    if (!strcmp(proto, "udp") || !strcmp(proto, "igmp") || !strcmp(proto, "rtp")) {
         isUdpSource = true;
     } else if (!strncmp(proto, "dvb", 3)) {
         isDvbSource = true;
@@ -100,7 +100,7 @@ sptr<Source> Source::create(const char* url)
 
     if (isUdpSource) {
         flags |= Source::kIsMemorySource;
-        source = new UdpSource(address, inputParameter, flags);
+        source = new UdpSource(proto, address, inputParameter, flags);
     } else if (isDvbSource) {
         flags |= Source::kIsHardwareSource;
         source = new DvbSource(proto, address, inputParameter, flags);
