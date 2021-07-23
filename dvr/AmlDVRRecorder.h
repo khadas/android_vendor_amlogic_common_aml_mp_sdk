@@ -25,6 +25,8 @@ public:
     int setStreams(Aml_MP_DVRStreamArray* streams);
     int start();
     int stop();
+    int pause();
+    int resume();
     int getStatus(Aml_MP_DVRRecorderStatus* status);
 
 private:

@@ -77,6 +77,24 @@ int Aml_MP_DVRRecorder_Start(AML_MP_DVRRECORDER recorder)
     return ret;
 }
 
+int Aml_MP_DVRRecorder_Pause(AML_MP_DVRRECORDER recorder)
+{
+    sptr<AmlDVRRecorder> amlMpHandle = aml_handle_cast<AmlDVRRecorder>(recorder);
+    RETURN_IF(-1, amlMpHandle == nullptr);
+
+    int ret = amlMpHandle->pause();
+    return ret;
+}
+
+int Aml_MP_DVRRecorder_Resume(AML_MP_DVRRECORDER recorder)
+{
+    sptr<AmlDVRRecorder> amlMpHandle = aml_handle_cast<AmlDVRRecorder>(recorder);
+    RETURN_IF(-1, amlMpHandle == nullptr);
+
+    int ret = amlMpHandle->resume();
+    return ret;
+}
+
 int Aml_MP_DVRRecorder_Stop(AML_MP_DVRRECORDER recorder)
 {
     sptr<AmlDVRRecorder> amlMpHandle = aml_handle_cast<AmlDVRRecorder>(recorder);
@@ -214,6 +232,16 @@ int Aml_MP_DVRPlayer_Resume(AML_MP_DVRPLAYER player)
     RETURN_IF(-1, dvrPlayer == nullptr);
 
     int ret = dvrPlayer->resume();
+
+    return ret;
+}
+
+int Aml_MP_DVRPlayer_SetLimit(AML_MP_DVRPLAYER player, int time, int limit)
+{
+    sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
+    RETURN_IF(-1, dvrPlayer == nullptr);
+
+    int ret = dvrPlayer->setLimit(time, limit);
 
     return ret;
 }

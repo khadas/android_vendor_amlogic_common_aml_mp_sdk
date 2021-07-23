@@ -31,6 +31,7 @@ typedef struct {
     int64_t                     segmentSize;
     Aml_MP_DVRRecorderFlag      flags;
     int                         bufferSize;         //flush size
+    int                         ringbufSize;        //dvbcore ringbuf size,this buf is uesd to cache ts data,
 } Aml_MP_DVRRecorderBasicParams;
 
 typedef struct {
@@ -152,6 +153,27 @@ int Aml_MP_DVRRecorder_Start(AML_MP_DVRRECORDER recorder);
  * \return 0 if success
  */
 int Aml_MP_DVRRecorder_Stop(AML_MP_DVRRECORDER recorder);
+
+/**
+ * \brief Aml_MP_DVRRecorder_Pause
+ * Pause DVR recorder
+ *
+ * \param [in]  DVR recorder handle
+ *
+ * \return 0 if success
+ */
+int Aml_MP_DVRRecorder_Pause(AML_MP_DVRPLAYER player);
+
+/**
+ * \brief Aml_MP_DVRRecorder_Resume
+ * Resume DVR recorder
+ *
+ * \param [in]  DVR recorder handle
+ *
+ * \return 0 if success
+ */
+int Aml_MP_DVRRecorder_Resume(AML_MP_DVRPLAYER player);
+
 
 /**
  * \brief Aml_MP_DVRRecorder_GetStatus
@@ -339,6 +361,18 @@ int Aml_MP_DVRPlayer_Pause(AML_MP_DVRPLAYER player);
  * \return 0 if success
  */
 int Aml_MP_DVRPlayer_Resume(AML_MP_DVRPLAYER player);
+
+/**
+ * \brief Aml_MP_DVRPlayer_SetLimit
+ * Set limit DVR player
+ *
+ * \param [in]  DVR player handle
+ * \param [in]  record start time (ms)
+ * \param [in]  record limit time (ms)
+ * \return 0 if success
+ */
+
+int Aml_MP_DVRPlayer_SetLimit(AML_MP_DVRPLAYER player, int time, int limit);
 
 /**
  * \brief Aml_MP_DVRPlayer_Seek

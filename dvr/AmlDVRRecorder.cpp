@@ -220,6 +220,27 @@ int AmlDVRRecorder::stop()
     return ret;
 }
 
+int AmlDVRRecorder::pause()
+{
+    MLOGI("Call DVRRecorderPause");
+
+    int ret = dvr_wrapper_pause_record(mRecoderHandle);
+    if (ret) {
+        MLOGI("Pause recoder fail");
+    }
+    return ret;
+}
+
+int AmlDVRRecorder::resume()
+{
+    MLOGI("Call DVRRecorderResume");
+
+    int ret = dvr_wrapper_resume_record(mRecoderHandle);
+    if (ret) {
+        MLOGI("resume recoder fail");
+    }
+    return ret;
+}
 int AmlDVRRecorder::getStatus(Aml_MP_DVRRecorderStatus* status)
 {
     DVR_WrapperRecordStatus_t dvrStatus;
@@ -242,6 +263,7 @@ int AmlDVRRecorder::setBasicParams(Aml_MP_DVRRecorderBasicParams* basicParams)
     mRecOpenParams.segment_size = basicParams->segmentSize;
     mRecOpenParams.flags = (DVR_RecordFlag_t)basicParams->flags;
     mRecOpenParams.flush_size = basicParams->bufferSize;
+    mRecOpenParams.ringbuf_size = basicParams->ringbufSize;
     MLOGI("location:%s", basicParams->location);
 
     return 0;

@@ -39,7 +39,8 @@ AmlDVRPlayer::AmlDVRPlayer(Aml_MP_DVRPlayerBasicParams* basicParams, Aml_MP_DVRP
 
     memset(&mPlaybackOpenParams, 0, sizeof(DVR_WrapperPlaybackOpenParams_t));
     setBasicParams(basicParams);
-
+    mRecStartTime = 0;
+    mLimit = 0;
     mIsEncryptStream = basicParams->drmMode != AML_MP_INPUT_STREAM_NORMAL;
 
     if (decryptParams != nullptr) {
@@ -168,7 +169,9 @@ int AmlDVRPlayer::start(bool initialPaused)
     if (mIsEncryptStream) {
         dvr_wrapper_set_playback_secure_buffer(mDVRPlayerHandle, mSecureBuffer, mSecureBufferSize);
     }
-
+    if (mRecStartTime > 0) {
+        dvr_wrapper_setlimit_playback(mDVRPlayerHandle, mRecStartTime, mLimit);
+    }
     DVR_PlaybackFlag_t play_flag = initialPaused ? DVR_PLAYBACK_STARTED_PAUSEDLIVE : (DVR_PlaybackFlag_t)0;
     error = dvr_wrapper_start_playback(mDVRPlayerHandle, play_flag, &mPlayPids);
     return error;
@@ -214,6 +217,17 @@ int AmlDVRPlayer::resume()
     }
 
     return ret;
+}
+
+int AmlDVRPlayer::setLimit(int time, int limit)
+{
+    MLOG("rec start time:%d limit:%d", time, limit);
+    mRecStartTime = time;
+    mLimit = limit;
+    if (mRecStartTime > 0) {
+        dvr_wrapper_setlimit_playback(mDVRPlayerHandle, mRecStartTime, mLimit);
+    }
+    return 0;
 }
 
 int AmlDVRPlayer::seek(int timeOffset)
