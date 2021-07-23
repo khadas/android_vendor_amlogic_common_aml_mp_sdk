@@ -85,7 +85,8 @@ AML_MP_UTILS_SRC := \
 	utils/AmlMpThread.cpp \
 	utils/AmlMpUtils.cpp \
 	utils/Amlsysfsutils.cpp \
-	utils/AmlMpChunkFifo.cpp
+	utils/AmlMpChunkFifo.cpp \
+	utils/AmlMpPlayerRoster.cpp
 
 AML_MP_SRCS := \
 	$(AML_MP_PLAYER_SRC) \

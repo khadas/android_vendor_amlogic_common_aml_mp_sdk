@@ -1505,6 +1505,11 @@ int AmlMpPlayerImpl::prepare_l()
     if (!mNativeWindow.get() && mVideoWindow.width > 0 && mVideoWindow.height > 0) {
         mPlayer->setVideoWindow(mVideoWindow.x, mVideoWindow.y, mVideoWindow.width, mVideoWindow.height);
     }
+    #else
+    //direct set in yocto
+    if (mVideoWindow.width > 0 && mVideoWindow.height > 0) {
+        mPlayer->setVideoWindow(mVideoWindow.x, mVideoWindow.y, mVideoWindow.width, mVideoWindow.height);
+    }
     #endif
     if (mVideoTunnelId >= 0) {
         mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_TUNNEL_ID, &mVideoTunnelId);
@@ -1879,71 +1884,4 @@ void AmlMpPlayerImpl::resetVariables_l()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-AmlMpPlayerRoster* AmlMpPlayerRoster::sAmlPlayerRoster = nullptr;
-
-AmlMpPlayerRoster::AmlMpPlayerRoster()
-: mPlayers{nullptr}
-{
-
-}
-
-AmlMpPlayerRoster::~AmlMpPlayerRoster()
-{
-
-}
-
-AmlMpPlayerRoster& AmlMpPlayerRoster::instance()
-{
-    static std::once_flag s_onceFlag;
-
-    if (sAmlPlayerRoster == nullptr) {
-        std::call_once(s_onceFlag, [] {
-            sAmlPlayerRoster = new AmlMpPlayerRoster();
-        });
-    }
-
-    return *sAmlPlayerRoster;
-}
-
-int AmlMpPlayerRoster::registerPlayer(void* player)
-{
-    if (player == nullptr) {
-        return -1;
-    }
-
-    std::lock_guard<std::mutex> _l(mLock);
-    for (size_t i = 0; i < kPlayerInstanceMax; ++i) {
-        if (mPlayers[i] == nullptr) {
-            mPlayers[i] = player;
-            (void)++mPlayerNum;
-
-            //MLOGI("register player id:%d(%p)", i, player);
-            return i;
-        }
-    }
-
-    return -1;
-}
-
-void AmlMpPlayerRoster::unregisterPlayer(int id)
-{
-    std::lock_guard<std::mutex> _l(mLock);
-
-    CHECK(mPlayers[id]);
-    mPlayers[id] = nullptr;
-    (void)--mPlayerNum;
-}
-
-void AmlMpPlayerRoster::signalAmTsPlayerId(int id)
-{
-    std::lock_guard<std::mutex> _l(mLock);
-    mAmtsPlayerId = id;
-}
-
-bool AmlMpPlayerRoster::isAmTsPlayerExist() const
-{
-    std::lock_guard<std::mutex> _l(mLock);
-    return mAmtsPlayerId != -1;
-}
-
 }

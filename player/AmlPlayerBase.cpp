@@ -49,10 +49,11 @@ sptr<AmlPlayerBase> AmlPlayerBase::create(Aml_MP_PlayerCreateParams* createParam
     return player;
 }
 
-AmlPlayerBase::AmlPlayerBase(int instanceId)
+AmlPlayerBase::AmlPlayerBase(Aml_MP_PlayerCreateParams* createParams, int instanceId)
 :mInstanceId(instanceId)
 , mEventCb(nullptr)
 , mUserData(nullptr)
+,mCreateParams(createParams)
 #ifdef HAVE_SUBTITLE
 , mSubtitleParams{}
 #endif
@@ -320,6 +321,13 @@ int AmlPlayerBase::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) 
     }
 #endif
     return 0;
+}
+
+int AmlPlayerBase::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size_t size, int64_t pts)
+{
+    //MLOGI("TODO!!! %s, type:%d, buffer:%p, size:%d, pts:%lld", __FUNCTION__, type, buffer, size, pts);
+
+    return size;
 }
 
 #ifdef HAVE_SUBTITLE

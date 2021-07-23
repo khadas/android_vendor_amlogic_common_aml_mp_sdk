@@ -114,7 +114,7 @@ aml::ABALANCE_E ctcAudioBalanceConvert(Aml_MP_AudioBalance balance)
 
 
 AmlCTCPlayer::AmlCTCPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId)
-: aml_mp::AmlPlayerBase(instanceId)
+: aml_mp::AmlPlayerBase(createParams, instanceId)
 {
     snprintf(mName, sizeof(mName), "%s_%d", LOG_TAG, instanceId);
 

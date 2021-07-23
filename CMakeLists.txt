@@ -46,6 +46,7 @@ SET(AML_MP_UTILS_SRC
     utils/AmlMpUtils.cpp
     utils/AmlMpChunkFifo.cpp
     utils/Amlsysfsutils.cpp
+    utils/AmlMpPlayerRoster.cpp
 )
 
 SET(AML_MP_DEMUX_SRC
@@ -93,6 +94,7 @@ SET(AML_MP_PUBLIC_HEADERS
     include/Aml_MP/Cas.h
     include/Aml_MP/Common.h
     include/Aml_MP/Dvr.h
+    include/Aml_MP/Aml_MediaPlayer.h
 )
 
 FIND_PATH(libdvr_INCLUDE_DIRS dvr_wrapper.h PATH_SUFFIXES libdvr REQUIRED)
@@ -118,6 +120,7 @@ TARGET_LINK_LIBRARIES(${TARGET} PUBLIC
     log
     cutils
     pthread
+    dl
 )
 
 INSTALL(
@@ -130,8 +133,9 @@ INSTALL(
 
 ADD_SUBDIRECTORY(tests/amlMpTestSupporter)
 ADD_SUBDIRECTORY(tests/amlMpPlayerDemo)
+ADD_SUBDIRECTORY(tests/amlMpMediaPlayerDemo)
 ADD_SUBDIRECTORY(tests/unitTest)
-
+ADD_SUBDIRECTORY(mediaplayer)
 
 
 
