@@ -50,7 +50,7 @@ public:
     virtual int setPlaybackRate(float rate) = 0;
     virtual int switchAudioTrack(const Aml_MP_AudioParams* params) = 0;
     virtual int writeData(const uint8_t* buffer, size_t size) = 0;
-    virtual int writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size_t size, int64_t pts) = 0;
+    virtual int writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size_t size, int64_t pts);
     virtual int getCurrentPts(Aml_MP_StreamType type, int64_t* pts) = 0;
     virtual int getBufferStat(Aml_MP_BufferStat* bufferStat) = 0;
     virtual int setVideoWindow(int x, int y, int width, int height) = 0;
@@ -95,7 +95,7 @@ protected:
     int mSubWindowWidth;
     int mSubWindowHeight;
 
-    explicit AmlPlayerBase(int instanceId);
+    explicit AmlPlayerBase(Aml_MP_PlayerCreateParams* createParams, int instanceId);
     void notifyListener(Aml_MP_PlayerEventType eventType, int64_t param = 0);
 
 private:
@@ -116,6 +116,7 @@ private:
     char mSubtitleIso639Code[4];
 #endif
     Aml_MP_SubtitleParams mSubtitleParams;
+    Aml_MP_PlayerCreateParams *mCreateParams = NULL;
 
     AmlPlayerBase(const AmlPlayerBase&) = delete;
     AmlPlayerBase& operator= (const AmlPlayerBase&) = delete;

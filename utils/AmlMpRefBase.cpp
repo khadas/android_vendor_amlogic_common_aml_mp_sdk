@@ -56,7 +56,7 @@ static const char* mName = LOG_TAG;
 // Continue after logging a stack trace if ~RefBase discovers that reference
 // count has never been incremented. Normally we conspicuously crash in that
 // case.
-#define DEBUG_REFBASE_DESTRUCTION 0
+#define DEBUG_REFBASE_DESTRUCTION 1
 
 // ---------------------------------------------------------------------------
 

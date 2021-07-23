@@ -267,6 +267,8 @@ typedef struct {
 } Aml_MP_BufferStat;
 
 ///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
 typedef enum {
     //set/get
     AML_MP_PLAYER_PARAMETER_SET_BASE        = 0x1000,
@@ -645,6 +647,11 @@ typedef enum {
     AML_MP_PLAYER_EVENT_SUBTITLE_TIMEOUT,
     AML_MP_PLAYER_EVENT_SUBTITLE_INVALID_TIMESTAMP,
     AML_MP_PLAYER_EVENT_SUBTITLE_INVALID_DATA,
+
+    //medialayer
+    AML_MP_MEDIAPLAYER_EVENT_BASE                 = 0x5000,
+    AML_MP_MEDIAPLAYER_EVENT_PLAYBACK_COMPLETE,
+    AML_MP_MEDIAPLAYER_EVENT_PREPARED,
 } Aml_MP_PlayerEventType;
 
 

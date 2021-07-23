@@ -110,7 +110,7 @@ am_tsplayer_avsync_mode AVSyncSourceTypeConvert(Aml_MP_AVSyncSource avSyncSource
 }
 
 AmlTsPlayer::AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId)
-: aml_mp::AmlPlayerBase(instanceId)
+: aml_mp::AmlPlayerBase(createParams, instanceId)
 {
     snprintf(mName, sizeof(mName), "%s_%d", LOG_TAG, instanceId);
 
@@ -352,7 +352,10 @@ int AmlTsPlayer::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size
     }
     return 0;
 #else
-#ifdef ANDROID
+    if (type == AML_MP_STREAM_TYPE_SUBTITLE) {
+        return AmlPlayerBase::writeEsData(type, buffer, size, pts);
+    }
+
     am_tsplayer_result ret;
     am_tsplayer_input_frame_buffer buf;
     buf.buf_type = init_param.drmmode;
@@ -370,15 +373,7 @@ int AmlTsPlayer::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size
         return -1;
     }
     return size;
-#else
-    AML_MP_UNUSED(type);
-    AML_MP_UNUSED(buffer);
-    AML_MP_UNUSED(size);
-    AML_MP_UNUSED(pts);
-    return -1;
 #endif
-#endif
-
 }
 
 int AmlTsPlayer::packetize(

@@ -13,6 +13,7 @@
 #include <Aml_MP/Aml_MP.h>
 #include <utils/AmlMpRefBase.h>
 #include <utils/AmlMpHandle.h>
+#include <utils/AmlMpPlayerRoster.h>
 #ifdef ANDROID
 #include <system/window.h>
 #endif
@@ -39,31 +40,6 @@ using android::RefBase;
 #endif
 class AmlPlayerBase;
 class AmlMpConfig;
-
-struct AmlMpPlayerRoster
-{
-    static constexpr int kPlayerInstanceMax = 9;
-
-    static AmlMpPlayerRoster& instance();
-    int registerPlayer(void* player);
-    void unregisterPlayer(int id);
-    void signalAmTsPlayerId(int id);
-    bool isAmTsPlayerExist() const;
-
-private:
-    static AmlMpPlayerRoster* sAmlPlayerRoster;
-    mutable std::mutex mLock;
-    std::condition_variable mcond;
-    void* mPlayers[kPlayerInstanceMax];
-    int mPlayerNum = 0;
-    int mAmtsPlayerId = -1;
-
-    AmlMpPlayerRoster();
-    ~AmlMpPlayerRoster();
-
-    AmlMpPlayerRoster(const AmlMpPlayerRoster&) = delete;
-    AmlMpPlayerRoster& operator= (const AmlMpPlayerRoster&) = delete;
-};
 
 class AmlMpPlayerImpl final : public AmlMpHandle
 {
