@@ -759,6 +759,7 @@ Aml_MP_DemuxSource convertToMpDemuxSource(DVB_DemuxSource_t source)
     case DVB_DEMUX_SOURCE_DMA7:
         return AML_MP_DEMUX_SOURCE_DMA7;
     }
+    return AML_MP_DEMUX_SOURCE_TS0;
 }
 
 am_tsplayer_stream_type convertToTsplayerStreamType(Aml_MP_StreamType streamType) {

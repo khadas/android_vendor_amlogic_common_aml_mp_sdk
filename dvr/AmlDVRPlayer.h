@@ -41,6 +41,7 @@ public:
     int stop();
     int pause();
     int resume();
+    int setLimit(int time, int limit);
     int seek(int timeOffset);
     int setPlaybackRate(float rate);
     int getStatus(Aml_MP_DVRPlayerStatus* status);
@@ -67,6 +68,9 @@ private:
 
     Aml_MP_PlayerEventCallback mEventCb = nullptr;
     void* mEventUserData = nullptr;
+    //record start time
+    int mRecStartTime;
+    int mLimit;
 
     int setBasicParams(Aml_MP_DVRPlayerBasicParams* basicParams);
     int setDecryptParams(Aml_MP_DVRPlayerDecryptParams* decryptParams);
