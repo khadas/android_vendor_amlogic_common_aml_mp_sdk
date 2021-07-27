@@ -48,7 +48,18 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
 {
     snprintf(mName, sizeof(mName), "%s_%d", LOG_TAG, mInstanceId);
 
+#ifdef ANDROID
+    int sdkVersion = ANDROID_PLATFORM_SDK_VERSION;
+    const char* platform =
+#ifndef __ANDROID_VNDK__
+        "system";
+#else
+        "vendor";
+#endif
+    MLOG("sdk:%d, platform:%s", sdkVersion, platform);
+#else
     MLOG();
+#endif
 
     memset(&mVideoParams, 0, sizeof(mVideoParams));
     mVideoParams.pid = AML_MP_INVALID_PID;
@@ -220,7 +231,7 @@ int AmlMpPlayerImpl::start()
 
 int AmlMpPlayerImpl::start_l()
 {
-    MLOGI(">>>> AmlMpPlayerImpl start_l\n");
+    MLOGI("AmlMpPlayerImpl start_l\n");
     if (mState == STATE_IDLE) {
         if (prepare_l() < 0) {
             MLOGE("prepare failed!");
@@ -280,18 +291,20 @@ int AmlMpPlayerImpl::start_l()
 int AmlMpPlayerImpl::stop()
 {
     AML_MP_TRACE(10);
-    std::unique_lock<std::mutex> _l(mLock);
+    std::unique_lock<std::mutex> lock(mLock);
     MLOG();
     RETURN_IF(-1, mPlayer == nullptr);
 
-    return stop_l();
+    return stop_l(lock);
 }
 
-int AmlMpPlayerImpl::stop_l()
+int AmlMpPlayerImpl::stop_l(std::unique_lock<std::mutex>& lock)
 {
     if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         if (mPlayer) {
+            lock.unlock();
             mPlayer->stop();
+            lock.lock();
 
             Aml_MP_AudioParams dummyAudioParam{AML_MP_INVALID_PID, AML_MP_CODEC_UNKNOWN};
             mPlayer->setAudioParams(&dummyAudioParam);
@@ -408,7 +421,7 @@ int AmlMpPlayerImpl::flush()
 int AmlMpPlayerImpl::setPlaybackRate(float rate)
 {
     AML_MP_TRACE(10);
-    std::unique_lock<std::mutex> _l(mLock);
+    std::unique_lock<std::mutex> lock(mLock);
     MLOG("rate:%f", rate);
 
     int ret = 0;
@@ -441,7 +454,7 @@ int AmlMpPlayerImpl::setPlaybackRate(float rate)
         }
 
         if (decodeModeChanged) {
-            switchDecodeMode_l(newDecodeMode);
+            switchDecodeMode_l(newDecodeMode, lock);
         }
 
         if (mVideoDecodeMode == AML_MP_VIDEO_DECODE_MODE_NONE) {
@@ -722,12 +735,12 @@ int AmlMpPlayerImpl::hideSubtitle()
 int AmlMpPlayerImpl::setParameter(Aml_MP_PlayerParameterKey key, void* parameter)
 {
     AML_MP_TRACE(10);
-    std::unique_lock<std::mutex> _l(mLock);
+    std::unique_lock<std::mutex> lock(mLock);
 
-    return setParameter_l(key, parameter);
+    return setParameter_l(key, parameter, lock);
 }
 
-int AmlMpPlayerImpl::setParameter_l(Aml_MP_PlayerParameterKey key, void* parameter) {
+int AmlMpPlayerImpl::setParameter_l(Aml_MP_PlayerParameterKey key, void* parameter, std::unique_lock<std::mutex>& lock) {
     int ret = 0;
 
     switch (key) {
@@ -743,7 +756,7 @@ int AmlMpPlayerImpl::setParameter_l(Aml_MP_PlayerParameterKey key, void* paramet
 
     case AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE:
         RETURN_IF(-1, parameter == nullptr);
-        switchDecodeMode_l(*(Aml_MP_VideoDecodeMode*)parameter);
+        switchDecodeMode_l(*(Aml_MP_VideoDecodeMode*)parameter, lock);
         break;
 
     case AML_MP_PLAYER_PARAMETER_VIDEO_PTS_OFFSET:
@@ -940,14 +953,19 @@ int AmlMpPlayerImpl::startVideoDecoding_l()
 int AmlMpPlayerImpl::stopVideoDecoding()
 {
     AML_MP_TRACE(10);
-    std::unique_lock<std::mutex> _l(mLock);
+    std::unique_lock<std::mutex> lock(mLock);
 
     MLOG();
     RETURN_IF(-1, mPlayer == nullptr);
     MLOGI("stopVideoDecoding\n");
     if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
         if (mPlayer) {
+            //release the lock in case of event handle thread try to acquire lock at stopping time.
+            MLOGI("release lock!");
+            lock.unlock();
             mPlayer->stopVideoDecoding();
+            lock.lock();
+            MLOGI("reacquire lock!");
         }
     }
 
@@ -1644,7 +1662,7 @@ int AmlMpPlayerImpl::resetAudioCodec_l(bool callStart)
     return ret;
 }
 
-int AmlMpPlayerImpl::switchDecodeMode_l(Aml_MP_VideoDecodeMode decodeMode) {
+int AmlMpPlayerImpl::switchDecodeMode_l(Aml_MP_VideoDecodeMode decodeMode, std::unique_lock<std::mutex>& lock) {
     AML_MP_TRACE(10);
     int ret = 0;
     MLOG("decodeMode: %s", mpVideoDecideMode2Str(decodeMode));
@@ -1661,8 +1679,8 @@ int AmlMpPlayerImpl::switchDecodeMode_l(Aml_MP_VideoDecodeMode decodeMode) {
         return 0;
     }
 
-    ret = stop_l();
-    ret += setParameter_l(AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE, &mVideoDecodeMode);
+    ret = stop_l(lock);
+    ret += mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_VIDEO_DECODE_MODE, &mVideoDecodeMode);
     if (AML_MP_VIDEO_DECODE_MODE_IONLY == mVideoDecodeMode) {
         ret += startVideoDecoding_l();
     } else {
