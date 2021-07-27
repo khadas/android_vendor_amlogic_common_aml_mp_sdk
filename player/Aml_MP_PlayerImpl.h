@@ -163,7 +163,7 @@ private:
     void notifyListener(Aml_MP_PlayerEventType eventType, int64_t param);
 
     int start_l();
-    int stop_l();
+    int stop_l(std::unique_lock<std::mutex>& lock);
     int pause_l();
     int resume_l();
 
@@ -178,14 +178,14 @@ private:
     int startDescrambling_l();
     int stopDescrambling_l();
 
-    int switchDecodeMode_l(Aml_MP_VideoDecodeMode decodeMode);
+    int switchDecodeMode_l(Aml_MP_VideoDecodeMode decodeMode, std::unique_lock<std::mutex>& lock);
 
     int resetADCodec_l(bool callStart);
     int resetAudioCodec_l(bool callStart);
 
     int setAudioParams_l(const Aml_MP_AudioParams* params);
     int setSubtitleParams_l(const Aml_MP_SubtitleParams* params);
-    int setParameter_l(Aml_MP_PlayerParameterKey key, void* parameter);
+    int setParameter_l(Aml_MP_PlayerParameterKey key, void* parameter, std::unique_lock<std::mutex>& lock);
 
     const int mInstanceId;
     char mName[50];
