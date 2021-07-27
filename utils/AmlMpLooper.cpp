@@ -104,6 +104,15 @@ Looper::Looper(bool allowNonCallbacks)
 }
 
 Looper::~Looper() {
+    if (mEpollFd >= 0) {
+        ::close(mEpollFd);
+        mEpollFd = -1;
+    }
+
+    if (mWakeEventFd >= 0) {
+        ::close(mWakeEventFd);
+        mWakeEventFd = -1;
+    }
 }
 
 void Looper::initTLSKey() {
