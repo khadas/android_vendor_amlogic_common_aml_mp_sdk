@@ -15,38 +15,40 @@
 #ifdef HAVE_CAS_HAL
 #include "am_cas.h"
 #endif
+#include "AmlCasBase.h"
 
 namespace aml_mp {
 
-class AmlDvbCasHal : public AmlMpHandle
+class AmlDvbCasHal : public AmlCasBase
 {
 public:
     AmlDvbCasHal(Aml_MP_CASServiceType serviceType);
     ~AmlDvbCasHal();
 
-    int registerEventCallback(Aml_MP_CAS_EventCallback cb, void* userData);
+    virtual int registerEventCallback(Aml_MP_CAS_EventCallback cb, void* userData) override;
 
-    int startDescrambling(Aml_MP_CASServiceInfo* serviceInfo);
-    int stopDescrambling();
-    int updateDescramblingPid(int oldStreamPid, int newStreamPid);
+    virtual int startDescrambling(Aml_MP_CASServiceInfo* serviceInfo) override;
+    virtual int stopDescrambling() override;
 
-    int startDVRRecord(Aml_MP_CASServiceInfo* serviceInfo);
-    int stopDVRRecord();
 
-    int startDVRReplay(Aml_MP_CASDVRReplayParams* dvrReplayParams);
-    int stopDVRReplay();
+    virtual int updateDescramblingPid(int oldStreamPid, int newStreamPid) override;
 
-    int DVREncrypt(Aml_MP_CASCryptoParams* cryptoParams);
-    int DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams);
+    virtual int startDVRRecord(Aml_MP_CASServiceInfo* serviceInfo) override;
+    virtual int stopDVRRecord() override;
 
-    AML_MP_SECMEM createSecmem(Aml_MP_CASServiceType, void** pSecBuf, uint32_t* size);
-    int destroySecmem(AML_MP_SECMEM secMem);
+    virtual int startDVRReplay(Aml_MP_CASDVRReplayParams* dvrReplayParams) override;
+    virtual int stopDVRReplay() override;
 
-    int ioctl(const char* inJson, char* outJson, uint32_t outLen);
-    int getStoreRegion(Aml_MP_CASStoreRegion* region, uint8_t* regionCount);
+    virtual int DVREncrypt(Aml_MP_CASCryptoParams* cryptoParams) override;
+    int DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams) override;
+
+    virtual AML_MP_SECMEM createSecmem(Aml_MP_CASServiceType, void** pSecBuf, uint32_t* size) override;
+    virtual int destroySecmem(AML_MP_SECMEM secMem) override;
+
+    virtual int ioctl(const char* inJson, char* outJson, uint32_t outLen) override;
+    virtual int getStoreRegion(Aml_MP_CASStoreRegion* region, uint8_t* regionCount) override;
 
 private:
-    Aml_MP_CASServiceType mServiceType = AML_MP_CAS_SERVICE_TYPE_INVALID;
 #ifdef HAVE_CAS_HAL
     CasSession mCasSession = 0;
 #endif

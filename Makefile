@@ -12,9 +12,10 @@ AML_MP_CAS_SRC := \
     cas/Aml_MP_CAS.cpp \
     cas/AmlCasBase.cpp \
     cas/AmlDvbCasHal.cpp \
-    cas/vmx_iptvcas/AmlVMXIptvCas.cpp \
+    cas/AmCasLibWrapper.cpp \
     cas/vmx_iptvcas/AmlVMXIptvCas_V2.cpp \
-    cas/wv_iptvcas/AmlWVIptvCas.cpp \
+    cas/vmx_webcas/AmlVMXWebCas.cpp \
+    cas/wv_iptvcas/AmlWVIptvCas_V2.cpp \
 
 AML_MP_DVR_SRC := \
     dvr/Aml_MP_DVR.cpp \
@@ -35,6 +36,8 @@ AML_MP_UTILS_SRC := \
     utils/AmlMpStrongPointer.cpp \
     utils/AmlMpThread.cpp \
     utils/AmlMpUtils.cpp \
+    utils/AmlMpChunkFifo.cpp \
+    utils/Amlsysfsutils.cpp \
 
 AML_MP_DEMUX_SRC := \
     demux/AmlDemuxBase.cpp \
@@ -46,7 +49,8 @@ AML_MP_SRCS := \
     $(AML_MP_PLAYER_SRC) \
     $(AML_MP_DVR_SRC) \
     $(AML_MP_UTILS_SRC) \
-    $(AML_MP_DEMUX_SRC)
+    $(AML_MP_DEMUX_SRC) \
+    $(AML_MP_CAS_SRC)
 
 AML_MP_TEST_SUPPORTER_SRCS := \
     tests/amlMpTestSupporter/AmlMpTestSupporter.cpp \
@@ -115,3 +119,4 @@ clean:
 	rm -f libaml_mp_sdk.so
 	rm -f amlMpPlayerDemo
 #	rm -f $(TARGET_DIR)/usr/lib/libaml_mp_sdk.so
+

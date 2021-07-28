@@ -120,7 +120,7 @@ class Parser : public AmlMpRefBase
 public:
     Parser(Aml_MP_DemuxId demuxId, bool isHardwareSource, bool isHardwareDemux);
     ~Parser();
-    int open();
+    int open(bool autoParsing = true);
     int close();
     int wait();
     void signalQuit();
@@ -140,6 +140,10 @@ public:
     void setProgram(int vPid, int aPid);
     bool hasProgramHint_l() const;
     void setEventCallback(const std::function<ProgramEventCallback>& cb);
+    int addSectionFilter(int pid, Aml_MP_Demux_SectionFilterCb cb, bool checkCRC = true);
+    int removeSectionFilter(int pid);
+
+    static int ecmCb(int pid, size_t size, const uint8_t* data, void* userData);
 
 private:
     struct Section {
@@ -240,15 +244,12 @@ private:
         uint8_t* data;
     };
 
-    int addSectionFilter(int pid, Aml_MP_Demux_SectionFilterCb cb, bool checkCRC = true);
-    int removeSectionFilter(int pid);
     void clearAllSectionFilters();
     void notifyParseDone_l();
 
     static int patCb(int pid, size_t size, const uint8_t* data, void* userData);
     static int pmtCb(int pid, size_t size, const uint8_t* data, void* userData);
     static int catCb(int pid, size_t size, const uint8_t* data, void* userData);
-    static int ecmCb(int pid, size_t size, const uint8_t* data, void* userData);
 
     void onPatParsed(const std::vector<PATSection>& results);
     void onPmtParsed(const PMTSection& results);
@@ -286,6 +287,8 @@ private:
     Parser(const Parser&) = delete;
     Parser& operator=(const Parser&) = delete;
 };
+
+size_t findEcmPacket(const uint8_t* buffer, size_t size, const std::vector<int>& ecmPids, size_t* ecmSize);
 
 }
 

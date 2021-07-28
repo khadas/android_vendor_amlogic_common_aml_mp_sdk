@@ -6,35 +6,35 @@
  *
  * Description:
  */
+#ifndef _AML_VMX_WEB_CAS_V2_H_
+#define _AML_VMX_WEB_CAS_V2_H_
 
-#ifndef _AML_WV_IPTV_CAS_H_
-#define _AML_WV_IPTV_CAS_H_
-
-#include "cas/AmlCasBase.h"
+#include <cas/AmlCasBase.h>
 #include <Aml_MP/Common.h>
+#include "cas/AmCasLibWrapper.h"
 
 #include <mutex>
 
-class AmCasIPTV;
-
 namespace aml_mp {
 
-class AmlWVIptvCas : public AmlCasBase
+class AmlVMXWebCas : public AmlCasBase
 {
 public:
-    AmlWVIptvCas(Aml_MP_CASServiceType serviceType);
-    ~AmlWVIptvCas();
+    AmlVMXWebCas(Aml_MP_CASServiceType serviceType);
+    ~AmlVMXWebCas();
     virtual int startDescrambling(const Aml_MP_IptvCASParams* params) override;
     virtual int stopDescrambling() override;
     virtual int setPrivateData(const uint8_t* data, size_t size) override;
     virtual int processEcm(bool isSection, int ecmPid, const uint8_t* data, size_t size) override;
     virtual int processEmm(const uint8_t* data, size_t size) override;
+    virtual int decrypt(uint8_t *in, int size, void *ext_data, Aml_MP_Buffer* outbuffer) override;
+
 
 private:
-    AmCasIPTV * pIptvCas = nullptr;
+    char mServerPort[10];
+    sptr<AmCasLibWrapper<AML_MP_CAS_SERVICE_VERIMATRIX_WEB>> pIptvCas;
     uint8_t sessionId[8];
     int mInstanceId;
-    char mName[64];
 
     int mDscFd;
     int mFirstEcm;
@@ -45,8 +45,8 @@ private:
     int checkEcmProcess(uint8_t* pBuffer, uint32_t vEcmPid, uint32_t aEcmPid, size_t * nSize);
 
 
-    AmlWVIptvCas(const AmlWVIptvCas&) = delete;
-    AmlWVIptvCas& operator= (const AmlWVIptvCas&) = delete;
+    AmlVMXWebCas(const AmlVMXWebCas&) = delete;
+    AmlVMXWebCas& operator= (const AmlVMXWebCas&) = delete;
 };
 }
 

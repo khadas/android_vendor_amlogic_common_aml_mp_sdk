@@ -33,6 +33,7 @@ public:
 
     int setANativeWindow(ANativeWindow* nativeWindow);
 
+    int initCheck() const override;
     int setVideoParams(const Aml_MP_VideoParams* params) override;
     int setAudioParams(const Aml_MP_AudioParams* params) override;
     int start() override;

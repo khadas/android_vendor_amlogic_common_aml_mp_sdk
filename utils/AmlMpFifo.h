@@ -13,21 +13,27 @@
 #include <utils/Log.h>
 #include <stdint.h>
 #include <mutex>
+#include <string.h>
 
 namespace aml_mp {
+
+static inline size_t roundUpPowerOfTwo(size_t size)
+{
+    --size;
+    for (size_t i = 1; i < sizeof(size) * 8; i <<= 1) {
+        size |= size >> i;
+    }
+    ++size;
+
+    return size;
+}
 
 class AmlMpFifo
 {
 public:
     explicit AmlMpFifo(size_t size) {
-        --size;
-        for (size_t i = 1; i < sizeof(size) * 8; i <<= 1) {
-            size |= size >> i;
-        }
-        ++size;
-
-        mBuffer = (uint8_t*)calloc(size, 1);
-        mSize = size;
+        mSize = roundUpPowerOfTwo(size);
+        mBuffer = (uint8_t*)calloc(mSize, 1);
         ALOG(LOG_INFO, "AmlMpFifo", "Fifo_Size:%#x", mSize);
     }
 

@@ -90,6 +90,9 @@ am_tsplayer_input_buffer_type inputStreamTypeConvert(Aml_MP_InputStreamType stre
 
     case AML_MP_INPUT_STREAM_ENCRYPTED:
         return TS_INPUT_BUFFER_TYPE_TVP;
+
+    case AML_MP_INPUT_STREAM_SECURE_MEMORY:
+        return TS_INPUT_BUFFER_TYPE_SECURE;
     }
 
     return TS_INPUT_BUFFER_TYPE_NORMAL;
@@ -130,6 +133,11 @@ AmlTsPlayer::AmlTsPlayer(Aml_MP_PlayerCreateParams* createParams, int instanceId
     AmTsPlayer_registerCb(mPlayer, [](void *user_data, am_tsplayer_event *event) {
         static_cast<AmlTsPlayer*>(user_data)->eventCallback(event);
     }, this);
+}
+
+int AmlTsPlayer::initCheck() const
+{
+    return mPlayer != 0 ? 0 : AML_MP_ERROR;
 }
 
 AmlTsPlayer::~AmlTsPlayer()
@@ -220,7 +228,7 @@ int AmlTsPlayer::setAudioParams(const Aml_MP_AudioParams* params) {
         mAudioParaSeted = true;
     }
     #ifdef ANDROID
-    am_tsplayer_audio_params audio_params = {audioCodecConvert(params->audioCodec), params->pid, 0};
+    am_tsplayer_audio_params audio_params = {audioCodecConvert(params->audioCodec), params->pid, params->secureLevel};
     #else
     am_tsplayer_audio_params audio_params = {audioCodecConvert(params->audioCodec), params->pid};
     #endif
@@ -285,7 +293,7 @@ int AmlTsPlayer::resume() {
 
 int AmlTsPlayer::flush() {
     //flush need more info, will do in Aml_MP_PlayerImpl
-    return AML_MP_DEAD_OBJECT;
+    return AML_MP_ERROR_DEAD_OBJECT;
 }
 
 int AmlTsPlayer::setPlaybackRate(float rate){
@@ -304,7 +312,7 @@ int AmlTsPlayer::setPlaybackRate(float rate){
 int AmlTsPlayer::switchAudioTrack(const Aml_MP_AudioParams* params){
     //switchAudioTrack need more info, will do in Aml_MP_PlayerImpl
     AML_MP_UNUSED(params);
-    return AML_MP_DEAD_OBJECT;
+    return AML_MP_ERROR_DEAD_OBJECT;
 }
 
 int AmlTsPlayer::writeData(const uint8_t* buffer, size_t size) {
@@ -353,7 +361,6 @@ int AmlTsPlayer::getCurrentPts(Aml_MP_StreamType type, int64_t* pts) {
     am_tsplayer_result ret;
 
     ret = AmTsPlayer_getPts(mPlayer, convertToTsplayerStreamType(type), (uint64_t*)pts);
-    MLOGI("getCurrentPts type: %s, pts: 0x%llx, ret: %d", mpStreamType2Str(type), *pts, ret);
     if (ret != AM_TSPLAYER_OK) {
         return -1;
     }
@@ -379,8 +386,13 @@ int AmlTsPlayer::getBufferStat(Aml_MP_BufferStat* bufferStat) {
         MLOGE("Get video buffer error, ret = %d", ret);
         return -1;
     }
-    return 0;
 
+    int64_t cacheMs = 0;
+    AmTsPlayer_getDelayTime(mPlayer, &cacheMs);
+    bufferStat->audioBuffer.bufferedMs = cacheMs;
+    bufferStat->videoBuffer.bufferedMs = cacheMs;
+
+    return 0;
 }
 
 int AmlTsPlayer::setVideoWindow(int x, int y, int width, int height) {
@@ -770,6 +782,7 @@ int AmlTsPlayer::setADParams(const Aml_MP_AudioParams* params, bool enableMix) {
 
     audioParams.pid = (int32_t)(params->pid);
     audioParams.codectype = audioCodecConvert(params->audioCodec);
+    audioParams.seclevel = params->secureLevel;
 
     ret = AmTsPlayer_setADParams(mPlayer, &audioParams);
     if (enableMix) {

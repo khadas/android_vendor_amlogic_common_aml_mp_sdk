@@ -12,7 +12,9 @@
 
 #include <Aml_MP/Common.h>
 #include <Aml_MP/Cas.h>
-#include <utils/AmlMpRefBase.h>
+#include <utils/AmlMpHandle.h>
+#include <utils/AmlMpUtils.h>
+#include <vector>
 
 namespace aml_mp {
 //using android::RefBase;
@@ -32,21 +34,48 @@ namespace aml_mp {
 #define TSN_DVB             "demod"
 
 
-class AmlCasBase : public AmlMpRefBase
+class AmlCasBase : public AmlMpHandle
 {
 public:
-    static sptr<AmlCasBase> create(const Aml_MP_IptvCASParams* params, int instanceId);
+    static sptr<AmlCasBase> create(Aml_MP_CASServiceType serviceType);
     virtual ~AmlCasBase();
 
-    virtual int openSession() = 0;
-    virtual int closeSession() = 0;
-    virtual int setPrivateData(const uint8_t* data, size_t size) = 0;
-    virtual int processEcm(const uint8_t* data, size_t size) = 0;
-    virtual int processEmm(const uint8_t* data, size_t size) = 0;
-    int registerEventCallback(Aml_MP_CAS_EventCallback cb, void* userData);
+    virtual int registerEventCallback(Aml_MP_CAS_EventCallback cb, void* userData);
+    virtual int startDescrambling(Aml_MP_CASServiceInfo* params);
+    virtual int startDescrambling(const Aml_MP_IptvCASParams* params);
+    virtual int stopDescrambling() = 0;
+    virtual int setPrivateData(const uint8_t* data, size_t size);
+    virtual int processEcm(bool isSection, int ecmPid, const uint8_t* data, size_t size);
+    virtual int processEmm(const uint8_t* data, size_t size);
+    virtual int decrypt(uint8_t *in, int size, void *ext_data, Aml_MP_Buffer* outbuffer);
+
+    virtual int updateDescramblingPid(int oldStreamPid, int newStreamPid);
+    virtual int startDVRRecord(Aml_MP_CASServiceInfo* serviceInfo);
+    virtual int stopDVRRecord();
+
+    virtual int startDVRReplay(Aml_MP_CASDVRReplayParams* dvrReplayParams);
+    virtual int stopDVRReplay();
+
+    virtual int DVREncrypt(Aml_MP_CASCryptoParams* cryptoParams);
+    virtual int DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams);
+
+    virtual AML_MP_SECMEM createSecmem(Aml_MP_CASServiceType type, void** pSecBuf, uint32_t* size);
+    virtual int destroySecmem(AML_MP_SECMEM secMem);
+
+    virtual int ioctl(const char* inJson, char* outJson, uint32_t outLen);
+    virtual int getStoreRegion(Aml_MP_CASStoreRegion* region, uint8_t* regionCount);
+
+    Aml_MP_CASServiceType serviceType() const {
+        return mServiceType;
+    }
+
+    int getEcmPids(std::vector<int>& ecmPids);
 
 protected:
-    AmlCasBase();
+    AmlCasBase(Aml_MP_CASServiceType serviceType);
+
+    Aml_MP_CASServiceType mServiceType;
+    Aml_MP_IptvCASParams mIptvCasParam;
 
 private:
     AmlCasBase(const AmlCasBase&) = delete;

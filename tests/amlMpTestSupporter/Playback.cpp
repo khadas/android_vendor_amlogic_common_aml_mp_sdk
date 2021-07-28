@@ -19,11 +19,203 @@
 static const char* mName = LOG_TAG;
 
 namespace aml_mp {
+////////////////////////////////////////////////////////////////////////////////
+CasPlugin::CasPlugin(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, const sptr<ProgramInfo>& programInfo)
+: mDemuxId(demuxId)
+, mSourceType(sourceType)
+, mProgramInfo(programInfo)
+{
 
+}
+
+CasPlugin::~CasPlugin()
+{
+
+}
+
+int CasPlugin::start()
+{
+    if (mSourceType == AML_MP_INPUT_SOURCE_TS_DEMOD) {
+        return startDVBDescrambling();
+    } else if (mSourceType == AML_MP_INPUT_SOURCE_TS_MEMORY) {
+        return startIPTVDescrambling();
+    }
+
+    return -1;
+}
+
+int CasPlugin::stop()
+{
+    if (mSourceType == AML_MP_INPUT_SOURCE_TS_DEMOD) {
+        return stopDVBDescrambling();
+    } else if (mSourceType == AML_MP_INPUT_SOURCE_TS_MEMORY) {
+        return stopIPTVDescrambling();
+    }
+
+    return -1;
+}
+
+int CasPlugin::startDVBDescrambling()
+{
+    MLOG();
+    #ifdef ANDROID
+    Aml_MP_CAS_Initialize();
+
+    Aml_MP_CAS_SetEmmPid(mDemuxId, mProgramInfo->emmPid);
+
+    if (!Aml_MP_CAS_IsSystemIdSupported(mProgramInfo->caSystemId)) {
+        MLOGE("unsupported caSystemId:%#x", mProgramInfo->caSystemId);
+        return -1;
+    }
+
+    int ret = Aml_MP_CAS_OpenSession(&mCasSession, AML_MP_CAS_SERVICE_LIVE_PLAY);
+    if (ret < 0) {
+        MLOGE("open session failed!");
+        return -1;
+    }
+
+
+    Aml_MP_CAS_RegisterEventCallback(mCasSession, [](AML_MP_CASSESSION session, const char* json) {
+        MLOGI("ca_cb:%s", json);
+        return 0;
+    }, this);
+
+    Aml_MP_CASServiceInfo casServiceInfo;
+    memset(&casServiceInfo, 0, sizeof(casServiceInfo));
+    casServiceInfo.service_id = mProgramInfo->serviceNum;
+    casServiceInfo.serviceType = AML_MP_CAS_SERVICE_LIVE_PLAY;
+    casServiceInfo.ecm_pid = mProgramInfo->ecmPid[0];
+    casServiceInfo.stream_pids[0] = mProgramInfo->audioPid;
+    casServiceInfo.stream_pids[1] = mProgramInfo->videoPid;
+    casServiceInfo.stream_num = 2;
+    casServiceInfo.ca_private_data_len = 0;
+    ret = Aml_MP_CAS_StartDescrambling(mCasSession, &casServiceInfo);
+    if (ret < 0) {
+        MLOGE("start descrambling failed with %d", ret);
+        return ret;
+    }
+
+    mSecMem = Aml_MP_CAS_CreateSecmem(mCasSession, AML_MP_CAS_SERVICE_LIVE_PLAY, nullptr, nullptr);
+    if (mSecMem == nullptr) {
+        MLOGE("create secmem failed!");
+    }
+    #endif
+    return 0;
+}
+
+int CasPlugin::stopDVBDescrambling()
+{
+    MLOG("mCasSession:%p", mCasSession);
+    #ifdef ANDROID
+    if (mCasSession == nullptr) {
+        return 0;
+    }
+
+    Aml_MP_CAS_DestroySecmem(mCasSession, mSecMem);
+    mSecMem = nullptr;
+
+    Aml_MP_CAS_StopDescrambling(mCasSession);
+
+    Aml_MP_CAS_CloseSession(mCasSession);
+    mCasSession = nullptr;
+    #endif
+    return 0;
+    return 0;
+}
+
+int CasPlugin::startIPTVDescrambling()
+{
+    MLOG();
+
+    Aml_MP_CASServiceType serviceType{AML_MP_CAS_SERVICE_TYPE_INVALID};
+    Aml_MP_IptvCASParams casParams;
+    int ret = 0;
+
+    switch (mProgramInfo->caSystemId) {
+    case 0x5601:
+    {
+        MLOGI("verimatrix iptv!");
+        serviceType = AML_MP_CAS_SERVICE_VERIMATRIX_IPTV;
+
+        casParams.videoCodec = mProgramInfo->videoCodec;
+        casParams.audioCodec = mProgramInfo->audioCodec;
+        casParams.videoPid = mProgramInfo->videoPid;
+        casParams.audioPid = mProgramInfo->audioPid;
+        casParams.ecmPid[0] = mProgramInfo->ecmPid[0];
+        casParams.ecmPid[1] = mProgramInfo->ecmPid[1];
+        casParams.demuxId = mDemuxId;
+
+        char value[PROPERTY_VALUE_MAX];
+        property_get("media.vmx.storepath", value, "/data/mediadrm");
+        strncpy(casParams.keyPath, value, sizeof(casParams.keyPath)-1);
+
+        property_get("media.vmx.serveraddr", value, "client-test-3.verimatrix.com");
+        strncpy(casParams.serverAddress, value, sizeof(casParams.serverAddress)-1);
+
+        casParams.serverPort = property_get_int32("media.vmx.port", 12686);
+    }
+    break;
+
+    case 0x1724:
+    {
+        MLOGI("VMX DVB");
+    }
+    break;
+
+    case 0x4AD4:
+    case 0x4AD5:
+    {
+        MLOGI("wvcas iptv, systemid=0x%x!", mProgramInfo->caSystemId);
+        serviceType = AML_MP_CAS_SERVICE_WIDEVINE;
+
+        casParams.caSystemId = mProgramInfo->caSystemId;
+        casParams.videoCodec = mProgramInfo->videoCodec;
+        casParams.audioCodec = mProgramInfo->audioCodec;
+        casParams.videoPid = mProgramInfo->videoPid;
+        casParams.audioPid = mProgramInfo->audioPid;
+        casParams.ecmPid[0] = mProgramInfo->ecmPid[0];
+        casParams.ecmPid[1] = mProgramInfo->ecmPid[1];
+        casParams.demuxId = mDemuxId;
+
+        casParams.private_size = 0;
+        if (mProgramInfo->privateDataLength > 0) {
+            memcpy(casParams.private_data, mProgramInfo->privateData, mProgramInfo->privateDataLength);
+            casParams.private_size =  mProgramInfo->privateDataLength;
+        }
+        MLOGI("wvcas iptv, private_size=%d", casParams.private_size);
+    }
+    break;
+
+    default:
+        MLOGI("unknown caSystemId:%#x", mProgramInfo->caSystemId);
+        break;
+    }
+
+    if (serviceType != AML_MP_CAS_SERVICE_TYPE_INVALID) {
+        ret = Aml_MP_CAS_OpenSession(&mCasSession, serviceType);
+        ret += Aml_MP_CAS_StartDescramblingIPTV(mCasSession, &casParams);
+        if (ret < 0) {
+            MLOGE("start iptv cas session failed!");
+        }
+    }
+
+    return ret;
+}
+
+int CasPlugin::stopIPTVDescrambling()
+{
+    int ret = 0;
+
+    ret = Aml_MP_CAS_StopDescrambling(mCasSession);
+    ret += Aml_MP_CAS_CloseSession(mCasSession);
+
+    return 0;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 Playback::Playback(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, Aml_MP_InputStreamType streamType)
 : mDemuxId(demuxId)
 {
-    mIsDVBSource = sourceType == AML_MP_INPUT_SOURCE_TS_DEMOD;
     MLOGI("Playback structure,sourceType:%d\n", sourceType);
     Aml_MP_PlayerCreateParams createParams;
     memset(&createParams, 0, sizeof(createParams));
@@ -125,9 +317,11 @@ void Playback::eventCallback(Aml_MP_PlayerEventType eventType, int64_t param)
     }
 }
 
-int Playback::start(const sptr<ProgramInfo>& programInfo, PlayMode playMode)
+int Playback::start(const sptr<ProgramInfo>& programInfo, AML_MP_CASSESSION casSession, PlayMode playMode)
 {
     mProgramInfo = programInfo;
+    mCasSession = casSession;
+
     //printStreamsInfo();
     MLOGI(">>>> Playback start\n");
     mPlayMode = playMode;
@@ -138,13 +332,6 @@ int Playback::start(const sptr<ProgramInfo>& programInfo, PlayMode playMode)
         return -1;
     }
 
-    if (mProgramInfo->scrambled) {
-        if (mIsDVBSource) {
-            startDVBDescrambling();
-        } else {
-            startIPTVDescrambling();
-        }
-    }
     if (mEventCallback != nullptr) {
         Aml_MP_Player_RegisterEventCallBack(mPlayer,mEventCallback, mUserData);
     } else {
@@ -154,6 +341,11 @@ int Playback::start(const sptr<ProgramInfo>& programInfo, PlayMode playMode)
     }, this);
         //Aml_MP_Player_RegisterEventCallBack(mPlayer,eventCallback, mUserData);
     }
+
+    if (mProgramInfo->scrambled) {
+        Aml_MP_Player_BindCasSession(mPlayer, mCasSession);
+    }
+
     if (mPlayMode == PlayMode::START_AUDIO_START_VIDEO) {
         if (setAudioParams()) {
             ret |= Aml_MP_Player_StartAudioDecoding(mPlayer);
@@ -269,6 +461,11 @@ int Playback::stop()
 {
     int ret = 0;
 
+    if (mProgramInfo && mProgramInfo->scrambled) {
+        Aml_MP_Player_UnBindCasSession(mPlayer, mCasSession);
+        mCasSession = nullptr;
+    }
+
     if (mPlayMode == PlayMode::START_ALL_STOP_ALL || mPlayMode == PlayMode::START_SEPARATELY_STOP_ALL) {
         ret = Aml_MP_Player_Stop(mPlayer);
         if (ret < 0) {
@@ -289,14 +486,6 @@ int Playback::stop()
         }
     }
 
-    if (mProgramInfo && mProgramInfo->scrambled) {
-        if (mIsDVBSource) {
-            stopDVBDescrambling();
-        } else {
-            stopIPTVDescrambling();
-        }
-    }
-
     return ret;
 }
 
@@ -310,162 +499,6 @@ int Playback::writeData(const uint8_t* buffer, size_t size)
     int wlen = Aml_MP_Player_WriteData(mPlayer, buffer, size);
 
     return wlen;
-}
-
-int Playback::startDVBDescrambling()
-{
-    MLOG();
-    #ifdef ANDROID
-    Aml_MP_CAS_Initialize();
-
-    Aml_MP_CAS_SetEmmPid(mDemuxId, mProgramInfo->emmPid);
-
-    if (!Aml_MP_CAS_IsSystemIdSupported(mProgramInfo->caSystemId)) {
-        MLOGE("unsupported caSystemId:%#x", mProgramInfo->caSystemId);
-        return -1;
-    }
-
-    int ret = Aml_MP_CAS_OpenSession(&mCasSession, AML_MP_CAS_SERVICE_LIVE_PLAY);
-    if (ret < 0) {
-        MLOGE("open session failed!");
-        return -1;
-    }
-
-
-    Aml_MP_CAS_RegisterEventCallback(mCasSession, [](AML_MP_CASSESSION session, const char* json) {
-        MLOGI("ca_cb:%s", json);
-        return 0;
-    }, this);
-
-    Aml_MP_CASServiceInfo casServiceInfo;
-    memset(&casServiceInfo, 0, sizeof(casServiceInfo));
-    casServiceInfo.service_id = mProgramInfo->serviceNum;
-    casServiceInfo.serviceType = AML_MP_CAS_SERVICE_LIVE_PLAY;
-    casServiceInfo.ecm_pid = mProgramInfo->ecmPid[0];
-    casServiceInfo.stream_pids[0] = mProgramInfo->audioPid;
-    casServiceInfo.stream_pids[1] = mProgramInfo->videoPid;
-    casServiceInfo.stream_num = 2;
-    casServiceInfo.ca_private_data_len = 0;
-    ret = Aml_MP_CAS_StartDescrambling(mCasSession, &casServiceInfo);
-    if (ret < 0) {
-        MLOGE("start descrambling failed with %d", ret);
-        return ret;
-    }
-
-    mSecMem = Aml_MP_CAS_CreateSecmem(mCasSession, AML_MP_CAS_SERVICE_LIVE_PLAY, nullptr, nullptr);
-    if (mSecMem == nullptr) {
-        MLOGE("create secmem failed!");
-    }
-    #endif
-    return 0;
-}
-
-int Playback::stopDVBDescrambling()
-{
-    MLOG("mCasSession:%p", mCasSession);
-    #ifdef ANDROID
-    if (mCasSession == nullptr) {
-        return 0;
-    }
-
-    Aml_MP_CAS_DestroySecmem(mCasSession, mSecMem);
-    mSecMem = nullptr;
-
-    Aml_MP_CAS_StopDescrambling(mCasSession);
-
-    Aml_MP_CAS_CloseSession(mCasSession);
-    mCasSession = nullptr;
-    #endif
-    return 0;
-}
-
-int Playback::startIPTVDescrambling()
-{
-    MLOG();
-
-    Aml_MP_IptvCASParams casParams;
-    int ret = 0;
-
-    casParams.type = AML_MP_CAS_UNKNOWN;
-    switch (mProgramInfo->caSystemId) {
-    case 0x5601:
-    {
-        MLOGI("verimatrix iptv!");
-        casParams.type = AML_MP_CAS_VERIMATRIX_IPTV;
-        casParams.videoCodec = mProgramInfo->videoCodec;
-        casParams.audioCodec = mProgramInfo->audioCodec;
-        casParams.videoPid = mProgramInfo->videoPid;
-        casParams.audioPid = mProgramInfo->audioPid;
-        casParams.ecmPid[0] = mProgramInfo->ecmPid[0];
-        casParams.ecmPid[1] = mProgramInfo->ecmPid[1];
-        casParams.demuxId = mDemuxId;
-
-        char value[PROPERTY_VALUE_MAX];
-        property_get("config.media.vmx.dvb.key_file", value, "/data/mediadrm");
-        strncpy(casParams.keyPath, value, sizeof(casParams.keyPath)-1);
-
-        property_get("config.media.vmx.dvb.server_ip", value, "client-test-1.verimatrix.com");
-        strncpy(casParams.serverAddress, value, sizeof(casParams.serverAddress)-1);
-
-        casParams.serverPort = property_get_int32("config.media.vmx.dvb.server_port", 12686);
-    }
-    break;
-
-    case 0x1724:
-    {
-        MLOGI("VMX DVB");
-#if 0
-        casParams.type = AML_MP_CAS_VERIMATRIX_DVB;
-        casParams.dvbCasParam.demuxId = mDemuxId;
-        casParams.dvbCasParam.emmPid = mProgramInfo->emmPid;
-        casParams.dvbCasParam.serviceId = mProgramInfo->serviceNum;
-        casParams.dvbCasParam.ecmPid = mProgramInfo->ecmPid[0];
-        casParams.dvbCasParam.streamPids[0] = mProgramInfo->videoPid;
-        casParams.dvbCasParam.streamPids[1] = mProgramInfo->audioPid;
-#endif
-    }
-    break;
-
-    case 0x4AD4:
-    case 0x4AD5:
-    {
-        MLOGI("wvcas iptv, systemid=0x%x!", mProgramInfo->caSystemId);
-        casParams.type = AML_MP_CAS_WIDEVINE;
-        casParams.caSystemId = mProgramInfo->caSystemId;
-        casParams.videoCodec = mProgramInfo->videoCodec;
-        casParams.audioCodec = mProgramInfo->audioCodec;
-        casParams.videoPid = mProgramInfo->videoPid;
-        casParams.audioPid = mProgramInfo->audioPid;
-        casParams.ecmPid[0] = mProgramInfo->ecmPid[0];
-        casParams.ecmPid[1] = mProgramInfo->ecmPid[1];
-        casParams.demuxId = mDemuxId;
-
-        casParams.private_size = 0;
-        if (mProgramInfo->privateDataLength > 0) {
-            memcpy(casParams.private_data, mProgramInfo->privateData, mProgramInfo->privateDataLength);
-            casParams.private_size =  mProgramInfo->privateDataLength;
-        }
-        MLOGI("wvcas iptv, private_size=%d", casParams.private_size);
-    }
-    break;
-
-    default:
-        MLOGI("unknown caSystemId:%#x", mProgramInfo->caSystemId);
-        break;
-    }
-
-    if (casParams.type != AML_MP_CAS_UNKNOWN) {
-        ret = Aml_MP_Player_SetIptvCASParams(mPlayer, &casParams);
-    }
-
-    return ret;
-}
-
-int Playback::stopIPTVDescrambling()
-{
-    MLOG();
-
-    return 0;
 }
 
 void Playback::printStreamsInfo()

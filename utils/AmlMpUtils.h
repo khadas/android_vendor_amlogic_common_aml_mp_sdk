@@ -48,7 +48,7 @@ namespace aml_mp {
 
 #define AML_MP_UNUSED(x) (void)(x)
 
-#ifndef CHECK(condition)
+#ifndef CHECK
 #define CHECK(condition)  condition
 #endif
 
@@ -123,6 +123,7 @@ const char* mpInputStreamType2Str(Aml_MP_InputStreamType inputStreamType);
 const char* mpInputSourceType2Str(Aml_MP_InputSourceType inputSourceType);
 const char* mpCASType2Str(Aml_MP_CASType casType);
 const char* mpVideoDecideMode2Str(Aml_MP_VideoDecodeMode decodeMode);
+const char* mpCASServiceType2Str(Aml_MP_CASServiceType servciceType);
 
 vformat_t convertToVFormat(Aml_MP_CodecID videoCodec);
 aformat_t convertToAForamt(Aml_MP_CodecID audioCodec);

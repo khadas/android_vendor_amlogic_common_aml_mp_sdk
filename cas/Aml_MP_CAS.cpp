@@ -13,6 +13,7 @@
 #include "AmlDvbCasHal.h"
 #include <utils/AmlMpHandle.h>
 #include <utils/AmlMpUtils.h>
+#include "cas/AmlCasBase.h"
 
 static const char* mName = LOG_TAG;
 
@@ -44,15 +45,19 @@ static int convertToAmlMPErrorCode(AM_RESULT CasResult) {
         case AM_ERROR_SUCCESS:
             return AML_MP_OK;
         case AM_ERROR_NOT_LOAD:
-            return AML_MP_BAD_INDEX;
+            return AML_MP_ERROR_BAD_INDEX;
         case AM_ERROR_NOT_SUPPORTED:
-            return AML_MP_BAD_TYPE;
+            return AML_MP_ERROR_BAD_TYPE;
         case AM_ERROR_OVERFLOW:
-            return AML_MP_NO_MEMORY;
+            return AML_MP_ERROR_NO_MEMORY;
         default:
             return AML_MP_ERROR;
     }
 }
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 int Aml_MP_CAS_Initialize()
@@ -145,30 +150,32 @@ int Aml_MP_CAS_SetEmmPid(int dmxDev, uint16_t emmPid)
 
 int Aml_MP_CAS_OpenSession(AML_MP_CASSESSION* casSession, Aml_MP_CASServiceType serviceType)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = new AmlDvbCasHal(serviceType);
-    dvbCasHal->incStrong(dvbCasHal.get());
+    sptr<AmlCasBase> casBase = AmlCasBase::create(serviceType);
+    if (!casBase) {
+        return -1;
+    }
+    casBase->incStrong(casBase.get());
 
-    *casSession = aml_handle_cast(dvbCasHal);
-
+    *casSession = aml_handle_cast(casBase);
     return 0;
 }
 
 int Aml_MP_CAS_CloseSession(AML_MP_CASSESSION casSession)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
-    dvbCasHal->decStrong(casSession);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
+    casBase->decStrong(casSession);
 
     return 0;
 }
 
 int Aml_MP_CAS_RegisterEventCallback(AML_MP_CASSESSION casSession, Aml_MP_CAS_EventCallback cb, void* userData)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
     int ret = 0;
 
-    if (dvbCasHal) {
-        ret = dvbCasHal->registerEventCallback(cb, userData);
+    if (casBase) {
+        ret = casBase->registerEventCallback(cb, userData);
     } else {
 #ifdef HAVE_CAS_HAL
         CAS_EventFunction_t eventFn = reinterpret_cast<CAS_EventFunction_t>(cb);
@@ -181,105 +188,130 @@ int Aml_MP_CAS_RegisterEventCallback(AML_MP_CASSESSION casSession, Aml_MP_CAS_Ev
 
 int Aml_MP_CAS_Ioctl(AML_MP_CASSESSION casSession, const char* inJson, char* outJson, uint32_t outLen)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
 
-    return dvbCasHal->ioctl(inJson, outJson, outLen);
+    return casBase->ioctl(inJson, outJson, outLen);
 }
 
 int Aml_MP_CAS_StartDescrambling(AML_MP_CASSESSION casSession, Aml_MP_CASServiceInfo* serviceInfo)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
 
-    return dvbCasHal->startDescrambling(serviceInfo);
+    return casBase->startDescrambling(serviceInfo);
+}
+
+int Aml_MP_CAS_StartDescramblingIPTV(AML_MP_CASSESSION casSession, const Aml_MP_IptvCASParams* params)
+{
+    sptr<AmlCasBase> casIptv = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casIptv == nullptr);
+
+    return casIptv->startDescrambling(params);
 }
 
 int Aml_MP_CAS_StopDescrambling(AML_MP_CASSESSION casSession)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
 
-    return dvbCasHal->stopDescrambling();
+    return casBase->stopDescrambling();
 }
 
 int Aml_MP_CAS_UpdateDescramblingPid(AML_MP_CASSESSION casSession, int oldStreamPid, int newStreamPid)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
 
-    return dvbCasHal->updateDescramblingPid(oldStreamPid, newStreamPid);
+    return casBase->updateDescramblingPid(oldStreamPid, newStreamPid);
 }
 
 int Aml_MP_CAS_StartDVRRecord(AML_MP_CASSESSION casSession, Aml_MP_CASServiceInfo *serviceInfo)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
 
-    return dvbCasHal->startDVRRecord(serviceInfo);
+    return casBase->startDVRRecord(serviceInfo);
 }
 
 int Aml_MP_CAS_StopDVRRecord(AML_MP_CASSESSION casSession)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
 
-    return dvbCasHal->stopDVRRecord();
+    return casBase->stopDVRRecord();
 }
 
 int Aml_MP_CAS_StartDVRReplay(AML_MP_CASSESSION casSession, Aml_MP_CASDVRReplayParams *dvrReplayParams)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
 
-    return dvbCasHal->startDVRReplay(dvrReplayParams);
+    return casBase->startDVRReplay(dvrReplayParams);
 }
 
 int Aml_MP_CAS_StopDVRReplay(AML_MP_CASSESSION casSession)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
 
-    return dvbCasHal->stopDVRReplay();
+    return casBase->stopDVRReplay();
 }
 
 int Aml_MP_CAS_DVREncrypt(AML_MP_CASSESSION casSession, Aml_MP_CASCryptoParams *cryptoParams)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
 
-    return dvbCasHal->DVREncrypt(cryptoParams);
+    return casBase->DVREncrypt(cryptoParams);
 }
 
 int Aml_MP_CAS_DVRDecrypt(AML_MP_CASSESSION casSession, Aml_MP_CASCryptoParams *cryptoParams)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
 
-    return dvbCasHal->DVRDecrypt(cryptoParams);
+    return casBase->DVRDecrypt(cryptoParams);
 }
 
 AML_MP_SECMEM Aml_MP_CAS_CreateSecmem(AML_MP_CASSESSION casSession, Aml_MP_CASServiceType type, void **pSecbuf, uint32_t *size)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(AML_MP_INVALID_HANDLE, dvbCasHal == nullptr);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(AML_MP_INVALID_HANDLE, casBase == nullptr);
 
-    return dvbCasHal->createSecmem(type, pSecbuf, size);
+    return casBase->createSecmem(type, pSecbuf, size);
 }
 
 int Aml_MP_CAS_DestroySecmem(AML_MP_CASSESSION casSession, AML_MP_SECMEM secMem)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
 
-    return dvbCasHal->destroySecmem(secMem);
+    return casBase->destroySecmem(secMem);
 }
 
 int Aml_MP_CAS_GetStoreRegion(AML_MP_CASSESSION casSession, Aml_MP_CASStoreRegion* region, uint8_t* regionCount)
 {
-    sptr<AmlDvbCasHal> dvbCasHal = aml_handle_cast<AmlDvbCasHal>(casSession);
-    RETURN_IF(-1, dvbCasHal == nullptr);
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
 
-    return dvbCasHal->getStoreRegion(region, regionCount);
+    return casBase->getStoreRegion(region, regionCount);
 }
 
+int Aml_MP_CAS_ProcessEcmIPTV(AML_MP_CASSESSION casSession, bool isSection, int ecmPid, const uint8_t* data, size_t size)
+{
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
+    return casBase->processEcm(isSection, ecmPid, data, size);
+}
+
+int Aml_MP_CAS_DecryptIPTV(AML_MP_CASSESSION casSession, uint8_t* data, size_t size, void* ext_data, Aml_MP_Buffer* outbuffer)
+{
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
+    return casBase->decrypt(data, size, ext_data, outbuffer);
+}
+
+#ifdef __cplusplus
+}
+#endif

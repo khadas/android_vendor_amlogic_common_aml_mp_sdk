@@ -141,6 +141,11 @@ AmlCTCPlayer::AmlCTCPlayer(Aml_MP_PlayerCreateParams* createParams, int instance
     }, this);
 }
 
+int AmlCTCPlayer::initCheck() const
+{
+    return 0;
+}
+
 AmlCTCPlayer::~AmlCTCPlayer()
 {
     MLOGI("%s:%d\n", __FUNCTION__, __LINE__);

@@ -22,19 +22,17 @@ struct CasLibWrapper;
 class AmlVMXIptvCas : public AmlCasBase
 {
 public:
-    AmlVMXIptvCas(const Aml_MP_IptvCASParams* param, int instanceId);
+    AmlVMXIptvCas(Aml_MP_CASServiceType serviceType);
     ~AmlVMXIptvCas();
-    virtual int openSession() override;
-    virtual int closeSession() override;
+    virtual int startDescrambling(const Aml_MP_IptvCASParams* params) override;
+    virtual int stopDescrambling() override;
     virtual int setPrivateData(const uint8_t* data, size_t size) override;
-    virtual int processEcm(const uint8_t* data, size_t size) override;
+    virtual int processEcm(bool isSection, int ecmPid, const uint8_t* data, size_t size) override;
     virtual int processEmm(const uint8_t* data, size_t size) override;
 
 private:
     static CasLibWrapper* sCasLibWrapper;
     static std::once_flag sLoadCasLibFlag;
-
-    Aml_MP_IptvCASParams mIptvCasParam;
 
     dvb_ca_t* mCasHandle = nullptr;
 

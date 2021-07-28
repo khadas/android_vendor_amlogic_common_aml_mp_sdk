@@ -70,12 +70,20 @@ int Aml_MP_Player_SetSubtitleParams(AML_MP_PLAYER handle, Aml_MP_SubtitleParams*
     return player->setSubtitleParams(params);
 }
 
-int Aml_MP_Player_SetIptvCASParams(AML_MP_PLAYER handle, Aml_MP_IptvCASParams* params)
+int Aml_MP_Player_BindCasSession(AML_MP_PLAYER handle, AML_MP_CASSESSION casSession)
 {
     sptr<AmlMpPlayerImpl> player = aml_handle_cast<AmlMpPlayerImpl>(handle);
     RETURN_IF(-1, player == nullptr);
 
-    return player->setIptvCASParams(params);
+    return player->bindCasSession(casSession);
+}
+
+int Aml_MP_Player_UnBindCasSession(AML_MP_PLAYER handle, AML_MP_CASSESSION casSession)
+{
+    sptr<AmlMpPlayerImpl> player = aml_handle_cast<AmlMpPlayerImpl>(handle);
+    RETURN_IF(-1, player == nullptr);
+
+    return player->unBindCasSession(casSession);
 }
 
 int Aml_MP_Player_SetCASParams(AML_MP_PLAYER handle, Aml_MP_CASParams* params)
@@ -83,9 +91,18 @@ int Aml_MP_Player_SetCASParams(AML_MP_PLAYER handle, Aml_MP_CASParams* params)
     sptr<AmlMpPlayerImpl> player = aml_handle_cast<AmlMpPlayerImpl>(handle);
     RETURN_IF(-1, player == nullptr);
 
+    Aml_MP_CASServiceType serviceType{AML_MP_CAS_SERVICE_TYPE_INVALID};
     Aml_MP_IptvCASParams iptvCasParam{};
 
-    iptvCasParam.type = params->type;
+    if (params->type == AML_MP_CAS_VERIMATRIX_IPTV) {
+        serviceType = AML_MP_CAS_SERVICE_VERIMATRIX_IPTV;
+    } else if (params->type == AML_MP_CAS_WIDEVINE) {
+        serviceType = AML_MP_CAS_SERVICE_WIDEVINE;
+    } else {
+        MLOGE("unsupported cas type! %s", mpCASType2Str(params->type));
+        return -1;
+    }
+
     iptvCasParam.videoCodec = params->u.iptvCasParam.videoCodec;
     iptvCasParam.audioCodec = params->u.iptvCasParam.audioCodec;
     iptvCasParam.videoPid = params->u.iptvCasParam.videoPid;
@@ -96,7 +113,7 @@ int Aml_MP_Player_SetCASParams(AML_MP_PLAYER handle, Aml_MP_CASParams* params)
     iptvCasParam.serverPort = params->u.iptvCasParam.serverPort;
     strncpy(iptvCasParam.keyPath, params->u.iptvCasParam.keyPath, sizeof(params->u.iptvCasParam.keyPath));
 
-    return player->setIptvCASParams(&iptvCasParam);
+    return player->setIptvCASParams(serviceType, &iptvCasParam);
 }
 
 int Aml_MP_Player_Start(AML_MP_PLAYER handle)
