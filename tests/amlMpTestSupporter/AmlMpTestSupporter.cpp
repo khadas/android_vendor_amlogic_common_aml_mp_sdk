@@ -146,15 +146,28 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
     }
 
     Aml_MP_DemuxId demuxId = mParser->getDemuxId();
-
     Aml_MP_InputSourceType sourceType = AML_MP_INPUT_SOURCE_TS_MEMORY;
+    Aml_MP_InputStreamType inputStreamType{AML_MP_INPUT_STREAM_NORMAL};
+    AML_MP_CASSESSION casSession = AML_MP_INVALID_HANDLE;
+
     if (mSource->getFlags() & Source::kIsHardwareSource) {
         sourceType = AML_MP_INPUT_SOURCE_TS_DEMOD;
     }
 
+    if (mProgramInfo->scrambled && mCasPlugin == nullptr) {
+        mCasPlugin = new CasPlugin(demuxId, sourceType, mProgramInfo);
+        if (mCasPlugin->start() < 0) {
+            MLOGE("CasPlugin start failed!");
+        } else {
+            casSession = mCasPlugin->casSession();
+            inputStreamType = mCasPlugin->inputStreamType();
+        }
+    }
+
     if (mPlayback == nullptr) {
-        MLOGI("sourceType:%d, scrambled:%d\n", sourceType, mProgramInfo->scrambled);
-        mTestModule = mPlayback = new Playback(demuxId, sourceType, mProgramInfo->scrambled ? AML_MP_INPUT_STREAM_ENCRYPTED : AML_MP_INPUT_STREAM_NORMAL);
+        MLOGI("sourceType:%d, inputStreamType:%d\n", sourceType, inputStreamType);
+
+        mTestModule = mPlayback = new Playback(demuxId, sourceType, inputStreamType);
     }
 
     if (mEventCallback != nullptr) {
@@ -203,7 +216,7 @@ int AmlMpTestSupporter::startPlay(PlayMode playMode)
         mPlayback->setVideoWindow(mDisplayParam.x, mDisplayParam.y, mDisplayParam.width, mDisplayParam.height);
         MLOGI("x:%d y:%d width:%d height:%d\n", mDisplayParam.x, mDisplayParam.y, mDisplayParam.width, mDisplayParam.height);
     }
-    ret = mPlayback->start(mProgramInfo, mPlayMode);
+    ret = mPlayback->start(mProgramInfo, casSession, mPlayMode);
     if (ret < 0) {
         MLOGE("playback start failed!");
         return -1;
@@ -298,6 +311,11 @@ int AmlMpTestSupporter::stop()
 
     if (mDVRPlayback != nullptr) {
         mDVRPlayback->stop();
+    }
+
+    if (mCasPlugin != nullptr) {
+        mCasPlugin->stop();
+        mCasPlugin.clear();
     }
 
     if (mDisplayParam.videoMode) {

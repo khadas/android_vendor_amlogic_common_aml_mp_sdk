@@ -21,6 +21,41 @@
 #include <utils/RefBase.h>
 
 namespace aml_mp {
+class CasPlugin : public AmlMpRefBase
+{
+public:
+    CasPlugin(Aml_MP_DemuxId demuxId, Aml_MP_InputSourceType sourceType, const sptr<ProgramInfo>& programInfo);
+    ~CasPlugin();
+
+    int start();
+    int stop();
+
+    AML_MP_CASSESSION casSession() const {
+        return mCasSession;
+    }
+
+    Aml_MP_InputStreamType inputStreamType() const {
+        return mInputStreamType;
+    }
+
+private:
+    int startDVBDescrambling();
+    int startIPTVDescrambling();
+    int stopDVBDescrambling();
+    int stopIPTVDescrambling();
+
+    const Aml_MP_DemuxId mDemuxId{AML_MP_DEMUX_ID_DEFAULT};
+    const Aml_MP_InputSourceType mSourceType;
+    const sptr<ProgramInfo> mProgramInfo;
+
+    Aml_MP_InputStreamType mInputStreamType{AML_MP_INPUT_STREAM_ENCRYPTED};
+
+    AML_MP_CASSESSION mCasSession = nullptr;
+    AML_MP_SECMEM mSecMem = nullptr;
+
+    CasPlugin(const CasPlugin&) = delete;
+    CasPlugin& operator=(const CasPlugin&) = delete;
+};
 
 // for iptv (encrypt) playback, dvb (encrypt) playback
 class Playback : public TestModule, public ISourceReceiver
@@ -34,7 +69,7 @@ public:
     void setANativeWindow(const android::sp<ANativeWindow>& window);
 #endif
     void registerEventCallback(Aml_MP_PlayerEventCallback cb, void* userData);
-    int start(const sptr<ProgramInfo>& programInfo, PlayMode mode);
+    int start(const sptr<ProgramInfo>& programInfo, AML_MP_CASSESSION casSession, PlayMode mode);
     int stop();
     void signalQuit();
     virtual int writeData(const uint8_t* buffer, size_t size) override;
@@ -61,16 +96,14 @@ private:
 
 private:
     void eventCallback(Aml_MP_PlayerEventType eventType, int64_t param);
-    sptr<ProgramInfo> mProgramInfo;
+
     const Aml_MP_DemuxId mDemuxId;
+    sptr<ProgramInfo> mProgramInfo;
     AML_MP_PLAYER mPlayer = AML_MP_INVALID_HANDLE;
     Aml_MP_PlayerEventCallback mEventCallback = nullptr;
     void* mUserData = nullptr;
 
-    bool mIsDVBSource = false;
-
     AML_MP_CASSESSION mCasSession = nullptr;
-    AML_MP_SECMEM mSecMem = nullptr;
 
     PlayMode mPlayMode = PlayMode::START_ALL_STOP_ALL;
 

@@ -26,11 +26,12 @@
 #include <gui/SurfaceComposerClient.h>
 #endif
 #endif
+#include <utils/AmlMpEventLooper.h>
 
 
 namespace aml_mp {
 
-#define TS_BUFFER_SIZE          (188 * 1000 * 10)
+#define TS_BUFFER_SIZE          (2 * 1024 * 1024)
 #define TEMP_BUFFER_SIZE        (188 * 100)
 
 #define START_ALL_PENDING       (1 << 0)
@@ -44,7 +45,6 @@ namespace aml_mp {
 AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
 : mInstanceId(AmlMpPlayerRoster::instance().registerPlayer(this))
 , mCreateParams(*createParams)
-, mTsBuffer(TS_BUFFER_SIZE)
 {
     snprintf(mName, sizeof(mName), "%s_%d", LOG_TAG, mInstanceId);
 
@@ -58,7 +58,7 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
 #endif
     MLOG("sdk:%d, platform:%s", sdkVersion, platform);
 #else
-    MLOG();
+    MLOG("drmMode:%s, sourceType:%s", mpInputStreamType2Str(createParams->drmMode), mpInputSourceType2Str(createParams->sourceType));
 #endif
 
     memset(&mVideoParams, 0, sizeof(mVideoParams));
@@ -73,18 +73,22 @@ AmlMpPlayerImpl::AmlMpPlayerImpl(const Aml_MP_PlayerCreateParams* createParams)
     memset(&mADParams, 0, sizeof(mADParams));
     mADParams.pid = AML_MP_INVALID_PID;
     mADParams.audioCodec = AML_MP_CODEC_UNKNOWN;
-    memset(&mCASParams, 0, sizeof(mCASParams));
+    memset(&mIptvCasParams, 0, sizeof(mIptvCasParams));
 
     mWorkMode = AML_MP_PLAYER_MODE_NORMAL;
     mAudioBalance = AML_MP_AUDIO_BALANCE_STEREO;
 
     AmlMpConfig::instance().init();
+    mWaitingEcmMode = (WaitingEcmMode)AmlMpConfig::instance().mWaitingEcmMode;
+    MLOGI("mWaitingEcmMode:%d", mWaitingEcmMode);
 
-    mPlayer = AmlPlayerBase::create(&mCreateParams, mInstanceId);
-    mParser = new Parser(mCreateParams.demuxId, mCreateParams.sourceType == AML_MP_INPUT_SOURCE_TS_DEMOD, true);
+    mTsBuffer.init(AmlMpConfig::instance().mWriteBufferSize * 1024 * 1024);
+
     mWriteBuffer = new AmlMpBuffer(TEMP_BUFFER_SIZE);
     mWriteBuffer->setRange(0, 0);
     mZorder = kZorderBase + mInstanceId;
+
+    mPlayer = AmlPlayerBase::create(&mCreateParams, mInstanceId);
 }
 
 AmlMpPlayerImpl::~AmlMpPlayerImpl()
@@ -160,6 +164,7 @@ int AmlMpPlayerImpl::setAudioParams_l(const Aml_MP_AudioParams* params)
     mAudioParams.nSampleRate = params->nSampleRate;
     memcpy(mAudioParams.extraData, params->extraData, sizeof(mAudioParams.extraData));
     mAudioParams.extraDataSize = params->extraDataSize;
+    mAudioParams.secureLevel = params->secureLevel;
 
     MLOGI("setAudioParams apid: 0x%x, fmt: %s", params->pid, mpCodecId2Str(params->audioCodec));
 
@@ -203,19 +208,63 @@ int AmlMpPlayerImpl::setADParams(Aml_MP_AudioParams* params)
     mADParams.nSampleRate = params->nSampleRate;
     memcpy(mADParams.extraData, params->extraData, sizeof(mADParams.extraData));
     mADParams.extraDataSize = params->extraDataSize;
+    mADParams.secureLevel = params->secureLevel;
 
     MLOGI("setADParams apid: 0x%x, fmt:%s", params->pid, mpCodecId2Str(params->audioCodec));
 
     return 0;
 }
 
-int AmlMpPlayerImpl::setIptvCASParams(const Aml_MP_IptvCASParams* params)
+int AmlMpPlayerImpl::bindCasSession(AML_MP_CASSESSION casSession)
+{
+    AML_MP_TRACE(10);
+    std::unique_lock<std::mutex> _l(mLock);
+    MLOG();
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
+
+    if (casBase->serviceType() < AML_MP_CAS_SERVICE_TYPE_IPTV) {
+        MLOGE("do not support bind DVB caseSession!");
+    } else if (casBase->serviceType() == AML_MP_CAS_SERVICE_VERIMATRIX_WEB) {
+        MLOGW("verimatrix web casSession don't need bind!");
+    }
+
+    mCasHandle = casBase;
+    casBase->getEcmPids(mEcmPids);
+    mIsStandaloneCas = true;
+
+    return 0;
+}
+
+int AmlMpPlayerImpl::unBindCasSession(AML_MP_CASSESSION casSession)
+{
+    AML_MP_TRACE(10);
+
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
+
+    std::unique_lock<std::mutex> _l(mLock);
+    MLOG();
+
+    if (casBase != mCasHandle) {
+        MLOGE("unBindCasSession failed, casSession is not same one!");
+        return -1;
+    }
+
+    mCasHandle.clear();
+    mIsStandaloneCas = false;
+
+    return 0;
+}
+
+int AmlMpPlayerImpl::setIptvCASParams(Aml_MP_CASServiceType serviceType, const Aml_MP_IptvCASParams* params)
 {
     AML_MP_TRACE(10);
     std::unique_lock<std::mutex> _l(mLock);
     MLOG();
 
-    mCASParams = *params;
+    mCasServiceType = serviceType;
+    mIptvCasParams = *params;
 
     return 0;
 }
@@ -262,11 +311,17 @@ int AmlMpPlayerImpl::start_l()
     if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
         mPlayer->setSubtitleParams(&mSubtitleParams);
     }
-    int ret = mPlayer->start();
-    if (ret < 0) {
-        MLOGE("%s failed!", __FUNCTION__);
-    }
 
+    int ret = 0;
+    if (mVideoParams.pid != AML_MP_INVALID_PID ||
+        mAudioParams.pid != AML_MP_INVALID_PID ||
+        mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
+        ret = mPlayer->start();
+        if (ret < 0) {
+            MLOGE("%s failed!", __FUNCTION__);
+            return ret;
+        }
+    }
     setState_l(STATE_RUNNING);
 
     //CHECK: assume start always be success if param exist
@@ -386,7 +441,7 @@ int AmlMpPlayerImpl::flush()
 
     ret = mPlayer->flush();
 
-    if (ret != AML_MP_DEAD_OBJECT) {
+    if (ret != AML_MP_ERROR_DEAD_OBJECT) {
         return ret;
     }
 
@@ -432,7 +487,7 @@ int AmlMpPlayerImpl::setPlaybackRate(float rate)
         if (rate <= -FAST_PLAY_THRESHOLD) {
             mPlaybackRate = -rate;
         } else {
-            return AML_MP_BAD_VALUE;
+            return AML_MP_ERROR_BAD_VALUE;
         }
     } else {
         mPlaybackRate = rate;
@@ -478,7 +533,7 @@ int AmlMpPlayerImpl::switchAudioTrack(const Aml_MP_AudioParams* params)
         RETURN_IF(-1, mPlayer == nullptr);
         ret = mPlayer->switchAudioTrack(params);
 
-        if (ret != AML_MP_DEAD_OBJECT) {
+        if (ret != AML_MP_ERROR_DEAD_OBJECT) {
             return ret;
         }
 
@@ -508,69 +563,144 @@ int AmlMpPlayerImpl::switchSubtitleTrack(const Aml_MP_SubtitleParams* params)
 
 int AmlMpPlayerImpl::writeData(const uint8_t* buffer, size_t size)
 {
-    RETURN_IF(-1, mPlayer == nullptr);
     std::unique_lock<std::mutex> _l(mLock);
+    RETURN_IF(-1, mPlayer == nullptr);
 
     int written = 0;
 
-    if (mState == STATE_PREPARING) {
+    bool needBuffering = false;
+    if (mCasHandle && mCreateParams.drmMode == AML_MP_INPUT_STREAM_ENCRYPTED && mWaitingEcmMode == kWaitingEcmSynchronous && !mFirstEcmWritten) {
+        size_t ecmOffset = size;
+        size_t ecmSize = 188;
+        ecmOffset = findEcmPacket(buffer, size, mEcmPids, &ecmSize);
+        if (ecmSize > 0) {
+            mCasHandle->processEcm(false, 0, buffer + ecmOffset, ecmSize);
+            mFirstEcmWritten = true;
+            MLOGI("first ECM written, offset:%d", mTsBuffer.size() + ecmOffset);
+        } else {
+            needBuffering = true;
+        }
+    }
+
+    if (mState == STATE_PREPARING || needBuffering) {
         //is waiting for start_delay, writeData into mTsBuffer
-        written = mParser->writeData(buffer, size);
-        mTsBuffer.put(buffer, size); //TODO: check buffer overflow
+        if (mTsBuffer.space() < size) {
+            MLOGW("mTsBuffer full!");
+            return -1;
+        }
+        written = mTsBuffer.put(buffer, size); //TODO: check buffer overflow
+        if (mParser != nullptr) {
+            written = mParser->writeData(buffer, size);
+        }
     } else {
         //already start, need move data from mTsBuffer to player
         if (!mTsBuffer.empty() || mWriteBuffer->size() != 0) {
-            writeDataFromBuffer_l();
+            if (drainDataFromBuffer_l() != 0) {
+                return -1;
+            }
         }
 
-        if (mTsBuffer.empty() && mWriteBuffer->size() == 0) {
-            if (mCasHandle != nullptr) {
-                mCasHandle->processEcm(buffer, size);
-            }
-            //normal write data
-            if (mPlayer != nullptr) {
-                written = mPlayer->writeData(buffer, size);
-            }
-        } else {
-            //mTsBuffer or mTempBuffer still has data left to writeData
-            written = mTsBuffer.put(buffer, size);
-        }
+        written = doWriteData_l(buffer, size);
     }
 
     if (written == 0) {
         written = -1;
     }
+
+    if (written > 0) {
+        statisticWriteDataRate_l(written);
+    }
+
     return written;
 }
 
-void AmlMpPlayerImpl::writeDataFromBuffer_l()
+int AmlMpPlayerImpl::drainDataFromBuffer_l()
 {
     int written = 0;
-
+    int retry = 0;
     do {
         if (mWriteBuffer->size() == 0) {
             size_t readSize = mTsBuffer.get(mWriteBuffer->base(), mWriteBuffer->capacity());
             mWriteBuffer->setRange(0, readSize);
         }
 
-        if (mCasHandle != nullptr) {
-            mCasHandle->processEcm(mWriteBuffer->data(), mWriteBuffer->size());
-        }
-
-        if (mPlayer != nullptr) {
-            written = mPlayer->writeData(mWriteBuffer->data(), mWriteBuffer->size());
-        }
+        written = doWriteData_l(mWriteBuffer->data(), mWriteBuffer->size());
 
         if (written > 0) {
             mWriteBuffer->setRange(mWriteBuffer->offset()+written, mWriteBuffer->size()-written);
         } else {
-            break;
+            if (retry >= 4) {
+                break;
+            }
+            retry++;
+            usleep(50 * 1000);
         }
     } while (!mTsBuffer.empty() || mWriteBuffer->size() != 0);
 
     if (mTsBuffer.empty() && mWriteBuffer->size() == 0) {
         MLOGI("writeData from buffer done");
+        return 0;
     }
+
+    return -EAGAIN;
+}
+
+int AmlMpPlayerImpl::doWriteData_l(const uint8_t* buffer, size_t size)
+{
+    int written = 0;
+    if (mCreateParams.drmMode == AML_MP_INPUT_STREAM_ENCRYPTED) {
+        if (mCasHandle == nullptr || mWaitingEcmMode == kWaitingEcmASynchronous) {
+            written = mPlayer->writeData(buffer, size);
+        } else {
+            size_t totalSize = size;
+            size_t ecmOffset = size;
+            size_t ecmSize = 188;
+            int ecmCount = 0;
+
+            while (size) {
+                ecmOffset = findEcmPacket(buffer, size, mEcmPids, &ecmSize);
+                ecmCount += ecmSize != 0;
+
+                size_t partialSize = ecmOffset;
+                int ret = 0;
+                int retryCount = 0;
+                do {
+                    ret = mPlayer->writeData(buffer, partialSize);
+                    if (ret <= 0) {
+                        if (written == 0) {
+                            goto exit;
+                        }
+                        usleep(50 * 1000);
+
+                        ++retryCount;
+                        if (retryCount%40 == 0) {
+                            MLOGI("writeData %d/%d(%d), ecmOffset:%d(%d), return:%d", written, totalSize, size, ecmOffset, ecmCount, ret);
+                        }
+                    } else {
+                        buffer += ret;
+                        partialSize -= ret;
+                        written += ret;
+                        size -= ret;
+                    }
+                } while (partialSize);
+
+                if (ecmSize > 0) {
+                    mCasHandle->processEcm(false, 0, buffer, ecmSize);
+                    buffer += ecmSize;
+                    written += ecmSize;
+                    size -= ecmSize;
+                }
+            }
+        }
+    } else if (mCreateParams.drmMode == AML_MP_INPUT_STREAM_SECURE_MEMORY) {
+        written = mPlayer->writeData(buffer, size);
+    } else {
+        //normal stream
+        written = mPlayer->writeData(buffer, size);
+    }
+
+exit:
+    return written;
 }
 
 int AmlMpPlayerImpl::writeEsData(Aml_MP_StreamType type, const uint8_t* buffer, size_t size, int64_t pts)
@@ -1244,21 +1374,24 @@ int AmlMpPlayerImpl::startDescrambling_l()
 {
     AML_MP_TRACE(10);
 
-    MLOGI("encrypted stream!, mCreateParams.sourceType=%s", mpInputSourceType2Str(mCreateParams.sourceType));
-    if (mCASParams.type == AML_MP_CAS_UNKNOWN) {
+    if (mCasServiceType == AML_MP_CAS_SERVICE_TYPE_INVALID) {
         MLOGE("unknown cas type!");
         return -1;
     }
-    #ifdef ANDROID
-    mCasHandle = AmlCasBase::create(&mCASParams, mInstanceId);
+
+    if (mCasHandle == nullptr) {
+        mCasHandle = AmlCasBase::create(mCasServiceType);
+    }
+
     if (mCasHandle == nullptr) {
         MLOGE("create CAS handle failed!");
         return -1;
     }
 
-    mCasHandle->openSession();
-    #endif
-    return 0;
+    int ret = mCasHandle->startDescrambling(&mIptvCasParams);
+    mCasHandle->getEcmPids(mEcmPids);
+
+    return ret;
 }
 
 //internal function
@@ -1267,7 +1400,7 @@ int AmlMpPlayerImpl::stopDescrambling_l()
     AML_MP_TRACE(10);
 
     if (mCasHandle) {
-        mCasHandle->closeSession();
+        mCasHandle->stopDescrambling();
         mCasHandle.clear();
     }
 
@@ -1357,7 +1490,7 @@ int AmlMpPlayerImpl::prepare_l()
 {
     MLOG();
 
-    if (mCreateParams.drmMode == AML_MP_INPUT_STREAM_ENCRYPTED) {
+    if (mCreateParams.drmMode != AML_MP_INPUT_STREAM_NORMAL && !mIsStandaloneCas) {
         startDescrambling_l();
     }
 
@@ -1368,10 +1501,6 @@ int AmlMpPlayerImpl::prepare_l()
     if (mPlayer == nullptr) {
         MLOGE("AmlPlayerBase create failed!");
         return -1;
-    }
-
-    if (mParser == nullptr) {
-        mParser = new Parser(mCreateParams.demuxId, mCreateParams.sourceType == AML_MP_INPUT_SOURCE_TS_DEMOD, true);
     }
 
     MLOGI("mWorkMode: %s", mpPlayerWorkMode2Str(mWorkMode));
@@ -1424,7 +1553,10 @@ int AmlMpPlayerImpl::prepare_l()
 
     mPrepareWaitingType = kPrepareWaitingNone;
 
-    if (mCreateParams.sourceType != AML_MP_INPUT_SOURCE_TS_DEMOD && mCreateParams.drmMode == AML_MP_INPUT_STREAM_ENCRYPTED) {
+    if (mCreateParams.sourceType == AML_MP_INPUT_SOURCE_TS_MEMORY &&
+        mCreateParams.drmMode == AML_MP_INPUT_STREAM_ENCRYPTED &&
+        mWaitingEcmMode == kWaitingEcmASynchronous &&
+        mCasHandle) {
         mPrepareWaitingType |= kPrepareWaitingEcm;
     }
 
@@ -1435,18 +1567,41 @@ int AmlMpPlayerImpl::prepare_l()
         mPrepareWaitingType |= kPrepareWaitingCodecId;
     }
 
-    if ((mPrepareWaitingType & kPrepareWaitingCodecId) == 0) {
+    if (mPrepareWaitingType == kPrepareWaitingNone) {
         setState_l(STATE_PREPARED);
     } else {
         setState_l(STATE_PREPARING);
     }
 
-    if (mPrepareWaitingType != kPrepareWaitingNone) {
+    if (mParser == nullptr && mPrepareWaitingType != kPrepareWaitingNone) {
+        mParser = new Parser(mCreateParams.demuxId, mCreateParams.sourceType == AML_MP_INPUT_SOURCE_TS_DEMOD, true);
         mParser->setProgram(mVideoParams.pid, mAudioParams.pid);
         mParser->setEventCallback([this] (Parser::ProgramEventType event, int param1, int param2, void* data) {
                 return programEventCallback(event, param1, param2, data);
         });
-        mParser->open();
+
+        if (mPrepareWaitingType == kPrepareWaitingEcm) {
+            mParser->open(false /*autoParsing*/);
+
+            int lastEcmPid = AML_MP_INVALID_PID;
+            for (size_t i = 0; i < mEcmPids.size(); ++i) {
+                int ecmPid = mEcmPids[i];
+                if (ecmPid <= 0 ||ecmPid >= AML_MP_INVALID_PID) {
+                    continue;
+                }
+
+                if (ecmPid != lastEcmPid) {
+                    mParser->addSectionFilter(ecmPid, Parser::ecmCb, false);
+                    lastEcmPid = ecmPid;
+                }
+            }
+
+            if (lastEcmPid == AML_MP_INVALID_PID) {
+                MLOGE("no valid ecm pid!");
+            }
+        } else {
+            mParser->open();
+        }
     }
 
     return 0;
@@ -1506,12 +1661,12 @@ void AmlMpPlayerImpl::programEventCallback(Parser::ProgramEventType event, int p
                  ecmDataStr.append(hex);
                  ecmDataStr.append(" ");
             }
-            MLOGI("programEventCallback: ecmData: size:%d, hexStr:%s", param2, ecmDataStr.c_str());
+            MLOGI("programEventCallback: ecmPid: %d, ecmData: size:%d, hexStr:%s", param1, param2, ecmDataStr.c_str());
 
             {
                 std::unique_lock<std::mutex> _l(mLock);
-                if (mCasHandle) {
-                    mCasHandle->processEcm(ecmData, param2);
+                if (mCasHandle && mWaitingEcmMode == kWaitingEcmASynchronous) {
+                    mCasHandle->processEcm(true, param1, ecmData, param2);
                 }
 
                 mPrepareWaitingType &= ~kPrepareWaitingEcm;
@@ -1566,9 +1721,6 @@ int AmlMpPlayerImpl::resetIfNeeded_l()
 int AmlMpPlayerImpl::reset_l()
 {
     MLOG();
-    if (mCasHandle) {
-        stopDescrambling_l();
-    }
     mTsBuffer.reset();
     mWriteBuffer->setRange(0, 0);
     if (mParser) {
@@ -1578,6 +1730,12 @@ int AmlMpPlayerImpl::reset_l()
 
     mParser.clear();
     mPlayer.clear();
+
+    if (!mIsStandaloneCas) {
+        stopDescrambling_l();
+    }
+
+    resetVariables_l();
 
     setState_l(STATE_IDLE);
 
@@ -1688,6 +1846,59 @@ int AmlMpPlayerImpl::switchDecodeMode_l(Aml_MP_VideoDecodeMode decodeMode, std::
     }
 
     return ret;
+}
+
+void AmlMpPlayerImpl::statisticWriteDataRate_l(size_t size)
+{
+    mLastBytesWritten += size;
+
+    int64_t nowUs = AmlMpEventLooper::GetNowUs();
+    if (mLastWrittenTimeUs == 0) {
+        mLastWrittenTimeUs = nowUs;
+    } else {
+        int64_t diffUs = nowUs - mLastWrittenTimeUs;
+        if (diffUs > 2 * 1000000ll) {
+            int64_t bitrate = mLastBytesWritten * 1000000 / diffUs;
+            MLOGI("writeData rate:%.2fKB/s", bitrate/1024.0);
+
+            mLastWrittenTimeUs = nowUs;
+            mLastBytesWritten = 0;
+
+            collectBuffingInfos_l();
+        }
+    }
+}
+
+void AmlMpPlayerImpl::collectBuffingInfos_l()
+{
+    Aml_MP_BufferStat bufferStat;
+    mPlayer->getBufferStat(&bufferStat);
+
+    int64_t vpts, apts;
+    mPlayer->getCurrentPts(AML_MP_STREAM_TYPE_VIDEO, &vpts);
+    mPlayer->getCurrentPts(AML_MP_STREAM_TYPE_AUDIO, &apts);
+
+    if (mVideoParams.pid != AML_MP_INVALID_PID) {
+        MLOGI("Video(%#x) buffer stat:%d/%d, %.2fms, pts:%f", mVideoParams.pid, bufferStat.videoBuffer.dataLen, bufferStat.videoBuffer.size, bufferStat.videoBuffer.bufferedMs*1.0, vpts/1e6);
+    }
+
+    if (mAudioParams.pid != AML_MP_INVALID_PID) {
+        MLOGI("Audio(%#x) buffer stat:%d/%d, %.2fms, pts:%f", mAudioParams.pid, bufferStat.audioBuffer.dataLen, bufferStat.audioBuffer.size, bufferStat.audioBuffer.bufferedMs*1.0, apts/1e6);
+    }
+}
+
+void AmlMpPlayerImpl::resetVariables_l()
+{
+    mFirstEcmWritten = false;
+
+    mLastBytesWritten = 0;
+    mLastWrittenTimeUs = 0;
+    mIsStandaloneCas = false;
+
+    if (mCasHandle != nullptr) {
+        MLOGW("forget to call unBindCasSession?");
+        mCasHandle.clear();
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

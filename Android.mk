@@ -11,6 +11,11 @@ ifneq (, $(wildcard $(TOP)/vendor/amlogic/common/external/DTVKit/cas_hal))
 HAVE_CAS_HAL := true
 endif
 
+ifeq (1, $(shell expr $(PLATFORM_SDK_VERSION) \>= 30))
+HAVE_VMXIPTV_CAS := true
+HAVE_VMXWEB_CAS := true
+endif
+
 #######################################
 AML_MP_PLAYER_SRC := \
 	player/Aml_MP.cpp \
@@ -29,16 +34,29 @@ AML_MP_CAS_SRC := \
 	cas/Aml_MP_CAS.cpp \
 	cas/AmlCasBase.cpp \
 	cas/AmlDvbCasHal.cpp \
+	cas/AmCasLibWrapper.cpp \
 
 AML_MP_CAS_SYSTEM_SRC_29 += \
 	cas/vmx_iptvcas/AmlVMXIptvCas.cpp
 
-AML_MP_CAS_VENDOR_SRC_ge_30 += \
+# AML_MP_CAS_VENDOR_SRC_ge_30 += \
 	cas/vmx_iptvcas/AmlVMXIptvCas_V2.cpp
 
 ifeq ($(HAVE_WVIPTV_CAS), true)
 AML_MP_CAS_VENDOR_SRC_ge_30 += \
-	cas/wv_iptvcas/AmlWVIptvCas.cpp
+	cas/wv_iptvcas/AmlWVIptvCas_V2.cpp
+AML_MP_CAS_SYSTEM_SRC_ge_30 += \
+	cas/wv_iptvcas/AmlWVIptvCas_V2.cpp
+endif
+
+ifeq ($(HAVE_VMXIPTV_CAS), true)
+AML_MP_CAS_SYSTEM_SRC_ge_30 += \
+	cas/vmx_iptvcas/AmlVMXIptvCas_V2.cpp
+endif
+
+ifeq ($(HAVE_VMXWEB_CAS), true)
+AML_MP_CAS_SYSTEM_SRC_ge_30 += \
+	cas/vmx_webcas/AmlVMXWebCas.cpp
 endif
 
 AML_MP_DVR_SRC := \
@@ -67,6 +85,7 @@ AML_MP_UTILS_SRC := \
 	utils/AmlMpThread.cpp \
 	utils/AmlMpUtils.cpp \
 	utils/Amlsysfsutils.cpp \
+	utils/AmlMpChunkFifo.cpp
 
 AML_MP_SRCS := \
 	$(AML_MP_PLAYER_SRC) \
@@ -113,7 +132,7 @@ AML_MP_SYSTEM_CFLAGS_29 := \
 	-DHAVE_VMXIPTV_CAS \
 
 ifeq ($(HAVE_CAS_HAL), true)
-AML_MP_SYSTEM_CFLAG_29 += \
+AML_MP_SYSTEM_CFLAGS_29 += \
 	-DHAVE_CAS_HAL
 endif
 
@@ -124,14 +143,12 @@ AML_MP_SYSTEM_CFLAGS_ge_30 := \
 	-DHAVE_SUBTITLE \
 
 ifeq ($(HAVE_CAS_HAL), true)
-AML_MP_SYSTEM_CFLAG_ge_30 += \
+AML_MP_SYSTEM_CFLAGS_ge_30 += \
 	-DHAVE_CAS_HAL
 endif
 
-
 AML_MP_VENDOR_CFLAGS_ge_30 := \
 	-DHAVE_SUBTITLE \
-	-DHAVE_VMXIPTV_CAS_V2 \
 
 ifeq ($(HAVE_CAS_HAL), true)
 AML_MP_VENDOR_CFLAGS_ge_30 += \
@@ -139,7 +156,18 @@ AML_MP_VENDOR_CFLAGS_ge_30 += \
 endif
 
 ifeq ($(HAVE_WVIPTV_CAS), true)
-AML_MP_VENDOR_CFLAGS_ge_30 += -DHAVE_WVIPTV_CAS
+AML_MP_VENDOR_CFLAGS_ge_30 += -DHAVE_WVIPTV_CAS_V2
+AML_MP_SYSTEM_CFLAGS_ge_30 += -DHAVE_WVIPTV_CAS_V2
+endif
+
+ifeq ($(HAVE_VMXIPTV_CAS), true)
+AML_MP_SYSTEM_CFLAGS_ge_30 += \
+	-DHAVE_VMXIPTV_CAS_V2
+endif
+
+ifeq ($(HAVE_VMXWEB_CAS), true)
+AML_MP_SYSTEM_CFLAGS_ge_30 += \
+	-DHAVE_VMXWEB_CAS
 endif
 
 #######################################

@@ -18,7 +18,7 @@
 #endif
 #include <mutex>
 #include <map>
-#include "utils/AmlMpFifo.h"
+#include "utils/AmlMpChunkFifo.h"
 #include <condition_variable>
 #include "cas/AmlCasBase.h"
 #include "demux/AmlTsParser.h"
@@ -75,7 +75,9 @@ public:
     int setAudioParams(const Aml_MP_AudioParams* params);
     int setADParams(Aml_MP_AudioParams* params);
     int setSubtitleParams(const Aml_MP_SubtitleParams* params);
-    int setIptvCASParams(const Aml_MP_IptvCASParams* params);
+    int bindCasSession(AML_MP_CASSESSION casSession);
+    int unBindCasSession(AML_MP_CASSESSION casSession);
+    int setIptvCASParams(Aml_MP_CASServiceType serviceType, const Aml_MP_IptvCASParams* params);
     int start();
     int stop();
     int pause();
@@ -140,6 +142,11 @@ private:
         kPrepareWaitingEcm          = 1 << 1,
     };
 
+    enum WaitingEcmMode {
+        kWaitingEcmSynchronous,
+        kWaitingEcmASynchronous,
+    };
+
     struct WindowSize {
         int x = 0;
         int y = 0;
@@ -158,7 +165,8 @@ private:
     int reset_l();
     int applyParameters_l();
     void programEventCallback(Parser::ProgramEventType event, int param1, int param2, void* data);
-    void writeDataFromBuffer_l();
+    int drainDataFromBuffer_l();
+    int doWriteData_l(const uint8_t* buffer, size_t size);
 
     void notifyListener(Aml_MP_PlayerEventType eventType, int64_t param);
 
@@ -187,6 +195,11 @@ private:
     int setSubtitleParams_l(const Aml_MP_SubtitleParams* params);
     int setParameter_l(Aml_MP_PlayerParameterKey key, void* parameter, std::unique_lock<std::mutex>& lock);
 
+    void statisticWriteDataRate_l(size_t size);
+    void collectBuffingInfos_l();
+
+    void resetVariables_l();
+
     const int mInstanceId;
     char mName[50];
 
@@ -199,6 +212,8 @@ private:
     State mState{STATE_IDLE};
     uint32_t mStreamState{0};
     uint32_t mPrepareWaitingType{kPrepareWaitingNone};
+    WaitingEcmMode mWaitingEcmMode = kWaitingEcmSynchronous;
+    bool mFirstEcmWritten = false;
 
     Aml_MP_PlayerCreateParams mCreateParams;
 
@@ -206,8 +221,9 @@ private:
     Aml_MP_AudioParams mAudioParams;
     Aml_MP_SubtitleParams mSubtitleParams;
     WindowSize mSubtitleWindow;
-    Aml_MP_IptvCASParams mCASParams{};
     Aml_MP_AudioParams mADParams;
+
+    std::vector<int> mEcmPids;
 
     Aml_MP_VideoDisplayMode mVideoDisplayMode{AML_MP_VIDEO_DISPLAY_MODE_NORMAL};
     int mBlackOut{-1};
@@ -238,6 +254,10 @@ private:
 
     sptr<AmlPlayerBase> mPlayer;
 
+    Aml_MP_CASServiceType mCasServiceType{AML_MP_CAS_SERVICE_TYPE_INVALID};
+    Aml_MP_IptvCASParams mIptvCasParams;
+
+    bool mIsStandaloneCas = false;
     sptr<AmlCasBase> mCasHandle;
 
     static constexpr int kZorderBase = -2;
@@ -251,8 +271,11 @@ private:
 #endif
 
     sptr<Parser> mParser;
-    AmlMpFifo mTsBuffer;
+    AmlMpChunkFifo mTsBuffer;
     sptr<AmlMpBuffer> mWriteBuffer;
+
+    int64_t mLastBytesWritten = 0;
+    int64_t mLastWrittenTimeUs = 0;
 
 private:
     AmlMpPlayerImpl(const AmlMpPlayerImpl&) = delete;

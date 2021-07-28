@@ -53,30 +53,14 @@ private:
 CasLibWrapper* AmlVMXIptvCas::sCasLibWrapper = nullptr;
 std::once_flag AmlVMXIptvCas::sLoadCasLibFlag;
 
-AmlVMXIptvCas::AmlVMXIptvCas(const Aml_MP_IptvCASParams* param, int instanceId)
-: mIptvCasParam(*param)
+AmlVMXIptvCas::AmlVMXIptvCas(Aml_MP_CASServiceType serviceType)
+:AmlCasBase(serviceType)
 {
     MLOGI("ctor AmlVMXIptvCas, instanceId:%d", instanceId);
     AML_MP_UNUSED(mIptvCasParam);
-
     std::call_once(sLoadCasLibFlag, [] {
         sCasLibWrapper = new CasLibWrapper();
     });
-
-    aml_dvb_init_para_t initPara{.type = CA_TYPE_UNKNOWN};
-
-    initPara.type = CA_TYPE_VMX;
-    initPara.vmx_para.vpid = param->videoPid;
-    initPara.vmx_para.apid = param->audioPid;
-    initPara.vmx_para.vfmt = convertToVFormat(param->videoCodec);
-    initPara.vmx_para.afmt = convertToAForamt(param->audioCodec);
-    initPara.vmx_para.ecmpid = param->ecmPid[0];
-    strncpy(initPara.vmx_para.key_file_path, param->keyPath, sizeof(initPara.vmx_para.key_file_path)-1);
-    strncpy(initPara.vmx_para.server_ip, param->serverAddress, sizeof(initPara.vmx_para.server_ip)-1);
-    initPara.vmx_para.server_port = param->serverPort;
-
-    int err;
-    mCasHandle = sCasLibWrapper->create(&initPara, &err);
 }
 
 AmlVMXIptvCas::~AmlVMXIptvCas()
@@ -89,16 +73,32 @@ AmlVMXIptvCas::~AmlVMXIptvCas()
     }
 }
 
-int AmlVMXIptvCas::openSession()
+int AmlVMXIptvCas::startDescrambling(const Aml_MP_IptvCASParams* params)
 {
-    MLOGI("openSession");
+    MLOGI("startDescrambling");
 
+    AmlCasBase::startDescrambling(params);
+
+    aml_dvb_init_para_t initPara{.type = CA_TYPE_UNKNOWN};
+
+    initPara.type = CA_TYPE_VMX;
+    initPara.vmx_para.vpid = params->videoPid;
+    initPara.vmx_para.apid = params->audioPid;
+    initPara.vmx_para.vfmt = convertToVFormat(params->videoCodec);
+    initPara.vmx_para.afmt = convertToAForamt(params->audioCodec);
+    initPara.vmx_para.ecmpid = params->ecmPid[0];
+    strncpy(initPara.vmx_para.key_file_path, params->keyPath, sizeof(initParas.vmx_para.key_file_path)-1);
+    strncpy(initPara.vmx_para.server_ip, params->serverAddress, sizeof(initParas.vmx_para.server_ip)-1);
+    initPara.vmx_para.server_port = params->serverPort;
+
+    int err;
+    mCasHandle = sCasLibWrapper->create(&initPara, &err);
     RETURN_IF(-1, mCasHandle == nullptr);
 
     return sCasLibWrapper->start(mCasHandle);
 }
 
-int AmlVMXIptvCas::closeSession()
+int AmlVMXIptvCas::stopDescrambling()
 {
 #define DMX_RESET_PATH    "/sys/class/stb/demux_reset"
     int ret = 0;
@@ -126,9 +126,13 @@ int AmlVMXIptvCas::setPrivateData(const uint8_t* data, size_t size)
     return 0;
 }
 
-int AmlVMXIptvCas::processEcm(const uint8_t* data, size_t size)
+int AmlVMXIptvCas::processEcm(bool isSection, int ecmPid, const uint8_t* data, size_t size)
 {
     RETURN_IF(-1, mCasHandle == nullptr);
+    if (isSection) {
+        MLOGE("processEcm failed, do not support section ecm");
+        return -1;
+    }
 
     return sCasLibWrapper->writeData(mCasHandle, data, size);
 }

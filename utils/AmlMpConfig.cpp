@@ -44,6 +44,8 @@ void AmlMpConfig::reset()
 {
     mLogDebug = 0;
     mTsPlayerNonTunnel = 0;
+    mWaitingEcmMode = 1;
+    mWriteBufferSize = 2; // default write buffer size set to 2MB.
 
 #if ANDROID_PLATFORM_SDK_VERSION == 29
     mUseVideoTunnel = 0;
@@ -58,6 +60,8 @@ void AmlMpConfig::init()
 
     initProperty("vendor.amlmp.log-debug", mLogDebug);
     initProperty("vendor.amtsplayer.pipeline", mTsPlayerNonTunnel);
+    initProperty("vendor.amlmp.waiting-ecm-mode", mWaitingEcmMode);
+    initProperty("vendor.amlmp.write-buffer-size", mWriteBufferSize);
 #endif
 
 }

@@ -12,6 +12,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 //typedef void* AML_MP_HANDLE;
@@ -79,6 +80,7 @@ typedef enum {
 typedef enum {
     AML_MP_INPUT_STREAM_NORMAL,
     AML_MP_INPUT_STREAM_ENCRYPTED,
+    AML_MP_INPUT_STREAM_SECURE_MEMORY,
 } Aml_MP_InputStreamType;
 
 typedef enum {
@@ -141,6 +143,7 @@ typedef struct {
     uint32_t                nSampleRate;
     uint8_t                 extraData[512];
     uint32_t                extraDataSize;
+    int32_t                secureLevel;
 } Aml_MP_AudioParams;
 
 ////////////////////////////////////////
@@ -154,11 +157,18 @@ typedef struct {
 } Aml_MP_SubtitleParams;
 
 ////////////////////////////////////////
+/**\brief Service type of the program*/
 typedef enum {
-    AML_MP_CAS_UNKNOWN,
-    AML_MP_CAS_VERIMATRIX_IPTV,
-    AML_MP_CAS_WIDEVINE,
-} Aml_MP_CASType;
+    AML_MP_CAS_SERVICE_LIVE_PLAY,       /**< Live playing.*/
+    AML_MP_CAS_SERVICE_PVR_RECORDING,   /**< PVR recording.*/
+    AML_MP_CAS_SERVICE_PVR_PLAY,        /**< PVR playback.*/
+
+    AML_MP_CAS_SERVICE_TYPE_IPTV = 0x80,
+    AML_MP_CAS_SERVICE_VERIMATRIX_IPTV, /**< Verimatrix IPTV*/
+    AML_MP_CAS_SERVICE_VERIMATRIX_WEB,  /**<verimatrix WEB*/
+    AML_MP_CAS_SERVICE_WIDEVINE,        /**<widevine*/
+    AML_MP_CAS_SERVICE_TYPE_INVALID = 0xFF,    /**< Invalid type.*/
+} Aml_MP_CASServiceType;
 
 //add for get url info from setdatasource,such as wv
 typedef struct {
@@ -169,14 +179,17 @@ typedef struct {
     char content_type[AML_MP_MAX_PATH_SIZE];
 }Aml_MP_IptvCasHeaders;
 
+#define MAX_ECM_PIDS_NUM 3
 typedef struct {
-    Aml_MP_CASType type;
     Aml_MP_CodecID videoCodec;
     Aml_MP_CodecID audioCodec;
     unsigned int  caSystemId;
     int videoPid;
     int audioPid;
-    int ecmPid[3];
+    int ecmPid[MAX_ECM_PIDS_NUM];
+#define AUDIO_ECM_PID_INDEX 0
+#define VIDEO_ECM_PID_INDEX 1
+
     Aml_MP_DemuxId demuxId;
 
     //add for vmx get url info
@@ -191,6 +204,15 @@ typedef struct {
 
     Aml_MP_IptvCasHeaders headers;
 } Aml_MP_IptvCASParams;
+
+////////////////////////////////////////
+// Deprecaed begin
+typedef enum {
+    AML_MP_CAS_UNKNOWN,
+    AML_MP_CAS_VERIMATRIX_IPTV,
+    AML_MP_CAS_WIDEVINE,
+    AML_MP_CAS_VERIMATRIX_WEB,
+} Aml_MP_CASType;
 
 typedef struct {
     Aml_MP_CodecID videoCodec;
@@ -215,6 +237,7 @@ typedef struct {
         } casParam;
     } u;
 } Aml_MP_CASParams AML_MP_DEPRECATED;
+// Deprecaed end
 
 ////////////////////////////////////////
 typedef enum {
@@ -520,27 +543,24 @@ typedef enum {
 ///////////////////////////////////////////////////////////////////////////////
 enum {
     AML_MP_OK = 0,
-
-    AML_MP_ERROR_BASE = -2000,
-    AML_MP_NO_MEMORY,
-    AML_MP_INVALID_OPERATION,
-    AML_MP_BAD_VALUE,
-    AML_MP_BAD_TYPE,
-    AML_MP_NAME_NOT_FOUND,
-    AML_MP_PERMISSION_DENIED,
-    AML_MP_NO_INIT,
-    AML_MP_ALREADY_EXISTS,
-    AML_MP_DEAD_OBJECT,
-    AML_MP_FAILED_TRANSACTION,
-    AML_MP_BAD_INDEX,
-    AML_MP_NOT_ENOUGH_DATA,
-    AML_MP_WOULD_BLOCK,
-    AML_MP_TIMED_OUT,
-    AML_MP_UNKNOWN_TRANSACTION,
-    AML_MP_FDS_NOT_ALLOWED,
-    AML_MP_UNEXPECTED_NULL,
-
     AML_MP_ERROR = -1,
+    AML_MP_ERROR_NO_MEMORY,
+    AML_MP_ERROR_INVALID_OPERATION,
+    AML_MP_ERROR_BAD_VALUE,
+    AML_MP_ERROR_BAD_TYPE,
+    AML_MP_ERROR_NAME_NOT_FOUND,
+    AML_MP_ERROR_PERMISSION_DENIED,
+    AML_MP_ERROR_NO_INIT,
+    AML_MP_ERROR_ALREADY_EXISTS,
+    AML_MP_ERROR_DEAD_OBJECT,
+    AML_MP_ERROR_FAILED_TRANSACTION,
+    AML_MP_ERROR_BAD_INDEX,
+    AML_MP_ERROR_NOT_ENOUGH_DATA,
+    AML_MP_ERROR_WOULD_BLOCK,
+    AML_MP_ERROR_TIMED_OUT,
+    AML_MP_ERROR_UNKNOWN_TRANSACTION,
+    AML_MP_ERROR_FDS_NOT_ALLOWED,
+    AML_MP_ERROR_UNEXPECTED_NULL,
 };
 
 ///////////////////////////////////////////////////////////////////////////////

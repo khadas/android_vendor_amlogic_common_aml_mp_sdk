@@ -114,7 +114,7 @@ Parser::~Parser()
     close();
 }
 
-int Parser::open()
+int Parser::open(bool autoParsing)
 {
     bool isHardwareDemux = mIsHardwareDemux;
     if (mIsHardwareSource) {
@@ -139,8 +139,10 @@ int Parser::open()
         return -1;
     }
 
-    addSectionFilter(0, patCb);
-    addSectionFilter(1, catCb);
+    if (autoParsing) {
+        addSectionFilter(0, patCb);
+        addSectionFilter(1, catCb);
+    }
 
     return 0;
 }
@@ -921,6 +923,40 @@ void Parser::notifyParseDone_l()
 {
     mParseDone = true;
     mCond.notify_all();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+#define TS_PACKET_SIZE 188
+
+size_t findEcmPacket(const uint8_t* buffer, size_t size, const std::vector<int>& ecmPids, size_t* ecmSize)
+{
+    size_t offset = 0;
+    int pid = -1;
+    bool found = false;
+
+    for (; offset <= size-TS_PACKET_SIZE; ++offset) {
+        if (buffer[offset] != 0x47) {
+            continue;
+        }
+
+        if (buffer[offset+TS_PACKET_SIZE] < size && buffer[offset+TS_PACKET_SIZE] != 0x47)
+            continue;
+
+        pid = (buffer[offset+1]<<8 | buffer[offset+2]) & 0x1FFF;
+        if (pid == 0 || pid == 0x1FFF) {
+            continue;
+        }
+
+        for (size_t i = 0; i < ecmPids.size(); ++i) {
+            if (pid == ecmPids[i]) {
+                *ecmSize = TS_PACKET_SIZE;
+                return offset;
+            }
+        }
+    }
+
+    *ecmSize = 0;
+    return size;
 }
 
 

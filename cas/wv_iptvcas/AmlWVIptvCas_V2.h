@@ -7,23 +7,22 @@
  * Description:
  */
 
-#ifndef _AML_WV_IPTV_CAS_H_
-#define _AML_WV_IPTV_CAS_H_
+#ifndef _AML_WV_IPTV_CAS_V2_H_
+#define _AML_WV_IPTV_CAS_V2_H_
 
 #include "cas/AmlCasBase.h"
 #include <Aml_MP/Common.h>
+#include "cas/AmCasLibWrapper.h"
 
 #include <mutex>
 
-class AmCasIPTV;
-
 namespace aml_mp {
 
-class AmlWVIptvCas : public AmlCasBase
+class AmlWVIptvCas_V2 : public AmlCasBase
 {
 public:
-    AmlWVIptvCas(Aml_MP_CASServiceType serviceType);
-    ~AmlWVIptvCas();
+    AmlWVIptvCas_V2(Aml_MP_CASServiceType serviceType);
+    ~AmlWVIptvCas_V2();
     virtual int startDescrambling(const Aml_MP_IptvCASParams* params) override;
     virtual int stopDescrambling() override;
     virtual int setPrivateData(const uint8_t* data, size_t size) override;
@@ -31,9 +30,9 @@ public:
     virtual int processEmm(const uint8_t* data, size_t size) override;
 
 private:
-    AmCasIPTV * pIptvCas = nullptr;
+    sptr<AmCasLibWrapper<AML_MP_CAS_SERVICE_WIDEVINE>> pIptvCas;
     uint8_t sessionId[8];
-    int mInstanceId;
+    int mInstanceId{0};
     char mName[64];
 
     int mDscFd;
@@ -45,8 +44,8 @@ private:
     int checkEcmProcess(uint8_t* pBuffer, uint32_t vEcmPid, uint32_t aEcmPid, size_t * nSize);
 
 
-    AmlWVIptvCas(const AmlWVIptvCas&) = delete;
-    AmlWVIptvCas& operator= (const AmlWVIptvCas&) = delete;
+    AmlWVIptvCas_V2(const AmlWVIptvCas_V2&) = delete;
+    AmlWVIptvCas_V2& operator= (const AmlWVIptvCas_V2&) = delete;
 };
 }
 

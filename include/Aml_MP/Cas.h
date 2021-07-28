@@ -21,14 +21,6 @@ typedef enum {
     AML_MP_CAS_SERVICE_IPTV /**< IPTV.*/
 } Aml_MP_CASServiceMode;
 
-/**\brief Service type of the program*/
-typedef enum {
-    AML_MP_CAS_SERVICE_LIVE_PLAY,       /**< Live playing.*/
-    AML_MP_CAS_SERVICE_PVR_RECORDING,   /**< PVR recording.*/
-    AML_MP_CAS_SERVICE_PVR_PLAY,        /**< PVR playback.*/
-    AML_MP_CAS_SERVICE_TYPE_INVALID,    /**< Invalid type.*/
-} Aml_MP_CASServiceType;
-
 typedef struct {
     uint16_t service_id;                    /**< The service's index.*/
     uint8_t dmx_dev;                        /**< The demux device's index.*/
@@ -84,6 +76,15 @@ typedef struct {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct {
+    char* keyuri;
+    uint8_t iv[16];
+    int seg_size;
+    int key_type;
+    int seg_no;
+    int iv_reset;/*the start of the each segment need set iv*/
+} Aml_MP_CASHlsExtData;
 
 ///////////////////////////////////////////////////////////////////////////////
 // global CAS function begin
@@ -229,6 +230,16 @@ int Aml_MP_CAS_Ioctl(AML_MP_CASSESSION casSession, const char* inJson, char* out
 int Aml_MP_CAS_StartDescrambling(AML_MP_CASSESSION casSession, Aml_MP_CASServiceInfo* serviceInfo);
 
 /**
+ * \brief Aml_MP_CAS_StartDescramblingIPTV
+ *
+ * \param casSession handle
+ * \param params iptv cas params
+ *
+ * \return 0 if success
+ */
+int Aml_MP_CAS_StartDescramblingIPTV(AML_MP_CASSESSION casSession, const Aml_MP_IptvCASParams* params);
+
+/**
  * \brief Aml_MP_CAS_StopDescrambling
  * Stop descrambling
  *
@@ -330,6 +341,33 @@ int Aml_MP_CAS_DestroySecmem(AML_MP_CASSESSION casSession, AML_MP_SECMEM secMem)
  */
 int Aml_MP_CAS_GetStoreRegion(AML_MP_CASSESSION casSession, Aml_MP_CASStoreRegion *region, uint8_t *regionCount);
 
+/**
+ * \brief Aml_MP_CAS_ProcessEcmIPTV
+ * processEcm
+ *
+ * \param [in]  casSession session
+ * \param [in]  isSection is section of is TS packet
+ * \param [in]  ecmPid if isSection is true, then need specify the ecmPid of ecmData
+ * \param [in]  data ecmData
+ * \param [in]  size ecmData size
+ *
+ * \return 0 if success
+ */
+int Aml_MP_CAS_ProcessEcmIPTV(AML_MP_CASSESSION casSession, bool isSection, int ecmPid, const uint8_t* data, size_t size);
+
+/**
+ * \brief Aml_MP_CAS_DecryptIPTV
+ * decrypt data
+ *
+ * \param [in]  casSession session
+ * \param [in]  data encrypted data
+ * \param [in]  size size of encrypted data
+ * \param [in]  ext_data hls info
+ * \param [out]  outbuffer decrypted buffer secure
+ *
+ * \return 0 if success
+ */
+int Aml_MP_CAS_DecryptIPTV(AML_MP_CASSESSION casSession, uint8_t* data, size_t size, void* ext_data, Aml_MP_Buffer* outbuffer);
 
 #ifdef __cplusplus
 }

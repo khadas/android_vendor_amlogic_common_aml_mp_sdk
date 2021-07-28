@@ -23,9 +23,6 @@ extern CasHandle g_casHandle;
 static CA_SERVICE_TYPE_t convertToCAServiceType(Aml_MP_CASServiceType casServiceType)
 {
     switch (casServiceType) {
-    case AML_MP_CAS_SERVICE_TYPE_INVALID:
-        return SERVICE_TYPE_INVALID;
-
     case AML_MP_CAS_SERVICE_LIVE_PLAY:
         return SERVICE_LIVE_PLAY;
 
@@ -35,6 +32,8 @@ static CA_SERVICE_TYPE_t convertToCAServiceType(Aml_MP_CASServiceType casService
     case AML_MP_CAS_SERVICE_PVR_RECORDING:
         return SERVICE_PVR_RECORDING;
     }
+
+    return SERVICE_TYPE_INVALID;
 }
 
 static CA_SERVICE_MODE_t convertToCAServiceMode(Aml_MP_CASServiceMode serviceMode)
@@ -68,11 +67,11 @@ static int convertToAmlMPErrorCode(AM_RESULT CasResult) {
         case AM_ERROR_SUCCESS:
             return AML_MP_OK;
         case AM_ERROR_NOT_LOAD:
-            return AML_MP_BAD_INDEX;
+            return AML_MP_ERROR_BAD_INDEX;
         case AM_ERROR_NOT_SUPPORTED:
-            return AML_MP_BAD_TYPE;
+            return AML_MP_ERROR_BAD_TYPE;
         case AM_ERROR_OVERFLOW:
-            return AML_MP_NO_MEMORY;
+            return AML_MP_ERROR_NO_MEMORY;
         default:
             return AML_MP_ERROR;
     }
@@ -82,7 +81,7 @@ static int convertToAmlMPErrorCode(AM_RESULT CasResult) {
 ///////////////////////////////////////////////////////////////////////////////
 namespace aml_mp {
 AmlDvbCasHal::AmlDvbCasHal(Aml_MP_CASServiceType serviceType)
-: mServiceType(serviceType)
+: AmlCasBase(serviceType)
 {
 #ifdef HAVE_CAS_HAL
     AM_RESULT ret = AM_ERROR_GENERAL_ERORR;

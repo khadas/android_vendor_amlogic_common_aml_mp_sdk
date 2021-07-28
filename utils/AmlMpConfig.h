@@ -28,6 +28,8 @@ public:
     int mLogDebug;
     int mTsPlayerNonTunnel;
     int mUseVideoTunnel;
+    int mWaitingEcmMode;
+    int mWriteBufferSize;
 
 private:
     void reset();

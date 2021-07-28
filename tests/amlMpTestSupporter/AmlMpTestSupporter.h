@@ -26,6 +26,7 @@ class Source;
 class Parser;
 class TestModule;
 class ParserReceiver;
+class CasPlugin;
 class Playback;
 class DVRRecord;
 class DVRPlayback;
@@ -92,6 +93,7 @@ private:
 
     sptr<TestModule> mTestModule;
 
+    sptr<CasPlugin> mCasPlugin;
     sptr<Playback> mPlayback;
     sptr<DVRRecord> mRecorder;
     sptr<DVRPlayback> mDVRPlayback;

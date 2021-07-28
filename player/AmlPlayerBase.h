@@ -38,6 +38,7 @@ public:
     int stopSubtitleDecoding();
     int setSubtitleWindow(int x, int y, int width, int height);
 
+    virtual int initCheck() const = 0;
     virtual int setVideoParams(const Aml_MP_VideoParams* params) = 0;
     virtual int setAudioParams(const Aml_MP_AudioParams* params) = 0;
     virtual int setANativeWindow(ANativeWindow* nativeWindow) = 0;

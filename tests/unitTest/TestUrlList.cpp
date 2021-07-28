@@ -70,7 +70,7 @@ bool TestUrlList::collectFileList(const std::string& dir, std::list<std::string>
         return false;
     }
 
-    struct DIR* dirHandle;
+    DIR* dirHandle;
     dirHandle = opendir(dir.c_str());
     if (dirHandle == nullptr) {
         printf("open %s failed!\n", dir.c_str());

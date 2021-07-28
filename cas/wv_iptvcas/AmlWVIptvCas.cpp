@@ -23,25 +23,52 @@ const int convertToAmlMPErrorCode(AmCasCode_t casResult) {
         case AM_CAS_SUCCESS:
             return AML_MP_OK;
         case AM_CAS_ERROR:
-            return AML_MP_ERROR_BASE;
+            return AML_MP_ERROR;
         case AM_CAS_ERR_SYS:
-            return AML_MP_PERMISSION_DENIED;
+            return AML_MP_ERROR_PERMISSION_DENIED;
         default:
-            return AML_MP_ERROR_BASE;
+            return AML_MP_ERROR;
     }
 }
 
 namespace aml_mp {
 
-AmlWVIptvCas::AmlWVIptvCas(const Aml_MP_IptvCASParams* param, int instanceId)
-: mIptvCasParam(*param)
-, mInstanceId(instanceId)
+AmlWVIptvCas::AmlWVIptvCas(Aml_MP_CASServiceType serviceType)
+:AmlCasBase(serviceType)
 {
     snprintf(mName, sizeof(mName), "%s_%d", LOG_TAG, mInstanceId);
-    CasStreamInfo initPara;
 
     MLOGI("ctor AmlWVIptvCas");
 
+}
+
+AmlWVIptvCas::~AmlWVIptvCas()
+{
+    MLOGI("dtor AmlWVIptvCas");
+    int ret = 0;
+
+    if (mDscFd) {
+        ret = close(mDscFd);
+        if (ret)
+            MLOGE("~AmlWVIptvCas fd= %d error=%d \n", mDscFd, errno);
+    }
+
+
+    if (pIptvCas) {
+        delete pIptvCas;
+        pIptvCas = nullptr;
+    }
+
+}
+
+int AmlWVIptvCas::startDescrambling(const Aml_MP_IptvCASParams* param)
+{
+    MLOG();
+
+    AmlCasBase::startDescrambling(params);
+
+    int ret = 0;
+    CasStreamInfo initPara;
     initPara.ca_system_id = param->caSystemId;
     initPara.video_pid = param->videoPid;
     initPara.audio_pid = param->audioPid;
@@ -109,31 +136,6 @@ AmlWVIptvCas::AmlWVIptvCas(const Aml_MP_IptvCASParams* param, int instanceId)
     }
 
 
-}
-
-AmlWVIptvCas::~AmlWVIptvCas()
-{
-    MLOGI("dtor AmlWVIptvCas");
-    int ret = 0;
-
-    if (mDscFd) {
-        ret = close(mDscFd);
-        if (ret)
-            MLOGE("~AmlWVIptvCas fd= %d error=%d \n", mDscFd, errno);
-    }
-
-
-    if (pIptvCas) {
-        delete pIptvCas;
-        pIptvCas = nullptr;
-    }
-
-}
-
-int AmlWVIptvCas::openSession()
-{
-    MLOGI("openSession");
-    int ret = 0;
 
     if (pIptvCas) {
         setDscSource();
@@ -145,7 +147,7 @@ int AmlWVIptvCas::openSession()
     return convertToAmlMPErrorCode((AmCasCode_t)ret);
 }
 
-int AmlWVIptvCas::closeSession()
+int AmlWVIptvCas::stopDescrambling()
 {
     MLOGI("closeSession");
     int ret = 0;
@@ -224,7 +226,7 @@ int AmlWVIptvCas::checkEcmProcess(uint8_t* pBuffer, uint32_t vEcmPid, uint32_t a
 }
 
 
-int AmlWVIptvCas::processEcm(const uint8_t* data, size_t size)
+int AmlWVIptvCas::processEcm(bool isSection, int ecmPid, const uint8_t* data, size_t size)
 {
     int ret = 0;
 

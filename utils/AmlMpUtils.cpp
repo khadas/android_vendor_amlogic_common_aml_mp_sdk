@@ -31,7 +31,8 @@
 static const char* mName = LOG_TAG;
 
 namespace aml_mp {
-#define ENUM_TO_STR(e) case e: return #e; break
+#define ENUM_TO_STR(e) case e: return TO_STR(e); break
+#define TO_STR(v) #v
 
 const char* mpCodecId2Str(Aml_MP_CodecID codecId)
 {
@@ -223,6 +224,7 @@ const char* mpInputStreamType2Str(Aml_MP_InputStreamType inputStreamType) {
     switch (inputStreamType) {
         ENUM_TO_STR(AML_MP_INPUT_STREAM_NORMAL);
         ENUM_TO_STR(AML_MP_INPUT_STREAM_ENCRYPTED);
+        ENUM_TO_STR(AML_MP_INPUT_STREAM_SECURE_MEMORY);
         default:
             return "unknown input stream type";
     }
@@ -243,6 +245,7 @@ const char* mpCASType2Str(Aml_MP_CASType casType) {
         ENUM_TO_STR(AML_MP_CAS_UNKNOWN);
         ENUM_TO_STR(AML_MP_CAS_VERIMATRIX_IPTV);
         ENUM_TO_STR(AML_MP_CAS_WIDEVINE);
+        ENUM_TO_STR(AML_MP_CAS_VERIMATRIX_WEB);
         default:
             return "unknown CAS type";
     }
@@ -255,6 +258,20 @@ const char* mpVideoDecideMode2Str(Aml_MP_VideoDecodeMode decodeMode) {
         default:
             return "unknown video decode mode";
     }
+}
+
+const char* mpCASServiceType2Str(Aml_MP_CASServiceType serviceType)
+{
+    switch (serviceType) {
+    case AML_MP_CAS_SERVICE_LIVE_PLAY: return "live play";
+    case AML_MP_CAS_SERVICE_PVR_RECORDING: return "pvr recording";
+    case AML_MP_CAS_SERVICE_PVR_PLAY: return "pvr playback";
+    case AML_MP_CAS_SERVICE_VERIMATRIX_IPTV: return "verimatrix IPTV";
+    case AML_MP_CAS_SERVICE_VERIMATRIX_WEB: return "verimatrix WEB";
+    case AML_MP_CAS_SERVICE_WIDEVINE: return "widevine";
+    }
+
+    return TO_STR(AML_MP_CAS_SERVICE_TYPE_INVALID);
 }
 
 ////////////////////////////////////////////////////////////////////////
