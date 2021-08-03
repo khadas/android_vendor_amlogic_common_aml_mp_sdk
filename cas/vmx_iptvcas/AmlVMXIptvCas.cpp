@@ -56,7 +56,7 @@ std::once_flag AmlVMXIptvCas::sLoadCasLibFlag;
 AmlVMXIptvCas::AmlVMXIptvCas(Aml_MP_CASServiceType serviceType)
 :AmlCasBase(serviceType)
 {
-    MLOGI("ctor AmlVMXIptvCas, instanceId:%d", instanceId);
+    MLOGI("ctor AmlVMXIptvCas");
     AML_MP_UNUSED(mIptvCasParam);
     std::call_once(sLoadCasLibFlag, [] {
         sCasLibWrapper = new CasLibWrapper();
@@ -87,8 +87,8 @@ int AmlVMXIptvCas::startDescrambling(const Aml_MP_IptvCASParams* params)
     initPara.vmx_para.vfmt = convertToVFormat(params->videoCodec);
     initPara.vmx_para.afmt = convertToAForamt(params->audioCodec);
     initPara.vmx_para.ecmpid = params->ecmPid[0];
-    strncpy(initPara.vmx_para.key_file_path, params->keyPath, sizeof(initParas.vmx_para.key_file_path)-1);
-    strncpy(initPara.vmx_para.server_ip, params->serverAddress, sizeof(initParas.vmx_para.server_ip)-1);
+    strncpy(initPara.vmx_para.key_file_path, params->keyPath, sizeof(initPara.vmx_para.key_file_path)-1);
+    strncpy(initPara.vmx_para.server_ip, params->serverAddress, sizeof(initPara.vmx_para.server_ip)-1);
     initPara.vmx_para.server_port = params->serverPort;
 
     int err;
