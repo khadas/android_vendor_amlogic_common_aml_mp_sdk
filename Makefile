@@ -91,7 +91,7 @@ SUPPORT_LDFLAGS += -lamlMpTestSupporter -L.
 all: libaml_mp_sdk.so amlMpPlayerDemo
 
 libaml_mp_sdk.so :$(AML_MP_OBJS)
-	$(CXX) -o $@ $^  $(LDFLAGS) -shared -fPIC -lm -lz
+	$(CXX) -o $@ $^  $(LDFLAGS) -shared -fPIC -lm -lz -ldl
 
 libamlMpTestSupporter.a : libaml_mp_sdk.so $(AML_MP_TEST_SUPPORTER_OBJS)
 	$(AR) cq $@ $(AML_MP_TEST_SUPPORTER_OBJS)
