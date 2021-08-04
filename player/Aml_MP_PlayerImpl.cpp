@@ -349,9 +349,9 @@ int AmlMpPlayerImpl::stop_l(std::unique_lock<std::mutex>& lock)
     setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_STOPPED);
     setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_STOPPED);
     setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_STOPPED);
-    stopADDecoding_l();
+    stopADDecoding_l(lock);
 
-    int ret = resetIfNeeded_l();
+    int ret = resetIfNeeded_l(lock);
 
     MLOG("end");
     return ret;
@@ -910,7 +910,7 @@ int AmlMpPlayerImpl::setParameter_l(Aml_MP_PlayerParameterKey key, void* paramet
         if (ADState) {
             startADDecoding_l();
         } else {
-            stopADDecoding_l();
+            stopADDecoding_l(lock);
         }
         return 0;
     }
@@ -1081,7 +1081,7 @@ int AmlMpPlayerImpl::stopVideoDecoding()
     // ensure stream stopped if mState isn't running or paused
     setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_STOPPED);
 
-    int ret = resetIfNeeded_l();
+    int ret = resetIfNeeded_l(lock);
 
     MLOG("end");
     return ret;
@@ -1142,12 +1142,12 @@ int AmlMpPlayerImpl::startAudioDecoding_l()
 int AmlMpPlayerImpl::stopAudioDecoding()
 {
     AML_MP_TRACE(10);
-    std::unique_lock<std::mutex> _l(mLock);
+    std::unique_lock<std::mutex> lock(mLock);
 
-    return stopAudioDecoding_l();
+    return stopAudioDecoding_l(lock);
 }
 
-int AmlMpPlayerImpl::stopAudioDecoding_l()
+int AmlMpPlayerImpl::stopAudioDecoding_l(std::unique_lock<std::mutex>& lock)
 {
     MLOG();
     int ret;
@@ -1170,7 +1170,7 @@ int AmlMpPlayerImpl::stopAudioDecoding_l()
     // ensure stream stopped if mState isn't running or paused
     setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_STOPPED);
 
-    ret = resetIfNeeded_l();
+    ret = resetIfNeeded_l(lock);
 
     MLOG("end");
     return ret;
@@ -1228,12 +1228,12 @@ int AmlMpPlayerImpl::startADDecoding_l()
 int AmlMpPlayerImpl::stopADDecoding()
 {
     AML_MP_TRACE(10);
-    std::unique_lock<std::mutex> _l(mLock);
+    std::unique_lock<std::mutex> lock(mLock);
 
-    return stopADDecoding_l();
+    return stopADDecoding_l(lock);
 }
 
-int AmlMpPlayerImpl::stopADDecoding_l()
+int AmlMpPlayerImpl::stopADDecoding_l(std::unique_lock<std::mutex>& lock)
 {
     MLOG();
     RETURN_IF(-1, mPlayer == nullptr);
@@ -1255,7 +1255,7 @@ int AmlMpPlayerImpl::stopADDecoding_l()
     // ensure stream stopped if mState isn't running or paused
     setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_STOPPED);
 
-    ret = resetIfNeeded_l();
+    ret = resetIfNeeded_l(lock);
 
     MLOG("end");
     return ret;
@@ -1308,12 +1308,12 @@ int AmlMpPlayerImpl::startSubtitleDecoding_l()
 int AmlMpPlayerImpl::stopSubtitleDecoding()
 {
     AML_MP_TRACE(10);
-    std::unique_lock<std::mutex> _l(mLock);
+    std::unique_lock<std::mutex> lock(mLock);
 
-    return stopSubtitleDecoding_l();
+    return stopSubtitleDecoding_l(lock);
 }
 
-int AmlMpPlayerImpl::stopSubtitleDecoding_l() {
+int AmlMpPlayerImpl::stopSubtitleDecoding_l(std::unique_lock<std::mutex>& lock) {
     MLOG();
     RETURN_IF(-1, mPlayer == nullptr);
 
@@ -1326,7 +1326,7 @@ int AmlMpPlayerImpl::stopSubtitleDecoding_l() {
     // ensure stream stopped if mState isn't running or paused
     setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_STOPPED);
 
-    int ret = resetIfNeeded_l();
+    int ret = resetIfNeeded_l(lock);
 
     MLOG("end");
     return ret;
@@ -1682,7 +1682,7 @@ int AmlMpPlayerImpl::finishPreparingIfNeeded_l()
     return 0;
 }
 
-int AmlMpPlayerImpl::resetIfNeeded_l()
+int AmlMpPlayerImpl::resetIfNeeded_l(std::unique_lock<std::mutex>& lock)
 {
     if (mStreamState == 0) {
         setState_l(STATE_STOPPED);
@@ -1691,19 +1691,21 @@ int AmlMpPlayerImpl::resetIfNeeded_l()
     }
 
     if (mState == STATE_STOPPED) {
-        reset_l();
+        reset_l(lock);
     }
 
     return 0;
 }
 
-int AmlMpPlayerImpl::reset_l()
+int AmlMpPlayerImpl::reset_l(std::unique_lock<std::mutex>& lock)
 {
     MLOG();
     mTsBuffer.reset();
     mWriteBuffer->setRange(0, 0);
     if (mParser) {
+        lock.unlock();
         mParser->close();
+        lock.lock();
 
     }
 

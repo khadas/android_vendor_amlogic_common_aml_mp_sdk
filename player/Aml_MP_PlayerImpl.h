@@ -160,8 +160,8 @@ private:
     StreamState getStreamState_l(Aml_MP_StreamType streamType);
     int prepare_l();
     int finishPreparingIfNeeded_l();
-    int resetIfNeeded_l();
-    int reset_l();
+    int resetIfNeeded_l(std::unique_lock<std::mutex>& lock);
+    int reset_l(std::unique_lock<std::mutex>& lock);
     int applyParameters_l();
     void programEventCallback(Parser::ProgramEventType event, int param1, int param2, void* data);
     int drainDataFromBuffer_l();
@@ -178,9 +178,9 @@ private:
     int startAudioDecoding_l();
     int startSubtitleDecoding_l();
     int startADDecoding_l();
-    int stopAudioDecoding_l();
-    int stopSubtitleDecoding_l();
-    int stopADDecoding_l();
+    int stopAudioDecoding_l(std::unique_lock<std::mutex>& lock);
+    int stopSubtitleDecoding_l(std::unique_lock<std::mutex>& lock);
+    int stopADDecoding_l(std::unique_lock<std::mutex>& lock);
 
     int startDescrambling_l();
     int stopDescrambling_l();
