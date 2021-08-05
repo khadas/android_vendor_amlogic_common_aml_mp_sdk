@@ -75,8 +75,7 @@ public:
     int setAudioParams(const Aml_MP_AudioParams* params);
     int setADParams(Aml_MP_AudioParams* params);
     int setSubtitleParams(const Aml_MP_SubtitleParams* params);
-    int bindCasSession(AML_MP_CASSESSION casSession);
-    int unBindCasSession(AML_MP_CASSESSION casSession);
+    int setCasSession(AML_MP_CASSESSION casSession);
     int setIptvCASParams(Aml_MP_CASServiceType serviceType, const Aml_MP_IptvCASParams* params);
     int start();
     int stop();

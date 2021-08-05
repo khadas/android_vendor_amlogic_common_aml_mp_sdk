@@ -215,7 +215,7 @@ int AmlMpPlayerImpl::setADParams(Aml_MP_AudioParams* params)
     return 0;
 }
 
-int AmlMpPlayerImpl::bindCasSession(AML_MP_CASSESSION casSession)
+int AmlMpPlayerImpl::setCasSession(AML_MP_CASSESSION casSession)
 {
     AML_MP_TRACE(10);
     std::unique_lock<std::mutex> _l(mLock);
@@ -232,27 +232,6 @@ int AmlMpPlayerImpl::bindCasSession(AML_MP_CASSESSION casSession)
     mCasHandle = casBase;
     casBase->getEcmPids(mEcmPids);
     mIsStandaloneCas = true;
-
-    return 0;
-}
-
-int AmlMpPlayerImpl::unBindCasSession(AML_MP_CASSESSION casSession)
-{
-    AML_MP_TRACE(10);
-
-    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
-    RETURN_IF(-1, casBase == nullptr);
-
-    std::unique_lock<std::mutex> _l(mLock);
-    MLOG();
-
-    if (casBase != mCasHandle) {
-        MLOGE("unBindCasSession failed, casSession is not same one!");
-        return -1;
-    }
-
-    mCasHandle.clear();
-    mIsStandaloneCas = false;
 
     return 0;
 }
@@ -1734,6 +1713,8 @@ int AmlMpPlayerImpl::reset_l()
     if (!mIsStandaloneCas) {
         stopDescrambling_l();
     }
+    mIsStandaloneCas = false;
+    mCasHandle.clear();
 
     resetVariables_l();
 
@@ -1893,12 +1874,6 @@ void AmlMpPlayerImpl::resetVariables_l()
 
     mLastBytesWritten = 0;
     mLastWrittenTimeUs = 0;
-    mIsStandaloneCas = false;
-
-    if (mCasHandle != nullptr) {
-        MLOGW("forget to call unBindCasSession?");
-        mCasHandle.clear();
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -142,26 +142,15 @@ int Aml_MP_Player_SetAudioParams(AML_MP_PLAYER handle, Aml_MP_AudioParams* param
 int Aml_MP_Player_SetSubtitleParams(AML_MP_PLAYER handle, Aml_MP_SubtitleParams* params);
 
 /**
- * \brief Aml_MP_Player_BindCasSession
- * bind the casSession
+ * \brief Aml_MP_Player_SetCasSession
+ * set the casSession
  *
  * \param [in]  player handle
  * \param [in]  casSession casSession
  *
  * \return 0 if success
  */
-int Aml_MP_Player_BindCasSession(AML_MP_PLAYER handle, AML_MP_CASSESSION casSession);
-
-/**
- * \brief Aml_MP_Player_UnBindCasSession
- * unbind the casSession
- *
- * \param [in]  player handle
- * \param [in]  casSession casSession
- *
- * \return 0 if success
- */
-int Aml_MP_Player_UnBindCasSession(AML_MP_PLAYER handle, AML_MP_CASSESSION casSession);
+int Aml_MP_Player_SetCasSession(AML_MP_PLAYER handle, AML_MP_CASSESSION casSession);
 
 /*
  * \brief Aml_MP_Player_SetCASParams

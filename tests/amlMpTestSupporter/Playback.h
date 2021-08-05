@@ -103,8 +103,6 @@ private:
     Aml_MP_PlayerEventCallback mEventCallback = nullptr;
     void* mUserData = nullptr;
 
-    AML_MP_CASSESSION mCasSession = nullptr;
-
     PlayMode mPlayMode = PlayMode::START_ALL_STOP_ALL;
 
 private:
