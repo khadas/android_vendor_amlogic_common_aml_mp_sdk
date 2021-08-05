@@ -70,20 +70,12 @@ int Aml_MP_Player_SetSubtitleParams(AML_MP_PLAYER handle, Aml_MP_SubtitleParams*
     return player->setSubtitleParams(params);
 }
 
-int Aml_MP_Player_BindCasSession(AML_MP_PLAYER handle, AML_MP_CASSESSION casSession)
+int Aml_MP_Player_SetCasSession(AML_MP_PLAYER handle, AML_MP_CASSESSION casSession)
 {
     sptr<AmlMpPlayerImpl> player = aml_handle_cast<AmlMpPlayerImpl>(handle);
     RETURN_IF(-1, player == nullptr);
 
-    return player->bindCasSession(casSession);
-}
-
-int Aml_MP_Player_UnBindCasSession(AML_MP_PLAYER handle, AML_MP_CASSESSION casSession)
-{
-    sptr<AmlMpPlayerImpl> player = aml_handle_cast<AmlMpPlayerImpl>(handle);
-    RETURN_IF(-1, player == nullptr);
-
-    return player->unBindCasSession(casSession);
+    return player->setCasSession(casSession);
 }
 
 int Aml_MP_Player_SetCASParams(AML_MP_PLAYER handle, Aml_MP_CASParams* params)

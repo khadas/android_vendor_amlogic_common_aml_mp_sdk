@@ -320,7 +320,6 @@ void Playback::eventCallback(Aml_MP_PlayerEventType eventType, int64_t param)
 int Playback::start(const sptr<ProgramInfo>& programInfo, AML_MP_CASSESSION casSession, PlayMode playMode)
 {
     mProgramInfo = programInfo;
-    mCasSession = casSession;
 
     //printStreamsInfo();
     MLOGI(">>>> Playback start\n");
@@ -343,7 +342,7 @@ int Playback::start(const sptr<ProgramInfo>& programInfo, AML_MP_CASSESSION casS
     }
 
     if (mProgramInfo->scrambled) {
-        Aml_MP_Player_BindCasSession(mPlayer, mCasSession);
+        Aml_MP_Player_SetCasSession(mPlayer, casSession);
     }
 
     if (mPlayMode == PlayMode::START_AUDIO_START_VIDEO) {
@@ -460,11 +459,6 @@ bool Playback::setSubtitleParams()
 int Playback::stop()
 {
     int ret = 0;
-
-    if (mProgramInfo && mProgramInfo->scrambled) {
-        Aml_MP_Player_UnBindCasSession(mPlayer, mCasSession);
-        mCasSession = nullptr;
-    }
 
     if (mPlayMode == PlayMode::START_ALL_STOP_ALL || mPlayMode == PlayMode::START_SEPARATELY_STOP_ALL) {
         ret = Aml_MP_Player_Stop(mPlayer);
