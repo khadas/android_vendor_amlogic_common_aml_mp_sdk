@@ -108,7 +108,8 @@ AML_MP_VENDOR_SRCS := \
 #######################################
 AML_MP_INC := $(LOCAL_PATH)/include \
 	$(TOP)/vendor/amlogic/common/apps/LibTsPlayer/jni/include \
-	$(TOP)/vendor/amlogic/common/libdvr_release/include \
+	$(TOP)/vendor/amlogic/common/libdvr/include \
+        $(TOP)/vendor/amlogic/common/libdvr_release/include \
 	$(TOP)/vendor/amlogic/common/external/DTVKit/cas_hal/libamcas/include \
 	$(TOP)/vendor/amlogic/common/mediahal_sdk/include \
 	$(TOP)/hardware/amlogic/gralloc \
@@ -120,7 +121,8 @@ AML_MP_INC := $(LOCAL_PATH)/include \
 AML_MP_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/include \
 	$(LOCAL_PATH) \
 	$(TOP)/hardware/amlogic/media/amcodec/include \
-	$(TOP)/vendor/amlogic/common/libdvr_release/include \
+	$(TOP)/vendor/amlogic/common/libdvr/include \
+        $(TOP)/vendor/amlogic/common/libdvr_release/include \
 	$(TOP)/vendor/amlogic/common/mediahal_sdk/include \
 
 #######################################
