@@ -43,7 +43,11 @@ void AmlMpConfig::initProperty(const char* propertyName, std::string& value)
 void AmlMpConfig::reset()
 {
     mLogDebug = 0;
+#if ANDROID_PLATFORM_SDK_VERSION >= 30
+    mTsPlayerNonTunnel = 1;
+#else
     mTsPlayerNonTunnel = 0;
+#endif
     mWaitingEcmMode = 1;
     mWriteBufferSize = 2; // default write buffer size set to 2MB.
     mDumpPackts = 0;
