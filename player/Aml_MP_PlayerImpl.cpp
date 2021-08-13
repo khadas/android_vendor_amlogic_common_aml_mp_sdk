@@ -973,6 +973,13 @@ int AmlMpPlayerImpl::setParameter_l(Aml_MP_PlayerParameterKey key, void* paramet
     }
     break;
 
+    case AML_MP_PLAYER_PARAMETER_USE_TIF:
+    {
+        RETURN_IF(-1, parameter == nullptr);
+        mUseTif = *(bool*)parameter;
+    }
+    break;
+
     default:
         MLOGW("unhandled key: %s", mpPlayerParameterKey2Str(key));
         return ret;
@@ -1748,6 +1755,10 @@ int AmlMpPlayerImpl::applyParameters_l()
 
     if (mADMixLevel != -1) {
         mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AD_MIX_LEVEL, &mADMixLevel);
+    }
+
+    if (mUseTif != -1) {
+        mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_USE_TIF, &mUseTif);
     }
 
     return 0;

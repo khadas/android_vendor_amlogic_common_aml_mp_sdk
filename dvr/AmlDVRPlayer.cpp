@@ -121,6 +121,13 @@ int AmlDVRPlayer::start(bool initialPaused)
     MLOGI("TsPlayer set Workmode NORMAL %s, result(%d)", (ret)? "FAIL" : "OK", ret);
     ret = AmTsPlayer_setSyncMode(mTsPlayerHandle, TS_SYNC_PCRMASTER );
     MLOGI(" TsPlayer set Syncmode PCRMASTER %s, result(%d)", (ret)? "FAIL" : "OK", ret);
+#ifdef ANDROID
+    if (mUseTif != -1) {
+        am_tsplayer_audio_patch_manage_mode audioPatchManageMode = mUseTif ? AUDIO_PATCH_MANAGE_FORCE_DISABLE : AUDIO_PATCH_MANAGE_FORCE_ENABLE;
+        ret = AmTsPlayer_setParams(mTsPlayerHandle, AM_TSPLAYER_KEY_SET_AUDIO_PATCH_MANAGE_MODE, (void*)&audioPatchManageMode);
+        MLOGI(" TsPlayer set AudioPatchManageMode: %d, return %s, result(%d)", audioPatchManageMode, (ret)? "FAIL" : "OK", ret);
+    }
+#endif
 
     if (AmlMpConfig::instance().mTsPlayerNonTunnel) {
         if (AmlMpConfig::instance().mUseVideoTunnel == 0) {
@@ -403,6 +410,12 @@ int AmlDVRPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter)
             ret = AmTsPlayer_setSurface(mPlayer, surface);
 #endif
 
+            break;
+        }
+
+        case AML_MP_PLAYER_PARAMETER_USE_TIF:
+        {
+            mUseTif = *(bool*)parameter;
             break;
         }
 

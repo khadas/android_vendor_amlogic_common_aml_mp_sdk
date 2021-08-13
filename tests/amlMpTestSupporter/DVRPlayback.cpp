@@ -73,6 +73,8 @@ void DVRPlayback::registerEventCallback(Aml_MP_PlayerEventCallback cb, void* use
 
 int DVRPlayback::start()
 {
+    bool useTif = false;
+    Aml_MP_DVRPlayer_SetParameter(mPlayer, AML_MP_PLAYER_PARAMETER_USE_TIF, &useTif);
     Aml_MP_DVRPlayer_RegisterEventCallback(mPlayer, mEventCallback, mUserData);
 
     uint32_t segments;

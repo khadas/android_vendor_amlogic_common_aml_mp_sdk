@@ -82,6 +82,7 @@ private:
     NativeWindowHelper mNativeWindowHelper;
 #endif
     int mVideoTunnelId = -1;
+    int mUseTif = -1;
 
 private:
     AmlDVRPlayer(const AmlDVRPlayer&) = delete;
