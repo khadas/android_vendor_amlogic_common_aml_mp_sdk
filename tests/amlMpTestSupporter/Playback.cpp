@@ -331,6 +331,9 @@ int Playback::start(const sptr<ProgramInfo>& programInfo, AML_MP_CASSESSION casS
         return -1;
     }
 
+    bool useTif = false;
+    Aml_MP_Player_SetParameter(mPlayer, AML_MP_PLAYER_PARAMETER_USE_TIF, &useTif);
+
     if (mEventCallback != nullptr) {
         Aml_MP_Player_RegisterEventCallBack(mPlayer,mEventCallback, mUserData);
     } else {

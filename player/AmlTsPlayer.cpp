@@ -800,6 +800,19 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
             break;
         }
 
+        case AML_MP_PLAYER_PARAMETER_USE_TIF:
+        {
+#ifdef ANDROID
+            am_tsplayer_audio_patch_manage_mode audioPatchManageMode = AUDIO_PATCH_MANAGE_AUTO;
+            int para = *(int*)parameter;
+            if (para != -1) {
+                audioPatchManageMode = para ? AUDIO_PATCH_MANAGE_FORCE_DISABLE : AUDIO_PATCH_MANAGE_FORCE_ENABLE;
+            }
+            ret = AmTsPlayer_setParams(mPlayer, AM_TSPLAYER_KEY_SET_AUDIO_PATCH_MANAGE_MODE, (void*)&audioPatchManageMode);
+#endif
+            break;
+        }
+
         default:
             ret = AM_TSPLAYER_ERROR_INVALID_PARAMS;
     }
