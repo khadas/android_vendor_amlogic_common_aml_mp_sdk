@@ -121,7 +121,7 @@ int AmlDVRPlayer::start(bool initialPaused)
     MLOGI("TsPlayer set Workmode NORMAL %s, result(%d)", (ret)? "FAIL" : "OK", ret);
     ret = AmTsPlayer_setSyncMode(mTsPlayerHandle, TS_SYNC_PCRMASTER );
     MLOGI(" TsPlayer set Syncmode PCRMASTER %s, result(%d)", (ret)? "FAIL" : "OK", ret);
-#ifdef ANDROID
+#if ANDROID_PLATFORM_SDK_VERSION >= 30
     if (mUseTif != -1) {
         am_tsplayer_audio_patch_manage_mode audioPatchManageMode = mUseTif ? AUDIO_PATCH_MANAGE_FORCE_DISABLE : AUDIO_PATCH_MANAGE_FORCE_ENABLE;
         ret = AmTsPlayer_setParams(mTsPlayerHandle, AM_TSPLAYER_KEY_SET_AUDIO_PATCH_MANAGE_MODE, (void*)&audioPatchManageMode);
