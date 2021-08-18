@@ -802,7 +802,7 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
 
         case AML_MP_PLAYER_PARAMETER_USE_TIF:
         {
-#ifdef ANDROID
+#if ANDROID_PLATFORM_SDK_VERSION >= 30
             am_tsplayer_audio_patch_manage_mode audioPatchManageMode = AUDIO_PATCH_MANAGE_AUTO;
             int para = *(int*)parameter;
             if (para != -1) {
