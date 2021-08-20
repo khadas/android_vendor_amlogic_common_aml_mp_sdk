@@ -919,6 +919,25 @@ bool isSupportMultiHwDemux()
     return access("/sys/module/dvb_demux/", F_OK) == 0;
 }
 
+NativeWindowHelper::NativeWindowHelper()
+{
+}
+
+NativeWindowHelper::~NativeWindowHelper()
+{
+    #ifdef ANDROID
+    if (mMesonVtFd >= 0) {
+        if (mTunnelId >= 0) {
+            MLOGI("~NativeWindowHelper: free Id:%d", mTunnelId);
+            meson_vt_free_id(mMesonVtFd, mTunnelId);
+        }
+        meson_vt_close(mMesonVtFd);
+        mTunnelId = -1;
+        mMesonVtFd = -1;
+    }
+    #endif
+}
+
 int NativeWindowHelper::setSiebandTunnelMode(ANativeWindow* nativeWindow)
 {
     int ret = -1;
@@ -953,21 +972,30 @@ int NativeWindowHelper::setSidebandNonTunnelMode(ANativeWindow* nativeWindow, in
         MLOGE("setANativeWindow mVideoTunnelId:%d", videoTunnelId);
     }
     #ifdef ANDROID
+    if (mMesonVtFd >= 0) {
+        if (mTunnelId >= 0) {
+            meson_vt_free_id(mMesonVtFd, mTunnelId);
+            MLOGI("setAnativeWindow: free Id %d, before sideband", mTunnelId);
+        }
+        meson_vt_close(mMesonVtFd);
+        mTunnelId = -1;
+        mMesonVtFd = -1;
+    }
     if (nativeWindow != nullptr) {
         int type = AM_FIXED_TUNNEL;
-        int mesonVtFd = meson_vt_open();
-        if (mesonVtFd < 0) {
+        mMesonVtFd = meson_vt_open();
+        if (mMesonVtFd < 0) {
             MLOGI("meson_vt_open failed!");
             return ret;
         }
-        if (meson_vt_alloc_id(mesonVtFd, &videoTunnelId) < 0) {
+        if (meson_vt_alloc_id(mMesonVtFd, &videoTunnelId) < 0) {
             MLOGI("meson_vt_alloc_id failed!");
-            meson_vt_close(mesonVtFd);
+            meson_vt_close(mMesonVtFd);
+            mMesonVtFd = -1;
             return ret;
         }
         MLOGI("setAnativeWindow: allocId: %d", videoTunnelId);
-        meson_vt_free_id(mesonVtFd, videoTunnelId);
-        meson_vt_close(mesonVtFd);
+        mTunnelId = videoTunnelId;
 
         native_handle_t* sidebandHandle = am_gralloc_create_sideband_handle(type, videoTunnelId);
         mSidebandHandle = android::NativeHandle::create(sidebandHandle, true);
