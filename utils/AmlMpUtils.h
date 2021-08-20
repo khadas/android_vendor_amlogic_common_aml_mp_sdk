@@ -162,8 +162,8 @@ bool isSupportMultiHwDemux();
 
 struct NativeWindowHelper
 {
-    NativeWindowHelper() = default;
-    ~NativeWindowHelper() = default;
+    NativeWindowHelper();
+    ~NativeWindowHelper();
 
     int setSiebandTunnelMode(ANativeWindow* nativeWindow);
     int setSidebandNonTunnelMode(ANativeWindow* nativeWindow, int& videoTunnelId);
@@ -171,6 +171,8 @@ struct NativeWindowHelper
 private:
     #ifdef ANDROID
     android::sp<android::NativeHandle> mSidebandHandle;
+    int mTunnelId = -1;
+    int mMesonVtFd = -1;
     #endif
     NativeWindowHelper(const NativeWindowHelper&) = delete;
     NativeWindowHelper& operator= (const NativeWindowHelper&) = delete;
