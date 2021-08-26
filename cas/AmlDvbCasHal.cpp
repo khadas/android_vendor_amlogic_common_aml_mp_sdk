@@ -76,10 +76,16 @@ static int convertToAmlMPErrorCode(AM_RESULT CasResult) {
             return AML_MP_ERROR;
     }
 }
+
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace aml_mp {
+#ifdef HAVE_CAS_HAL
+std::mutex AmlDvbCasHal::sCasHalSessionLock;
+std::map<CasSession, wptr<AmlDvbCasHal>> AmlDvbCasHal::sCasHalSessionMap;
+#endif
+
 AmlDvbCasHal::AmlDvbCasHal(Aml_MP_CASServiceType serviceType)
 : AmlCasBase(serviceType)
 {
@@ -93,6 +99,12 @@ AmlDvbCasHal::AmlDvbCasHal(Aml_MP_CASServiceType serviceType)
     }
 
     MLOG("openSession:%#x", mCasSession);
+
+    std::unique_lock<std::mutex> _l(sCasHalSessionLock);
+    auto result = sCasHalSessionMap.emplace(mCasSession, this);
+    if (!result.second) {
+        MLOGE("save CasSession failed! (%#x, %p)", mCasSession, this);
+    }
 #endif
 }
 
@@ -106,19 +118,26 @@ AmlDvbCasHal::~AmlDvbCasHal()
     if (ret != AM_ERROR_SUCCESS) {
         MLOGE("AM_CA_CloseSession failed!");
     }
+
+    std::unique_lock<std::mutex> _l(sCasHalSessionLock);
+    auto result = sCasHalSessionMap.erase(mCasSession);
+    if (result == 0) {
+        MLOGE("remove CasSession failed! (%#x, %p)", mCasSession, this);
+    }
 #endif
 }
 
-int AmlDvbCasHal::registerEventCallback(Aml_MP_CAS_EventCallback cb, void* userData __unused)
+int AmlDvbCasHal::registerEventCallback(Aml_MP_CAS_EventCallback cb, void* userData)
 {
     MLOG();
 
     int ret = AML_MP_ERROR;
 
-#ifdef HAVE_CAS_HAL
-    CAS_EventFunction_t eventFn = reinterpret_cast<CAS_EventFunction_t>(cb);
+    mCb = cb;
+    mUserData = userData;
 
-    ret = convertToAmlMPErrorCode(AM_CA_RegisterEventCallback(mCasSession, eventFn));
+#ifdef HAVE_CAS_HAL
+    ret = convertToAmlMPErrorCode(AM_CA_RegisterEventCallback(mCasSession, sCasHalCb));
 #else
     AML_MP_UNUSED(cb);
 #endif
@@ -331,6 +350,38 @@ int AmlDvbCasHal::getStoreRegion(Aml_MP_CASStoreRegion* region, uint8_t* regionC
     AML_MP_UNUSED(regionCount);
 #endif
     return ret;
+}
+
+#ifdef HAVE_CAS_HAL
+AM_RESULT AmlDvbCasHal::sCasHalCb(CasSession session, char* json)
+{
+    sptr<AmlDvbCasHal> dvbCasCal;
+
+    {
+        std::unique_lock<std::mutex> _l(sCasHalSessionLock);
+        auto ret = sCasHalSessionMap.find(session);
+        if (ret != sCasHalSessionMap.end()) {
+            dvbCasCal = ret->second.promote();
+        }
+    }
+
+    if (dvbCasCal != nullptr) {
+        dvbCasCal->notifyListener(json);
+    } else {
+        MLOGE("dvbCasCal is NULL, session:%#x", session);
+    }
+
+    return AM_ERROR_SUCCESS;
+}
+#endif
+
+void AmlDvbCasHal::notifyListener(char* json)
+{
+    if (mCb) {
+        mCb(this, json);
+    } else {
+        MLOGW("mCb is NULL, json:%s", json);
+    }
 }
 
 
