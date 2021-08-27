@@ -119,6 +119,7 @@ typedef enum {
     AML_MP_AUDIO_CODEC_LATM,               // AAC LATM
     AML_MP_AUDIO_CODEC_PCM,                // PCM
     AML_MP_AUDIO_CODEC_AC4,                // AC4
+    AML_MP_AUDIO_CODEC_FLAC,               // FLAC
 
     AML_MP_SUBTITLE_CODEC_BASE = 2000,
     AML_MP_SUBTITLE_CODEC_CC,
