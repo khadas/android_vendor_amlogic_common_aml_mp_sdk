@@ -249,6 +249,20 @@ int AmlDvbCasHal::stopDVRReplay()
     return ret;
 }
 
+int AmlDvbCasHal::dvrReplay(Aml_MP_CASCryptoParams* cryptoParams)
+{
+    MLOG();
+
+    int ret = AML_MP_ERROR;
+
+#ifdef HAVE_CAS_HAL
+    AM_CA_CryptoPara_t* amCryptoParams = reinterpret_cast<AM_CA_CryptoPara_t*>(cryptoParams);
+    ret = convertToAmlMPErrorCode(AM_CA_DVRReplay(mCasSession, amCryptoParams));
+#endif
+
+    return ret;
+}
+
 int AmlDvbCasHal::DVREncrypt(Aml_MP_CASCryptoParams* cryptoParams)
 {
     int ret = AML_MP_ERROR;
@@ -272,16 +286,6 @@ int AmlDvbCasHal::DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams)
     static_assert(sizeof(Aml_MP_CASCryptoParams) == sizeof(AM_CA_CryptoPara_t), "Imcompatible with AM_CA_CryptoPara_t!");
     static_assert(sizeof(loff_t) == sizeof(int64_t), "Imcompatible loff_t vs int64_t");
     AM_CA_CryptoPara_t* amCryptoParams = reinterpret_cast<AM_CA_CryptoPara_t*>(cryptoParams);
-
-    if (!mDvrReplayInited) {
-        mDvrReplayInited = true;
-        MLOGI("DVRReplay");
-        ret = convertToAmlMPErrorCode(AM_CA_DVRReplay(mCasSession, amCryptoParams));
-        if (ret != AML_MP_OK) {
-            MLOGE("CAS DVR replay failed, ret = %d", ret);
-            return ret;
-        }
-    }
 
     ret = convertToAmlMPErrorCode(AM_CA_DVRDecrypt(mCasSession, amCryptoParams));
 #else

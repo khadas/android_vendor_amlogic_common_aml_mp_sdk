@@ -55,6 +55,7 @@ public:
 
     virtual int startDVRReplay(Aml_MP_CASDVRReplayParams* dvrReplayParams);
     virtual int stopDVRReplay();
+    virtual int dvrReplay(Aml_MP_CASCryptoParams* cryptoParams);
 
     virtual int DVREncrypt(Aml_MP_CASCryptoParams* cryptoParams);
     virtual int DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams);

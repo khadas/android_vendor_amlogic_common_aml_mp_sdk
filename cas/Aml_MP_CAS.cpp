@@ -258,6 +258,14 @@ int Aml_MP_CAS_StopDVRReplay(AML_MP_CASSESSION casSession)
     return casBase->stopDVRReplay();
 }
 
+int Aml_MP_CAS_DVRReplay(AML_MP_CASSESSION casSession, Aml_MP_CASCryptoParams* cryptoParams)
+{
+    sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);
+    RETURN_IF(-1, casBase == nullptr);
+
+    return casBase->dvrReplay(cryptoParams);
+}
+
 int Aml_MP_CAS_DVREncrypt(AML_MP_CASSESSION casSession, Aml_MP_CASCryptoParams *cryptoParams)
 {
     sptr<AmlCasBase> casBase = aml_handle_cast<AmlCasBase>(casSession);

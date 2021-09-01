@@ -40,6 +40,7 @@ public:
 
     virtual int startDVRReplay(Aml_MP_CASDVRReplayParams* dvrReplayParams) override;
     virtual int stopDVRReplay() override;
+    virtual int dvrReplay(Aml_MP_CASCryptoParams* cryptoParams) override;
 
     virtual int DVREncrypt(Aml_MP_CASCryptoParams* cryptoParams) override;
     int DVRDecrypt(Aml_MP_CASCryptoParams* cryptoParams) override;
@@ -64,7 +65,6 @@ private:
 #endif
     Aml_MP_CAS_EventCallback mCb = nullptr;
     void* mUserData = nullptr;
-    bool mDvrReplayInited = false;
 
 private:
     AmlDvbCasHal(const AmlDvbCasHal&) = delete;
