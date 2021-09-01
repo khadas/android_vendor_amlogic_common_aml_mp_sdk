@@ -197,10 +197,21 @@ int DVRPlayback::initDVRDecryptPlayback(Aml_MP_DVRPlayerDecryptParams& decryptPa
         return ret;
     }
 
-    decryptParams.cryptoData = mCasSession;
+    decryptParams.cryptoData = this;
     decryptParams.cryptoFn = [](Aml_MP_CASCryptoParams* params, void* userdata) {
-        AML_MP_CASSESSION casSession = (AML_MP_CASSESSION)userdata;
-        return Aml_MP_CAS_DVRDecrypt(casSession, params);
+        DVRPlayback* playback = (DVRPlayback*)userdata;
+        if (!playback->mDvrReplayInited) {
+            playback->mDvrReplayInited = true;
+            MLOGI("DVRReplay");
+            int ret = Aml_MP_CAS_DVRReplay(playback->mCasSession, params);
+            if (ret != AML_MP_OK) {
+                MLOGE("CAS DVR replay failed, ret = %d", ret);
+                return ret;
+            }
+            playback->mDvrReplayInited = true;
+        }
+
+        return Aml_MP_CAS_DVRDecrypt(playback->mCasSession, params);
     };
 
     uint8_t* secBuf = nullptr;
@@ -232,6 +243,8 @@ int DVRPlayback::uninitDVRDecryptPlayback()
 
     Aml_MP_CAS_CloseSession(mCasSession);
     mCasSession = nullptr;
+
+    mDvrReplayInited = false;
     #endif
     return 0;
 }
