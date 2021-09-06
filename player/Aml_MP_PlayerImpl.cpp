@@ -767,7 +767,15 @@ int AmlMpPlayerImpl::setVideoWindow(int x, int y, int width, int height)
     }
 #endif
 #endif
+
     mVideoWindow = {x, y, width, height};
+    if (mState == STATE_RUNNING || mState == STATE_PAUSED) {
+        RETURN_IF(-1, mPlayer == nullptr);
+        if (mVideoWindow.width >= 0 && mVideoWindow.height >= 0) {
+            mPlayer->setVideoWindow(x, y, width, height);
+        }
+    }
+
     return 0;
 }
 
@@ -1515,12 +1523,12 @@ int AmlMpPlayerImpl::prepare_l()
     if (mNativeWindow != nullptr) {
         mPlayer->setANativeWindow(mNativeWindow.get());
     }
-    if (!mNativeWindow.get() && mVideoWindow.width > 0 && mVideoWindow.height > 0) {
+    if (mVideoWindow.width >= 0 && mVideoWindow.height >= 0) {
         mPlayer->setVideoWindow(mVideoWindow.x, mVideoWindow.y, mVideoWindow.width, mVideoWindow.height);
     }
     #else
     //direct set in yocto
-    if (mVideoWindow.width > 0 && mVideoWindow.height > 0) {
+    if (mVideoWindow.width >= 0 && mVideoWindow.height >= 0) {
         mPlayer->setVideoWindow(mVideoWindow.x, mVideoWindow.y, mVideoWindow.width, mVideoWindow.height);
     }
     #endif

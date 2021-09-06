@@ -510,6 +510,19 @@ int AmlDVRPlayer::setANativeWindow(ANativeWindow* nativeWindow) {
     return 0;
 }
 
+int AmlDVRPlayer::setVideoWindow(int x, int y, int width, int height)
+{
+    MLOG("x:%d, y:%d, width:%d, height:%d", x, y, width, height);
+
+    am_tsplayer_result ret;
+    ret = AmTsPlayer_setVideoWindow(mTsPlayerHandle, x, y, width, height);
+    if (ret != AM_TSPLAYER_OK) {
+        return AML_MP_ERROR;
+    }
+
+    return ret;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 int AmlDVRPlayer::setBasicParams(Aml_MP_DVRPlayerBasicParams* basicParams)
 {
