@@ -597,6 +597,7 @@ am_tsplayer_video_match_mode convertToTsPlayerVideoMatchMode(Aml_MP_VideoDisplay
         return AV_VIDEO_MATCH_MODE_WIDTHFULL;
     case AML_MP_VIDEO_DISPLAY_MODE_HEIGHTFULL:
         return AV_VIDEO_MATCH_MODE_HEIGHFULL;
+#ifdef ANDROID
     case AML_MP_VIDEO_DISPLAY_MODE_4_3_LETTER_BOX:
         return AV_VIDEO_WIDEOPTION_4_3_LETTER_BOX;
     case AML_MP_VIDEO_DISPLAY_MODE_4_3_PAN_SCAN:
@@ -613,6 +614,7 @@ am_tsplayer_video_match_mode convertToTsPlayerVideoMatchMode(Aml_MP_VideoDisplay
         return AV_VIDEO_WIDEOPTION_16_9_COMBINED;
     case AML_MP_VIDEO_DISPLAY_MODE_CUSTOM:
         return AV_VIDEO_WIDEOPTION_CUSTOM;
+#endif
     default:
         return AV_VIDEO_MATCH_MODE_NONE;
     }
