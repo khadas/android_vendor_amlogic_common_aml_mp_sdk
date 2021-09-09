@@ -236,11 +236,10 @@ int Aml_MP_DVRPlayer_Resume(AML_MP_DVRPLAYER player)
     return ret;
 }
 
-int Aml_MP_DVRPlayer_SetLimit(AML_MP_DVRPLAYER player, int time, int limit)
+int Aml_MP_DVRPlayer_SetLimit(AML_MP_DVRPLAYER player, uint32_t time, uint32_t limit)
 {
     sptr<AmlDVRPlayer> dvrPlayer = aml_handle_cast<AmlDVRPlayer>(player);
     RETURN_IF(-1, dvrPlayer == nullptr);
-
     int ret = dvrPlayer->setLimit(time, limit);
 
     return ret;
