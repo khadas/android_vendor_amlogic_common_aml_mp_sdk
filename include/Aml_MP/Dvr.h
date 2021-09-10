@@ -372,7 +372,7 @@ int Aml_MP_DVRPlayer_Resume(AML_MP_DVRPLAYER player);
  * \return 0 if success
  */
 
-int Aml_MP_DVRPlayer_SetLimit(AML_MP_DVRPLAYER player, int time, int limit);
+int Aml_MP_DVRPlayer_SetLimit(AML_MP_DVRPLAYER player, uint32_t time, uint32_t limit);
 
 /**
  * \brief Aml_MP_DVRPlayer_Seek
