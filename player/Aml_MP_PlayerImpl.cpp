@@ -980,6 +980,12 @@ int AmlMpPlayerImpl::setParameter_l(Aml_MP_PlayerParameterKey key, void* paramet
     }
     break;
 
+    case  AML_MP_PLAYER_PARAMETER_TELETEXT_CONTROL:
+    {
+        MLOGW("ttx key: %s", mpPlayerParameterKey2Str(key));
+    }
+    break;
+
     default:
         MLOGW("unhandled key: %s", mpPlayerParameterKey2Str(key));
         return ret;
