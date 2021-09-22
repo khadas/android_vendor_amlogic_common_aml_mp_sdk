@@ -117,6 +117,22 @@ typedef struct {
 
 
 ///////////////////////////////////////////////////////////////////////////////
+typedef enum {
+    //set/get
+    AML_MP_MEDIAPLAYER_PARAMETER_SET_BASE  = 0x6000,
+    AML_MP_MEDIAPLAYER_PARAMETER_ONLYHINT_TYPE,                        //setOnlyHintType(Aml_MP_MediaPlayerOnlyHintType*)
+
+} Aml_MP_MediaPlayerParameterKey;
+
+//AML_MP_MEDIAPLAYER_PARAMETER_ONLYHINT_TYPE
+typedef enum {
+    AML_MP_MEDIAPLAYER_ONLYNONE       = 0,
+    AML_MP_MEDIAPLAYER_VIDEO_ONLYHIT  = (1 << 0),
+    AML_MP_MEDIAPLAYER_AUDIO_ONLYHIT  = (1 << 1),
+} Aml_MP_MediaPlayerOnlyHintType;
+
+
+///////////////////////////////////////////////////////////////////////////////
 //********************* BASIC INTERFACES BEGIN **************************/
 /**
  * \brief Aml_MP_MediaPlayer_Create
@@ -279,6 +295,30 @@ int Aml_MP_MediaPlayer_GetDuration(AML_MP_MEDIAPLAYER handle, int* msec);
  * \return 0 if success
  */
 int Aml_MP_MediaPlayer_Invoke(AML_MP_MEDIAPLAYER handle, Aml_MP_MediaPlayerInvokeRequest* request, Aml_MP_MediaPlayerInvokeReply* reply);
+
+/**
+ * \brief Aml_MP_MediaPlayer_SetParameter
+ * Set expand player parameter
+ *
+ * \param [in]  player handle
+ * \param [in]  player expand parameter key
+ * \param [in]  player expand parameter value
+ *
+ * \return 0 if success
+ */
+int Aml_MP_MediaPlayer_SetParameter(AML_MP_MEDIAPLAYER handle, Aml_MP_MediaPlayerParameterKey key, void* parameter);
+
+/**
+ * \brief Aml_MP_MediaPlayer_GetParameter
+ * Get expand player parameter
+ *
+ * \param [in]  player handle
+ * \param [in]  player expand parameter key
+ * \param [out] player expand parameter value
+ *
+ * \return 0 if success
+ */
+int Aml_MP_MediaPlayer_GetParameter(AML_MP_MEDIAPLAYER handle, Aml_MP_MediaPlayerParameterKey key, void* parameter);
 
 /**
  * \brief Aml_MP_MediaPlayer_RegisterEventCallBack

@@ -299,14 +299,26 @@ static struct TestModule::Command g_commandTable[] = {
             return -1;
         }
     },
+*/
+    {
+        "sOnlyHint", 1, "set only hint",
+        [](AML_MP_MEDIAPLAYER player, const std::vector<std::string>& args __unused) -> int {
+            int ret = 0;
+            Aml_MP_MediaPlayerOnlyHintType type = (Aml_MP_MediaPlayerOnlyHintType)atoi(args.at(1).c_str());
 
+            ret = Aml_MP_MediaPlayer_SetParameter(player, AML_MP_MEDIAPLAYER_PARAMETER_ONLYHINT_TYPE, (void*)&type);
+            printf("AML_MP_MEDIAPLAYER_PARAMETER_ONLYHINT_TYPE set type: %d, ret: %d\n", type, ret);
+
+            return ret;
+        }
+    },
+/*
     {
         "sParam", 0, "set param",
         [](AML_MP_MEDIAPLAYER player, const std::vector<std::string>& args __unused) -> int {
-            int loop = 0, ret =0;
-            ret = Aml_MP_MediaPlayer_SetParameter(player, AML_MP_MEDIAPLAYER_PARAMETER_LOOPING, (void*)(&loop));
-            printf("AML_MP_MEDIAPLAYER_PARAMETER_LOOPING set loop: %d, ret: %d\n", loop, ret);
+            int ret = 0;
 
+            printf("set param ret: %d\n", ret);
             return ret;
         }
     },
@@ -315,14 +327,8 @@ static struct TestModule::Command g_commandTable[] = {
         "gParam", 0, "get param",
         [](AML_MP_MEDIAPLAYER player, const std::vector<std::string>& args __unused) -> int {
             int ret = 0;
-            int durtion;
-            ret = Aml_MP_MediaPlayer_GetParameter(player, AML_MP_MEDIAPLAYER_PARAMETER_DURTION, (void *)(&durtion));
-            printf("AML_MP_MEDIAPLAYER_PARAMETER_DURTION get durtion: %d, ret: %d\n", durtion, ret);
 
-            int position;
-            ret = Aml_MP_MediaPlayer_GetParameter(player, AML_MP_MEDIAPLAYER_PARAMETER_CURRENT_POSITION, (void *)(&position));
-            printf("AML_MP_MEDIAPLAYER_PARAMETER_CURRENT_POSITION get position: %d, ret: %d\n", position, ret);
-
+            printf("get param ret: %d\n", ret);
             return ret;
         }
     },
@@ -490,6 +496,8 @@ struct Argument
     int y = 0;
     int viewWidth = -1;
     int viewHeight = -1;
+    bool onlyVideo = false;
+    bool onlyAudio = false;
 };
 
 static int parseCommandArgs(int argc, char* argv[], Argument* argument)
@@ -498,6 +506,8 @@ static int parseCommandArgs(int argc, char* argv[], Argument* argument)
         {"help",        no_argument,        nullptr, 'h'},
         {"size",        required_argument,  nullptr, 's'},
         {"pos",         required_argument,  nullptr, 'p'},
+        {"onlyVideo",   no_argument,        nullptr, 'V'},
+        {"onlyAudio",   no_argument,        nullptr, 'A'},
         {nullptr,       no_argument,        nullptr, 0},
     };
 
@@ -530,6 +540,18 @@ static int parseCommandArgs(int argc, char* argv[], Argument* argument)
                 }
             }
             break;
+        case 'V':
+             {
+                 argument->onlyVideo = true;
+                 printf("onlyVideo\n");
+             }
+             break;
+        case 'A':
+             {
+                 argument->onlyAudio = true;
+                 printf("onlyAudio\n");
+             }
+             break;
 
         case 'h':
         default:
@@ -552,6 +574,8 @@ static void showUsage()
             "options:\n"
             "    --size:      eg: 1920x1080\n"
             "    --pos:       eg: 0x0\n"
+            "    --onlyVideo         \n"
+            "    --onlyAudio         \n"
             "\n"
             "url format:\n"
             "    clear ts, eg: dclr:http://10.28.8.30:8881/data/a.ts\n"
@@ -597,6 +621,14 @@ int main(int argc, char *argv[])
 
     //create
     Aml_MP_MediaPlayer_Create(&mPlayer);
+
+    //only settings
+    Aml_MP_MediaPlayerOnlyHintType type = AML_MP_MEDIAPLAYER_ONLYNONE;
+    if (argument.onlyVideo)
+        type = AML_MP_MEDIAPLAYER_VIDEO_ONLYHIT;
+    if (argument.onlyAudio)
+        type = AML_MP_MEDIAPLAYER_AUDIO_ONLYHIT;
+    Aml_MP_MediaPlayer_SetParameter(mPlayer, AML_MP_MEDIAPLAYER_PARAMETER_ONLYHINT_TYPE, (void*)&type);
 
     //setdatasource
     Aml_MP_MediaPlayer_SetDataSource(mPlayer, argument.url.c_str());

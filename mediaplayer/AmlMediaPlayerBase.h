@@ -28,17 +28,6 @@ typedef struct {
 //Aml_MediaPlayer.h
 typedef Aml_MP_AVSyncSource Aml_MP_MediaPlayerAVSyncSource;
 
-//Aml_MediaPlayer.h
-typedef enum {
-    //set/get
-    AML_MP_MEDIAPLAYER_PARAMETER_SET_BASE  = 0x6000,
-    AML_MP_MEDIAPLAYER_PARAMETER_LOOPING,                           //setLooping(int* )
-
-    //get only
-    AML_MP_MEDIAPLAYER_PARAMETER_GET_BASE = 0x7000,
-    AML_MP_MEDIAPLAYER_PARAMETER_DURTION,                           //getDuration(int* )
-    AML_MP_MEDIAPLAYER_PARAMETER_CURRENT_POSITION,                  //getCurrentPosition(int* )
-} Aml_MP_MediaPlayerParameterKey;
 
 //Aml_MediaPlayer.h
 typedef enum {
