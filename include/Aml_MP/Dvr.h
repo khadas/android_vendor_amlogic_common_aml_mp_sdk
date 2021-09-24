@@ -232,6 +232,7 @@ typedef struct {
     int64_t                     blockSize;          //inject block size
     bool                        isTimeShift;
     Aml_MP_InputStreamType      drmMode;
+    bool                        isNotifyTime;
 } Aml_MP_DVRPlayerBasicParams;
 
 typedef struct {
