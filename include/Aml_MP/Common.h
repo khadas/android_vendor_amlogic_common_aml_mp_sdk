@@ -298,6 +298,7 @@ typedef enum {
     AML_MP_PLAYER_PARAMETER_SURFACE_HANDLE,                 //setSurface(void*)
     AML_MP_PLAYER_PARAMETER_AUDIO_PRESENTATION_ID,          //setPresentationId(int*)
     AML_MP_PLAYER_PARAMETER_USE_TIF,                        //setUseTif(bool*)
+    AML_MP_PLAYER_PARAMETER_SPDIF_PROTECTION,               //SetSPDIFProtection(int*)
 
     //get only
     AML_MP_PLAYER_PARAMETER_GET_BASE        = 0x2000,
