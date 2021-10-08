@@ -1211,6 +1211,16 @@ void AmlTsPlayer::eventCallback(am_tsplayer_event* event)
     }
     break;
 #endif
+
+#if ANDROID_PLATFORM_SDK_VERSION >= 30
+    case AM_TSPLAYER_EVENT_TYPE_DECODE_VIDEO_UNSUPPORT:
+    {
+        ALOGI("[evt] AM_TSPLAYER_EVENT_TYPE_DECODE_VIDEO_UNSUPPORT");
+        notifyListener(AML_MP_PLAYER_EVENT_VIDEO_UNSUPPORT);
+    }
+    break;
+#endif
+
     default:
         MLOGE("unhandled event:%d", event->type);
         break;
