@@ -530,7 +530,7 @@ int AmlDVRPlayer::setBasicParams(Aml_MP_DVRPlayerBasicParams* basicParams)
     memcpy(&(mPlaybackOpenParams.location), &(basicParams->location), DVR_MAX_LOCATION_SIZE);
     mPlaybackOpenParams.block_size = basicParams->blockSize;
     mPlaybackOpenParams.is_timeshift = basicParams->isTimeShift;
-    mPlaybackOpenParams.is_notify_time = basicParams->isNotifyTime;
+
     return 0;
 }
 
