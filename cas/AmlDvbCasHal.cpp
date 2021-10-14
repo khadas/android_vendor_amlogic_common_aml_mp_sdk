@@ -67,11 +67,11 @@ static int convertToAmlMPErrorCode(AM_RESULT CasResult) {
         case AM_ERROR_SUCCESS:
             return AML_MP_OK;
         case AM_ERROR_NOT_LOAD:
-            return AML_MP_ERROR_NO_INIT;
-        case AM_ERROR_NOT_SUPPORTED:
-            return AML_MP_ERROR_INVALID_OPERATION;
-        case AM_ERROR_OVERFLOW:
             return AML_MP_ERROR_BAD_INDEX;
+        case AM_ERROR_NOT_SUPPORTED:
+            return AML_MP_ERROR_BAD_TYPE;
+        case AM_ERROR_OVERFLOW:
+            return AML_MP_ERROR_NO_MEMORY;
         default:
             return AML_MP_ERROR;
     }

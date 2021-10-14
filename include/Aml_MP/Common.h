@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <errno.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 //typedef void* AML_MP_HANDLE;
@@ -554,25 +553,25 @@ typedef enum {
 
 ///////////////////////////////////////////////////////////////////////////////
 enum {
-    AML_MP_OK                           = 0,
-    AML_MP_ERROR                        = (-2147483647-1),
-    AML_MP_ERROR_NO_MEMORY              = -ENOMEM,                  // Not enough space
-    AML_MP_ERROR_INVALID_OPERATION      = -ENOSYS,                  // Function not implemented
-    AML_MP_ERROR_BAD_VALUE              = -EINVAL,                  // Invalid argument
-    AML_MP_ERROR_BAD_TYPE               = (AML_MP_ERROR+1),
-    AML_MP_ERROR_NAME_NOT_FOUND         = -ENOENT,                  // No such file or directory
-    AML_MP_ERROR_PERMISSION_DENIED      = -EPERM,                   // Operation not permitted
-    AML_MP_ERROR_NO_INIT                = -ENODEV,                  // No such device
-    AML_MP_ERROR_ALREADY_EXISTS         = -EEXIST,                  // File exists
-    AML_MP_ERROR_DEAD_OBJECT            = -EPIPE,                   // Broken pipe
-    AML_MP_ERROR_FAILED_TRANSACTION     = (AML_MP_ERROR+2),
-    AML_MP_ERROR_BAD_INDEX              = -EOVERFLOW,               // Value too large to be stored in data type
-    AML_MP_ERROR_NOT_ENOUGH_DATA        = -ENODATA,                 // No message is available on the STREAM head read queue
-    AML_MP_ERROR_WOULD_BLOCK            = -EWOULDBLOCK,             // Operation would block
-    AML_MP_ERROR_TIMED_OUT              = -ETIMEDOUT,               // Connection timed out
-    AML_MP_ERROR_UNKNOWN_TRANSACTION    = -EBADMSG,                 // Bad message
-    AML_MP_ERROR_FDS_NOT_ALLOWED        = (AML_MP_ERROR+3),
-    AML_MP_ERROR_UNEXPECTED_NULL        = (AML_MP_ERROR+4),
+    AML_MP_OK = 0,
+    AML_MP_ERROR = -1,
+    AML_MP_ERROR_NO_MEMORY,
+    AML_MP_ERROR_INVALID_OPERATION,
+    AML_MP_ERROR_BAD_VALUE,
+    AML_MP_ERROR_BAD_TYPE,
+    AML_MP_ERROR_NAME_NOT_FOUND,
+    AML_MP_ERROR_PERMISSION_DENIED,
+    AML_MP_ERROR_NO_INIT,
+    AML_MP_ERROR_ALREADY_EXISTS,
+    AML_MP_ERROR_DEAD_OBJECT,
+    AML_MP_ERROR_FAILED_TRANSACTION,
+    AML_MP_ERROR_BAD_INDEX,
+    AML_MP_ERROR_NOT_ENOUGH_DATA,
+    AML_MP_ERROR_WOULD_BLOCK,
+    AML_MP_ERROR_TIMED_OUT,
+    AML_MP_ERROR_UNKNOWN_TRANSACTION,
+    AML_MP_ERROR_FDS_NOT_ALLOWED,
+    AML_MP_ERROR_UNEXPECTED_NULL,
 };
 
 ///////////////////////////////////////////////////////////////////////////////
