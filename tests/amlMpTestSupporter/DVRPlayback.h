@@ -51,7 +51,6 @@ private:
 
     AML_MP_CASSESSION mCasSession = nullptr;
     AML_MP_SECMEM mSecMem = nullptr;
-    bool mDvrReplayInited = false;
 
 private:
     DVRPlayback(const DVRPlayback&) = delete;

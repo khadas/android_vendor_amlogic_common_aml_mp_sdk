@@ -306,17 +306,6 @@ int Aml_MP_CAS_StartDVRReplay(AML_MP_CASSESSION casSession, Aml_MP_CASDVRReplayP
 int Aml_MP_CAS_StopDVRReplay(AML_MP_CASSESSION casSession);
 
 /**
- * \brief Aml_MP_CAS_DVRReplay
- * need be called after Aml_MP_CAS_StartDVRReplay
- *
- * \param casSession
- * \param cryptoParams
- *
- * \return 0 if success
- */
-int Aml_MP_CAS_DVRReplay(AML_MP_CASSESSION casSession, Aml_MP_CASCryptoParams* cryptoParams);
-
-/**
  * \brief Aml_MP_CAS_CreateSecmem
  * Create secure memory
  *
