@@ -52,7 +52,6 @@ public:
     int setParameter(Aml_MP_PlayerParameterKey key, void* parameter);
     int getParameter(Aml_MP_PlayerParameterKey key, void* parameter);
     int setANativeWindow(ANativeWindow* nativeWindow);
-    int setVideoWindow(int x, int y, int width, int height);
 
 private:
     char mName[50];

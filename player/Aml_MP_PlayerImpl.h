@@ -125,8 +125,8 @@ private:
     struct WindowSize {
         int x = 0;
         int y = 0;
-        int width = -1;
-        int height = -1;
+        int width = 0;
+        int height = 0;
     };
 
     const char* stateString(State state);
