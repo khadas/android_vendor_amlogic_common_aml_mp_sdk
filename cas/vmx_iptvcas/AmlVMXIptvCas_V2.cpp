@@ -59,8 +59,6 @@ int AmlVMXIptvCas_V2::startDescrambling(const Aml_MP_IptvCASParams* params)
     snprintf(mServerPort, sizeof(mServerPort), "%d", params->serverPort);
     initParam.serverport = mServerPort;
     initParam.storepath = (char*)params->keyPath;
-    pIptvCas->setCasInstanceId(params->demuxId);
-    MLOGI("setCasInstanceId: demuxId: %d", params->demuxId);
     pIptvCas->setPrivateData((void *)&initParam, sizeof(iptvseverinfo_t));
 
     ret = pIptvCas->provision();
