@@ -285,9 +285,6 @@ int AmlMpPlayerImpl::start_l()
         if (mAudioPresentationId > 0) {
             mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_PRESENTATION_ID, &mAudioPresentationId);
         }
-        if (mSPDIFStatus != -1) {
-            mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_SPDIF_PROTECTION, &mSPDIFStatus);
-        }
     }
 
     if (mSubtitleParams.subtitleCodec != AML_MP_CODEC_UNKNOWN) {
@@ -438,9 +435,6 @@ int AmlMpPlayerImpl::flush()
         mPlayer->setAudioParams(&mAudioParams);
         if (mAudioPresentationId > 0) {
             mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_PRESENTATION_ID, &mAudioPresentationId);
-        }
-        if (mSPDIFStatus != -1) {
-            mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_SPDIF_PROTECTION, &mSPDIFStatus);
         }
     }
     if (getStreamState_l(AML_MP_STREAM_TYPE_AD) == STREAM_STATE_STARTED) {
@@ -992,13 +986,6 @@ int AmlMpPlayerImpl::setParameter_l(Aml_MP_PlayerParameterKey key, void* paramet
     }
     break;
 
-    case AML_MP_PLAYER_PARAMETER_SPDIF_PROTECTION:
-    {
-        RETURN_IF(-1, parameter == nullptr);
-        mSPDIFStatus = *(int*)parameter;
-    }
-    break;
-
     default:
         MLOGW("unhandled key: %s", mpPlayerParameterKey2Str(key));
         return ret;
@@ -1149,9 +1136,6 @@ int AmlMpPlayerImpl::startAudioDecoding_l()
     mPlayer->setAudioParams(&mAudioParams);
     if (mAudioPresentationId > 0) {
         mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_PRESENTATION_ID, &mAudioPresentationId);
-    }
-    if (mSPDIFStatus != -1) {
-        mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_SPDIF_PROTECTION, &mSPDIFStatus);
     }
 
     ret = mPlayer->startAudioDecoding();
@@ -1831,9 +1815,6 @@ int AmlMpPlayerImpl::resetAudioCodec_l(bool callStart)
         mPlayer->setAudioParams(&mAudioParams);
         if (mAudioPresentationId > 0) {
             mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_AUDIO_PRESENTATION_ID, &mAudioPresentationId);
-        }
-        if (mSPDIFStatus != -1) {
-            mPlayer->setParameter(AML_MP_PLAYER_PARAMETER_SPDIF_PROTECTION, &mSPDIFStatus);
         }
     }
 

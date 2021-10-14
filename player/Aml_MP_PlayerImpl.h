@@ -224,7 +224,6 @@ private:
     void* mSurfaceHandle = nullptr;
     int mAudioPresentationId = 0;
     int mUseTif = -1;
-    int mSPDIFStatus = -1;
 
     Aml_MP_AVSyncSource mSyncSource = AML_MP_AVSYNC_SOURCE_DEFAULT;
     int mPcrPid = AML_MP_INVALID_PID;
