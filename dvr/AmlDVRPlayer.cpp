@@ -226,9 +226,9 @@ int AmlDVRPlayer::resume()
     return ret;
 }
 
-int AmlDVRPlayer::setLimit(uint32_t time, uint32_t limit)
+int AmlDVRPlayer::setLimit(int time, int limit)
 {
-    MLOG("rec start time:%u limit:%u", time, limit);
+    MLOG("rec start time:%d limit:%d", time, limit);
     mRecStartTime = time;
     mLimit = limit;
     if (mRecStartTime > 0) {
