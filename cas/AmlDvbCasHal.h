@@ -16,8 +16,6 @@
 #include "am_cas.h"
 #endif
 #include "AmlCasBase.h"
-#include <map>
-#include <mutex>
 
 namespace aml_mp {
 
@@ -50,20 +48,10 @@ public:
     virtual int ioctl(const char* inJson, char* outJson, uint32_t outLen) override;
     virtual int getStoreRegion(Aml_MP_CASStoreRegion* region, uint8_t* regionCount) override;
 
-#ifdef HAVE_CAS_HAL
-    static AM_RESULT sCasHalCb(CasSession session, char* json);
-#endif
-
 private:
-    void notifyListener(char* json);
 #ifdef HAVE_CAS_HAL
     CasSession mCasSession = 0;
-    static std::mutex sCasHalSessionLock;
-    static std::map<CasSession, wptr<AmlDvbCasHal>> sCasHalSessionMap;
-
 #endif
-    Aml_MP_CAS_EventCallback mCb = nullptr;
-    void* mUserData = nullptr;
     bool mDvrReplayInited = false;
 
 private:
