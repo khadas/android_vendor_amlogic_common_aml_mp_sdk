@@ -1565,10 +1565,11 @@ int AmlMpPlayerImpl::prepare_l()
         mPrepareWaitingType |= kPrepareWaitingEcm;
     }
 
-    if ((mVideoParams.videoCodec == AML_MP_CODEC_UNKNOWN && mVideoParams.pid != AML_MP_INVALID_PID) ||
+    if (mCreateParams.sourceType != AML_MP_INPUT_SOURCE_ES_MEMORY &&
+        ((mVideoParams.videoCodec == AML_MP_CODEC_UNKNOWN && mVideoParams.pid != AML_MP_INVALID_PID) ||
         (mAudioParams.audioCodec == AML_MP_CODEC_UNKNOWN && mAudioParams.pid != AML_MP_INVALID_PID) ||
         (mSubtitleParams.subtitleCodec == AML_MP_CODEC_UNKNOWN && mSubtitleParams.pid != AML_MP_INVALID_PID) ||
-        (mADParams.audioCodec == AML_MP_CODEC_UNKNOWN && mADParams.pid != AML_MP_INVALID_PID)) {
+        (mADParams.audioCodec == AML_MP_CODEC_UNKNOWN && mADParams.pid != AML_MP_INVALID_PID))) {
         mPrepareWaitingType |= kPrepareWaitingCodecId;
     }
 
