@@ -728,6 +728,31 @@ DVB_DemuxSource_t convertToDVBDemuxSource(Aml_MP_DemuxSource source)
 
     case AML_MP_DEMUX_SOURCE_DMA7:
        return DVB_DEMUX_SOURCE_DMA7;
+
+    case AML_MP_DEMUX_SECSOURCE_DMA0:
+       return DVB_DEMUX_SECSOURCE_DMA0;
+
+    case AML_MP_DEMUX_SECSOURCE_DMA1:
+       return DVB_DEMUX_SECSOURCE_DMA1;
+
+    case AML_MP_DEMUX_SECSOURCE_DMA2:
+       return DVB_DEMUX_SECSOURCE_DMA2;
+
+    case AML_MP_DEMUX_SECSOURCE_DMA3:
+       return DVB_DEMUX_SECSOURCE_DMA3;
+
+    case AML_MP_DEMUX_SECSOURCE_DMA4:
+       return DVB_DEMUX_SECSOURCE_DMA4;
+
+    case AML_MP_DEMUX_SECSOURCE_DMA5:
+       return DVB_DEMUX_SECSOURCE_DMA5;
+
+    case AML_MP_DEMUX_SECSOURCE_DMA6:
+       return DVB_DEMUX_SECSOURCE_DMA6;
+
+    case AML_MP_DEMUX_SECSOURCE_DMA7:
+       return DVB_DEMUX_SECSOURCE_DMA7;
+
     }
 }
 

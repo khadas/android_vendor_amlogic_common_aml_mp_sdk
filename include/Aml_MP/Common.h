@@ -69,6 +69,14 @@ typedef enum {
     AML_MP_DEMUX_SOURCE_DMA5,  /**< DMA input port 5.*/
     AML_MP_DEMUX_SOURCE_DMA6,  /**< DMA input port 6.*/
     AML_MP_DEMUX_SOURCE_DMA7,  /**< DMA input port 7.*/
+    AML_MP_DEMUX_SECSOURCE_DMA0, /**< DMA secure port 0.*/
+    AML_MP_DEMUX_SECSOURCE_DMA1, /**< DMA secure port 1.*/
+    AML_MP_DEMUX_SECSOURCE_DMA2, /**< DMA secure port 2.*/
+    AML_MP_DEMUX_SECSOURCE_DMA3, /**< DMA secure port 3.*/
+    AML_MP_DEMUX_SECSOURCE_DMA4, /**< DMA secure port 4.*/
+    AML_MP_DEMUX_SECSOURCE_DMA5, /**< DMA secure port 5.*/
+    AML_MP_DEMUX_SECSOURCE_DMA6, /**< DMA secure port 6.*/
+    AML_MP_DEMUX_SECSOURCE_DMA7  /**< DMA secure port 7.*/
 } Aml_MP_DemuxSource;
 
 ///////////////////////////////////////////////////////////////////////////////

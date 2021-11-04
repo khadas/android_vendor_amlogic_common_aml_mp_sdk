@@ -31,6 +31,8 @@ struct list_head {
 #include <dvb_utils.h>
 
 #include <utils/RefBase.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 #ifdef ANDROID
 namespace android {
 class NativeHandle;
@@ -180,6 +182,11 @@ private:
 
 
 int pushBlankBuffersToNativeWindow(ANativeWindow *nativeWindow /* nonnull */);
+
+static inline pid_t gettid()
+{
+    return syscall(__NR_gettid);
+}
 
 }
 #endif

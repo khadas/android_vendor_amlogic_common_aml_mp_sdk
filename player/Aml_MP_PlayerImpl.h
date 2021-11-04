@@ -181,6 +181,7 @@ private:
     std::mutex mEventLock;
     Aml_MP_PlayerEventCallback mEventCb = nullptr;
     void* mUserData = nullptr;
+    std::atomic<pid_t> mEventCbTid{-1};
 
 
     mutable std::mutex mLock;

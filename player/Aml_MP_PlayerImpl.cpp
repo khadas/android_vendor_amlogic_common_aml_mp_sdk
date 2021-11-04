@@ -1010,11 +1010,27 @@ int AmlMpPlayerImpl::setParameter_l(Aml_MP_PlayerParameterKey key, void* paramet
 int AmlMpPlayerImpl::getParameter(Aml_MP_PlayerParameterKey key, void* parameter)
 {
     AML_MP_TRACE(10);
-    std::unique_lock<std::mutex> _l(mLock);
+    bool locked = false;
 
-    RETURN_IF(-1, mPlayer == nullptr);
+    //allow call getParameter in event callback.
+    pid_t eventCbTid = mEventCbTid.load(std::memory_order_relaxed);
+    if (eventCbTid == -1 || eventCbTid != gettid()) {
+        mLock.lock();
+        locked = true;
+    } else {
+        MLOGW("don't acquire lock for inner event cb thread!");
+    }
 
-    return mPlayer->getParameter(key, parameter);
+    int ret = -1;
+    if (mPlayer != nullptr) {
+        ret = mPlayer->getParameter(key, parameter);
+    }
+
+    if (locked) {
+        mLock.unlock();
+    }
+
+    return ret;
 }
 
 int AmlMpPlayerImpl::setAVSyncSource(Aml_MP_AVSyncSource syncSource)
@@ -1782,11 +1798,15 @@ int AmlMpPlayerImpl::applyParameters_l()
 void AmlMpPlayerImpl::notifyListener(Aml_MP_PlayerEventType eventType, int64_t param)
 {
     std::unique_lock<std::mutex> _l(mEventLock);
+    mEventCbTid = gettid();
+
     if (mEventCb) {
         mEventCb(mUserData, eventType, param);
     } else {
         MLOGW("mEventCb is NULL, eventType: %s, param:%lld", mpPlayerEventType2Str(eventType), param);
     }
+
+    mEventCbTid = -1;
 }
 
 int AmlMpPlayerImpl::resetADCodec_l(bool callStart)
