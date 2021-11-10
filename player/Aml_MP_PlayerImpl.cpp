@@ -342,14 +342,17 @@ int AmlMpPlayerImpl::stop_l(std::unique_lock<std::mutex>& lock)
 
             Aml_MP_AudioParams dummyAudioParam{AML_MP_INVALID_PID, AML_MP_CODEC_UNKNOWN};
             mPlayer->setAudioParams(&dummyAudioParam);
+
+            Aml_MP_AudioParams dummyADParam{AML_MP_INVALID_PID, AML_MP_CODEC_UNKNOWN};
+            mPlayer->setADParams(&dummyADParam, false);
         }
     }
 
     // ensure stream stopped if mState isn't running or paused
     setStreamState_l(AML_MP_STREAM_TYPE_AUDIO, STREAM_STATE_STOPPED);
+    setStreamState_l(AML_MP_STREAM_TYPE_AD, STREAM_STATE_STOPPED);
     setStreamState_l(AML_MP_STREAM_TYPE_VIDEO, STREAM_STATE_STOPPED);
     setStreamState_l(AML_MP_STREAM_TYPE_SUBTITLE, STREAM_STATE_STOPPED);
-    stopADDecoding_l(lock);
 
     int ret = resetIfNeeded_l(lock);
 
