@@ -71,6 +71,7 @@ public:
     virtual int stopAudioDecoding() = 0;
     virtual int startADDecoding() {return 0;}
     virtual int stopADDecoding() {return 0;}
+    virtual int getMediaSyncId() {return 0;}
 
     virtual int setADParams(const Aml_MP_AudioParams* params, bool enableMix) = 0;
 

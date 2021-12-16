@@ -69,7 +69,7 @@ public:
     int pauseAudioDecoding();
     int resumeAudioDecoding();
     int setADParams(const Aml_MP_AudioParams* params, bool enableMix) override;
-
+    int getMediaSyncId() override;
 private:
     void eventCallback(am_tsplayer_event* event);
 

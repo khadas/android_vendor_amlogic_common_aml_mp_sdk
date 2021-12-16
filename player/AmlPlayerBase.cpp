@@ -245,6 +245,12 @@ int AmlPlayerBase::startSubtitleDecoding()
         MLOGE("amlsub_Open failed!");
     }
 
+    if (AmlMpConfig::instance().mTsPlayerNonTunnel == 1) {
+        int mediasyncId = getMediaSyncId();
+        MLOGI("nontunnel mode setpip for subtitle,mediasyncId:%d\n",mediasyncId);
+        amlsub_SetPip(mSubtitleHandle, MODE_SUBTITLE_PIP_MEDIASYNC, mediasyncId);
+    }
+
     showSubtitle();
     MLOGI("Subtitle size is x:%d, y: %d, width: %d, height: %d", mSubWindowX, mSubWindowY, mSubWindowWidth, mSubWindowHeight);
     ret = amlsub_UiSetSurfaceViewRect(mSubtitleHandle, mSubWindowX, mSubWindowY, mSubWindowWidth, mSubWindowHeight);

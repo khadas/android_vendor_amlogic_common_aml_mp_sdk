@@ -271,6 +271,13 @@ int AmlTsPlayer::start() {
     return ret;
 }
 
+int AmlTsPlayer::getMediaSyncId() {
+    int mediasyncId = 0;
+    AmTsPlayer_getSyncInstansNo(mPlayer, &mediasyncId);
+    MLOGI("getMediaSyncId:%d\n",mediasyncId);
+    return mediasyncId;
+}
+
 int AmlTsPlayer::stop() {
     int ret = 0;
 
