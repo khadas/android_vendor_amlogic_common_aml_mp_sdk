@@ -403,7 +403,7 @@ int AmlDVRPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter)
             MLOGI("PVR set surface handle: %p", parameter);
 #if ANDROID_PLATFORM_SDK_VERSION >= 30
             // this is video tunnel id
-            mVideoTunnelId = (int)parameter;
+            mVideoTunnelId = (int)(long)parameter;
             ret = AmTsPlayer_setSurface(mPlayer, &mVideoTunnelId);
 #else
             void* surface = parameter;

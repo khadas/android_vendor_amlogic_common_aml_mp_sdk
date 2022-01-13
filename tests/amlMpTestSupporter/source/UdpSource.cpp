@@ -122,7 +122,7 @@ int UdpSource::start()
 
     int actualBufferSize = 0;
     #ifdef ANDROID
-    int len = sizeof(actualBufferSize);
+    socklen_t len = sizeof(actualBufferSize);
     #else
     socklen_t len = sizeof(actualBufferSize);
     #endif

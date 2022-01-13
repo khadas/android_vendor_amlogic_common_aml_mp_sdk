@@ -164,7 +164,7 @@ int AmlHwDemux::addPSISection(int pid, bool checkCRC)
             Looper::POLL_CALLBACK,
             Looper::EVENT_ERROR|Looper::EVENT_INPUT,
             mTsParser,
-            (void*)pid);
+            (void*)(long)pid);
 
     if (ret <= 0) {
         MLOGE("addFd failed! fd:%d", channelFd);
@@ -387,7 +387,7 @@ int HwTsParser::handleEvent(int fd, int events, void* data)
     }
 
     int version = buffer->data()[5]>>1 & 0x1F;
-    int pid = (int)data;
+    int pid = (int)(long)data;
 
     if (mSectionCallback) {
         mSectionCallback(pid, buffer, version);

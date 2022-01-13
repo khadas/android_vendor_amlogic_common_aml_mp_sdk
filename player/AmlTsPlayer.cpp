@@ -779,7 +779,7 @@ int AmlTsPlayer::setParameter(Aml_MP_PlayerParameterKey key, void* parameter) {
         {
 #if ANDROID_PLATFORM_SDK_VERSION >= 30
             // this is video tunnel id, must be a member variable address
-            mVideoTunnelId = (int)parameter;
+            mVideoTunnelId = (int)(long)parameter;
             MLOGI("set videoTunnelId: %d", mVideoTunnelId);
             ret = AmTsPlayer_setSurface(mPlayer, &mVideoTunnelId);
 #else
