@@ -189,8 +189,7 @@ AML_MP_SYSTEM_SHARED_LIBS_29 := \
 	libamgralloc_ext@2 \
 	libamdvr.product \
 	libCTC_MediaProcessor \
-
-#libmediahal_tsplayer.system \
+	libmediahal_tsplayer.system \
 
 
 AML_MP_SYSTEM_SHARED_LIBS_ge_30 := \
@@ -198,23 +197,20 @@ AML_MP_SYSTEM_SHARED_LIBS_ge_30 := \
 	libgui \
 	libamgralloc_ext \
 	libamdvr.system \
-
-#libmediahal_tsplayer.system \
+	libmediahal_tsplayer.system \
 
 
 AML_MP_VENDOR_SHARED_LIBS_29 := \
 	libamdvr \
 	libamgralloc_ext_vendor@2 \
 	libCTC_MediaProcessor.vendor \
-
-#libmediahal_tsplayer \
+	libmediahal_tsplayer \
 
 AML_MP_VENDOR_SHARED_LIBS_ge_30 := \
 	libSubtitleClient \
 	libamdvr \
-	libamgralloc_ext
-
-#libmediahal_tsplayer \
+	libamgralloc_ext \
+	libmediahal_tsplayer \
 
 ifeq ($(HAVE_WVIPTV_CAS), true)
 AML_MP_VENDOR_SHARED_LIBS_ge_30 += \
