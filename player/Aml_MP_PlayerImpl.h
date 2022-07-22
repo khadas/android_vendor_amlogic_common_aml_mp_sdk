@@ -140,8 +140,8 @@ private:
     int reset_l(std::unique_lock<std::mutex>& lock);
     int applyParameters_l();
     void programEventCallback(Parser::ProgramEventType event, int param1, int param2, void* data);
-    int drainDataFromBuffer_l();
-    int doWriteData_l(const uint8_t* buffer, size_t size);
+    int drainDataFromBuffer_l(std::unique_lock<std::mutex>& lock);
+    int doWriteData_l(const uint8_t* buffer, size_t size, std::unique_lock<std::mutex>& lock);
 
     void notifyListener(Aml_MP_PlayerEventType eventType, int64_t param);
 
